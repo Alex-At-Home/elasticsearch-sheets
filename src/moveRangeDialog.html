@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <base target="_top">
+  </head>
+  <body>
+     <div class="form-group row">
+        <div class="col-xs-3">
+           <input class="form-control" id="sheet" placeholder="Sheet Name" type="text">
+        </div>
+        <div class="col-xs-4">
+           <input class="form-control" id="range" placeholder="Cell Range" type="text">
+        </div>
+           <button id="reset" class="btn btn-outline btn-warning" type="button" data-toggle="tooltip" title="Resets the edited range back to the saved range">Reset</button>
+           <button id="copy" class="btn btn-outline btn-info" type="button" data-toggle="tooltip" title="Copies the current selection">Copy</button>
+    </div>
+    <button id="update" class="btn btn-primary" type="button">Update</button>
+    <button id="cancel" class="btn btn-secondary" type="button">Cancel</button>
+  </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script>
+      var tableName = "<?= tableName ?>"
+      var savedRange = {}
+      
+      /** Status/error display */
+      function showStatus(message, summary) {
+         google.script.run.showStatus(message, summary)
+      }
+      
+      // Event handlers
+      
+      $(`#reset`).click(function(){
+         $(`#sheet`).val(savedRange.sheet)
+         $(`#range`).val(savedRange.range)
+      });
+      $(`#copy`).click(function(){
+         google.script.run.withSuccessHandler(function(obj) {
+            if (obj) {
+              $(`#sheet`).val(obj.sheet)
+              $(`#range`).val(obj.range)
+            }
+         }).withFailureHandler(function(msg) {
+            console.log("getCurrentSelection: error: [" + JSON.stringify(msg) + "]")
+            showStatus(JSON.stringify(msg, 3), 'Move Error')
+         }).getCurrentSelection()
+      });
+      $(`#update`).click(function(){
+         var sheet = $(`#sheet`).val()
+         var range = $(`#range`).val()
+         
+         google.script.run.withSuccessHandler(function(obj) {
+           if (obj) google.script.run.withSuccessHandler(function(obj) {
+              google.script.host.close()
+            }).activateTableRange(tableName) // (else should have gotten a toaster containing the error)
+         }).withFailureHandler(function(msg) {
+            console.log("setCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
+            showStatus(JSON.stringify(msg, 3), 'Move Error')
+         }).setCurrentTableRange(tableName, { sheet: sheet, range: range })
+         
+      });
+      $(`#cancel`).click(function(){
+         google.script.host.close()
+      });
+      
+      // Startup:
+      
+      google.script.run.withSuccessHandler(function(obj) {
+         savedRange = obj
+         $(`#sheet`).val(savedRange.sheet)
+         $(`#range`).val(savedRange.range)
+      }).withFailureHandler(function(msg) {
+         console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
+         showStatus(JSON.stringify(msg, 3), 'Move Error')
+      }).getCurrentTableRange(tableName)
+      
+  </script>
+</html>
+
+
+
+

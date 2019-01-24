@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <style type="text/css" media="screen">
+	   .ace_editor {
+          height: 500px;
+		  width: 100%;
+	   }
+      .disabledbutton {
+         pointer-events: none;
+         opacity: 0.4;
+      }    
+      .no-padding {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    </style>
+    <base target="_top">
+</head>
+
+<body>
+
+    <div class="panel-group" id="accordion">
+    </div>
+        
+    <!-- Dependencies -->
+
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+    
+   <!-- Post-dependency initialization -->    
+    
+   <script>
+      // Global state - BEWARE
+      var accordianOneUp = 0
+      var accordianNames = {}
+      var accordianBodies = {}
+      var defaultKey = "d_e_f_a_u_l_t" //TODO: make this a template and retrive this from backend?
+
+      /** Validate names */
+      function validateName(name) {
+         return (null != name) && ("" != name) && (null == name.match(/["'&<>]/))
+      }
+
+      /** Status/error display */
+      function showStatus(message, summary) {
+         google.script.run.showStatus(message, summary)
+      }
+      /** Stops user monkeying around while server controls are ongoing */
+      function disableInput() {
+         $("#accordion").addClass('disabledbutton');
+      }
+      /** Stops user monkeying around while server controls are ongoing */
+      function enableInput() {
+         $("#accordion").removeClass('disabledbutton');
+      }
+
+      /** Builds the UI element that manages data tables*/
+      function buildAccordionElement(index, name, json, isFirstElement) {
+         if (!isFirstElement && !validateName(name)) {
+            showStatus("Bad name: [" + name + "], can't contain [<>'\"]", "Client Error")
+            return
+         }
+         
+         // Manage global state:
+         accordianOneUp++
+         accordianBodies[index] = json          
+         var tableName = ""
+         if (isFirstElement) {
+             accordianNames[index] = defaultKey
+         } else {
+            tableName = name
+            accordianNames[index] = name
+         }          
+         
+         // Append to accordion
+
+         var buttons = ""
+         var tableTools = ""
+         var tableToolsStyle = ""
+         var nameEditor = ""
+         var disabledNameEditor = ""
+         if (isFirstElement) {
+            buttons = 
+            `
+                     <button id="create_${index}" type="button" class="btn btn-primary">Create</button>
+                     <button id="cancel_${index}" type="button" class="btn btn-warning">Cancel</button>
+            `
+         } else {
+            buttons = 
+            `
+                   <button id="update_${index}" type="button" class="btn btn-primary">Update</button>
+                   <button id="reset_${index}" type="button" class="btn btn-warning">Reset</button>
+                   <button id="delete_${index}" type="button" class="btn btn-danger">Delete</button>
+            `
+            
+            nameEditor =
+            `
+              <span class="input-group-btn">
+                <button id="editname_${index}" class="btn btn-default" type="button" data-toggle="tooltip" title="Edit name"><span class='glyphicon glyphicon-pencil'></span></button>
+              </span>
+            `
+            
+            tableTools =
+            `
+               <div class="btn-group pull-right no-padding" role="group">
+                   <button id="query_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Refresh query"><span class='glyphicon glyphicon-refresh'></span></button>
+                   <button id="move_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Move/resize range"><span class='glyphicon glyphicon-move'></span></button>
+                </div>
+            `
+            tableToolsStyle = "style='padding-top: 6px;'"
+            disabledNameEditor = "disabled"
+         }
+         
+         var page = 
+         `<div class="panel panel-default">
+            <div class="panel-heading clearfix">
+            ${tableTools}
+                <h4 class="panel-title" ${tableToolsStyle}>
+                    <a id="toggleCollapse${index}" data-parent="#accordion">${name}</a>
+                </h4>
+            </div>
+            <div id="collapse${index}" class="panel-collapse collapse out">
+                <div class="panel-body form-horizontal">
+                  <div class="form-group">
+                     ${buttons}
+                  </div> 
+                  <div class="form-group"><div class="input-group">
+                     <div class="input-group-addon">
+                        <span class="input-group-text" id="basic-addon${index}">Name</span>
+                     </div>
+                     <input type="text" id="name_${index}" class="form-control" placeholder="Table Name" aria-describedby="basic-addon${index}" value="${tableName}" ${disabledNameEditor}>
+                     ${nameEditor}
+                  </div> </div>
+                  <div class="form-group">
+                     <div id="editor_${index}"></div>
+                  </div> 
+                </div>
+            </div>
+         </div>`
+         
+        $("#accordion").append(page).append(function(){ // When complete
+
+           // Add collapse toggle handler
+        
+           $(document).ready(function(){
+              $(`#toggleCollapse${index}`).click(function(){
+                 $(`#collapse${index}`).collapse('toggle')
+              });
+           });
+
+           // Build code editor
+
+           var curr_editor = ace.edit(`editor_${index}`)
+           curr_editor.session.setMode("ace/mode/json")
+           curr_editor.session.setTabSize(3)
+           curr_editor.session.setUseWrapMode(true)
+           curr_editor.session.setValue(JSON.stringify(json, null, 3))                   
+           
+           // Add button handlers
+           
+           if (isFirstElement) { //create, cancel
+              $(`#create_${index}`).click(function(){
+                 var newName = $(`#name_${index}`).val()
+                 if (!validateName(newName)) {
+                    showStatus("New table name must be non-empty and valid", 'Client Error')
+                 } else {
+                    try {
+                       var jsonStr = curr_editor.session.getValue()
+                       var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                       // Call server-side to add new accordian
+                       disableInput()
+                       createNewAccordionElement(newName, jsonBody)
+                    } catch (err) {
+                       enableInput() //(just in case createNewAccordionElement throws)
+                       showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                    }
+                 }
+              });              
+              $(`#cancel_${index}`).click(function(){
+                $(`#name_${index}`).val("")
+                curr_editor.session.setValue(JSON.stringify(json, null, 3))   
+              });
+           } else { // update, reset, delete
+           
+              $(`#editname_${index}`).click(function(){
+                $(`#name_${index}`).prop('disabled', function(i, v) { return !v; });
+              });
+              $(`#delete_${index}`).click(function(){
+                 delete accordianNames[index]
+                 delete accordianBodies[index]
+                 disableInput()
+                 try {
+                    deleteAccordionElement(name)
+                 } catch (err) {
+                    enableInput() //(just in case createNewAccordionElement throws)
+                    showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
+                 }
+              });
+              $(`#move_${index}`).click(function(){
+                google.script.run.showTableRangeManager(name)
+              });
+              $(`#reset_${index}`).click(function(){
+                $(`#name_${index}`).val(name)
+                curr_editor.session.setValue(JSON.stringify(json, null, 3))   
+              });
+              $(`#update_${index}`).click(function(){
+                 var newName = $(`#name_${index}`).val()
+                 if (!validateName(name)) {
+                    showStatus("Updated table name must be non-empty and valid", 'Client Error')
+                 } else {
+                    try {
+                       var jsonStr = curr_editor.session.getValue()
+                       var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                       // Call server-side to add new accordian
+                       disableInput()
+                       updateAccordionElement(index, name, newName, jsonBody)
+                    } catch (err) {
+                       enableInput() //(just in case createNewAccordionElement throws)
+                       showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                    }
+                 }
+              });
+           }
+        });
+      }
+      
+      /** Rebuilds the accordion following a complex table change (delete/update-name/create) */
+      function rebuildAccordion() {
+         // Rebuild
+         var obj = {}
+         for (i in accordianNames) {
+             var name = accordianNames[i]
+             var json = accordianBodies[i]
+             obj[name] = json
+         }
+         // Reset state
+         accordianOneUp = 0
+         accordianNames = {}
+         accordianBodies = {}
+         // Rebuild table
+         $("#accordion").empty()
+         buildAccordionTable(obj)         
+         
+         //TODO: keep entries that are already open, open
+      }
+      
+      /** Create a new data table UI element */
+      function createNewAccordionElement(name, json) {
+         google.script.run.withSuccessHandler(
+            function(obj) {
+               if (obj) {
+                 accordianNames[accordianOneUp] = name
+                 accordianBodies[accordianOneUp] = json
+                 accordianOneUp++ //(just in case user is mashing buttons)
+                 rebuildAccordion()
+               } //(else request silently failed)
+               enableInput()
+            }
+         ).withFailureHandler(
+            function(msg) {
+               enableInput()
+               console.log("createTable: error: [" + JSON.stringify(msg) + "]")
+               showStatus(JSON.stringify(msg, 3), 'Client Error')
+            }
+         ).createTable(name, json)
+      }
+      
+      /** Create a new data table UI element */
+      function updateAccordionElement(index, oldName, newName, json) {
+         google.script.run.withSuccessHandler(
+            function(obj) {
+               if (obj && (oldName != newName)) { // else don't need to do anything
+                  delete accordianNames[index]
+                  delete accordianBodies[index]
+                  accordianNames[accordianOneUp] = newName
+                  accordianBodies[accordianOneUp] = json
+                  accordianOneUp++ //(just in case user is mashing buttons)
+                  rebuildAccordion()
+                  enableInput()
+               } else { //(request failed or no input)
+                  enableInput()
+               }
+            }
+         ).withFailureHandler(
+            function(msg) {
+               enableInput()
+               console.log("updateTable: error: [" + JSON.stringify(msg) + "]")
+               showStatus(JSON.stringify(msg, 3), 'Client Error')
+            }
+         ).updateTable(oldName, newName, json)
+      }
+      
+      /** Delete a new data table UI element */
+      function deleteAccordionElement(name) {
+         google.script.run.withSuccessHandler(
+            function(obj) {
+               rebuildAccordion()
+               enableInput()
+            }
+         ).withFailureHandler(
+            function(msg) {
+               enableInput()
+               console.log("deleteTable: error: [" + JSON.stringify(msg) + "]")
+               showStatus(JSON.stringify(msg, 3), 'Client Error')
+            }
+         ).deleteTable(name)
+      }
+
+      /** Builds the accordion table from an object (user created or from server) */
+      function buildAccordionTable(obj) {
+          // First element is always the "create":
+          if (obj.hasOwnProperty(defaultKey)) {
+             buildAccordionElement(accordianOneUp, "<b>Build New Table</b>", obj[defaultKey], /*isFirstElement=*/true)     
+          }
+             
+          // Then the others (sorted)
+          var sortedKeys = []
+          for (var key in obj) {
+             sortedKeys.push(key)
+          }
+          sortedKeys.sort()
+          for (var index in sortedKeys) {
+              var key = sortedKeys[index]
+              if ((key != defaultKey) && (obj.hasOwnProperty(key))) {
+                 buildAccordionElement(accordianOneUp, key, obj[key], /*isFirstElement=*/false)
+              }
+          }
+      }
+      /** Retrieves saved objects from the server and creates the data table UI elements */
+      function buildAccordionTableFromSource() {
+         google.script.run.withSuccessHandler(
+             function(obj) {
+                buildAccordionTable(obj)
+             }
+         ).withFailureHandler(
+             function(msg) {
+                console.log("listTableConfigs: error: [" + JSON.stringify(msg) + "]")
+                showStatus(JSON.stringify(msg, 3), 'Client Error')
+             }
+         ).listTableConfigs()
+      }
+      
+      // Create the tables UI elements on load
+      buildAccordionTableFromSource()
+      
+   </script>
+</body>
+
+</html>
+
