@@ -23,14 +23,14 @@
   <script>
       var tableName = "<?= tableName ?>"
       var savedRange = {}
-      
+
       /** Status/error display */
       function showStatus(message, summary) {
          google.script.run.showStatus(message, summary)
       }
-      
+
       // Event handlers
-      
+
       $(`#reset`).click(function(){
          $(`#sheet`).val(savedRange.sheet)
          $(`#range`).val(savedRange.range)
@@ -49,7 +49,7 @@
       $(`#update`).click(function(){
          var sheet = $(`#sheet`).val()
          var range = $(`#range`).val()
-         
+
          google.script.run.withSuccessHandler(function(obj) {
            if (obj) google.script.run.withSuccessHandler(function(obj) {
               google.script.host.close()
@@ -58,14 +58,14 @@
             console.log("setCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
             showStatus(JSON.stringify(msg, 3), 'Move Error')
          }).setCurrentTableRange(tableName, { sheet: sheet, range: range })
-         
+
       });
       $(`#cancel`).click(function(){
          google.script.host.close()
       });
-      
+
       // Startup:
-      
+
       google.script.run.withSuccessHandler(function(obj) {
          savedRange = obj
          $(`#sheet`).val(savedRange.sheet)
@@ -74,10 +74,6 @@
          console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
          showStatus(JSON.stringify(msg, 3), 'Move Error')
       }).getCurrentTableRange(tableName)
-      
+
   </script>
 </html>
-
-
-
-

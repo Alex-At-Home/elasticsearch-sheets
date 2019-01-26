@@ -1,0 +1,225 @@
+<script>
+      /** Builds the UI element that manages data tables*/
+      function buildAccordionElement(index, name, json, isFirstElement) {
+         if (!isFirstElement && !validateName(name)) {
+            showStatus("Bad name: [" + name + "], can't contain [<>'\"]", "Client Error")
+            return
+         }
+
+         // Manage global state:
+         var tableName = ""
+         if (isFirstElement) {
+             _state.addEntry(defaultKey, json)
+         } else {
+            tableName = name
+             _state.addEntry(name, json)
+         }
+
+         // Append to accordion
+
+         var buttons = ""
+         var tableTools = ""
+         var tableToolsStyle = ""
+         var nameEditor = ""
+         var disabledNameEditor = ""
+         if (isFirstElement) {
+            buttons =
+            `
+            <div class="btn-toolbar">
+                     <button id="create_${index}" type="button" class="btn btn-primary">Create</button>
+                     <button id="cancel_${index}" type="button" class="btn btn-warning">Cancel</button>
+            </div>
+            `
+         } else {
+            buttons =
+            `
+            <div class="btn-toolbar">
+                   <button id="update_${index}" type="button" class="btn btn-primary">Update</button>
+                   <button id="reset_${index}" type="button" class="btn btn-warning">Reset</button>
+                   <button id="delete_${index}" type="button" class="btn btn-danger">Delete</button>
+            </div>
+            `
+
+            nameEditor =
+            `
+              <span class="input-group-btn">
+                <button id="editname_${index}" class="btn btn-default" type="button" data-toggle="tooltip" title="Edit name"><span class='glyphicon glyphicon-pencil'></span></button>
+              </span>
+            `
+
+            tableTools =
+            `
+               <div class="btn-group pull-right no-padding" role="group">
+                   <button id="query_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Refresh query"><span class='glyphicon glyphicon-refresh'></span></button>
+                   <button id="move_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Move/resize range"><span class='glyphicon glyphicon-move'></span></button>
+                </div>
+            `
+            tableToolsStyle = "style='padding-top: 6px;'"
+            disabledNameEditor = "disabled"
+         }
+
+         var page =
+         `<div class="panel panel-default">
+            <div class="panel-heading clearfix">
+            ${tableTools}
+                <h4 class="panel-title" ${tableToolsStyle}>
+                    <a id="toggleCollapse${index}" data-parent="#accordion">${name}</a>
+                </h4>
+            </div>
+            <div id="collapse${index}" class="panel-collapse collapse out">
+                <div class="panel-body form-horizontal">
+                  <div class="form-group">
+                     ${buttons}
+                  </div>
+                  <div class="form-group"><div class="input-group">
+                     <div class="input-group-addon">
+                        <span class="input-group-text" id="basic-addon${index}">Name</span>
+                     </div>
+                     <input type="text" id="name_${index}" class="form-control" placeholder="Table Name" aria-describedby="basic-addon${index}" value="${tableName}" ${disabledNameEditor}>
+                     ${nameEditor}
+                  </div> </div>
+                  <div class="form-group">
+                     <div id="editor_${index}"></div>
+                  </div>
+                </div>
+            </div>
+         </div>`
+
+        $("#accordion").append(page).append(function(){ // When complete
+
+           // Add collapse toggle handler
+
+           $(document).ready(function(){
+              $(`#toggleCollapse${index}`).click(function(){
+                 $(`#collapse${index}`).collapse('toggle')
+              });
+           });
+
+           // Build code editor
+
+           var curr_editor = ace.edit(`editor_${index}`)
+           curr_editor.session.setMode("ace/mode/json")
+           curr_editor.session.setTabSize(3)
+           curr_editor.session.setUseWrapMode(true)
+           curr_editor.session.setValue(JSON.stringify(json, null, 3))
+
+           // Add button handlers
+
+           if (isFirstElement) { //create, cancel
+
+              // Action buttons
+
+              $(`#create_${index}`).click(function(){
+                 var newName = $(`#name_${index}`).val()
+                 if (!validateName(newName)) {
+                    showStatus("New table name must be non-empty and valid", 'Client Error')
+                 } else {
+                    try {
+                       var jsonStr = curr_editor.session.getValue()
+                       var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                       // Call server-side to add new accordian
+                       disableInput()
+                       createNewAccordionElement(newName, jsonBody)
+                    } catch (err) {
+                       enableInput() //(just in case createNewAccordionElement throws)
+                       showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                    }
+                 }
+              });
+              $(`#cancel_${index}`).click(function(){
+                $(`#name_${index}`).val("")
+                curr_editor.session.setValue(JSON.stringify(json, null, 3))
+              });
+           } else { // query, move - edit name - update, reset, delete
+
+              // Top button bar
+
+              $(`#move_${index}`).click(function(){
+                 google.script.run.showTableRangeManager(name)
+              });
+
+              $(`#query_${index}`).click(function(){
+                 var jsonStr = curr_editor.session.getValue()
+                 var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                 populateTable(name, jsonBody) //TODO: update based on the current settings?
+              });
+
+              // Name editing
+
+              $(`#editname_${index}`).click(function(){
+                $(`#name_${index}`).prop('disabled', function(i, v) { return !v; });
+              });
+
+              // Action buttons
+
+              $(`#delete_${index}`).click(function(){
+                 _state.removeEntry(index)
+                 disableInput()
+                 try {
+                    deleteAccordionElement(name)
+                 } catch (err) {
+                    enableInput() //(just in case createNewAccordionElement throws)
+                    showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
+                 }
+              });
+              $(`#reset_${index}`).click(function(){
+                $(`#name_${index}`).val(name)
+                curr_editor.session.setValue(JSON.stringify(json, null, 3))
+              });
+              $(`#update_${index}`).click(function(){
+                 var newName = $(`#name_${index}`).val()
+                 if (!validateName(name)) {
+                    showStatus("Updated table name must be non-empty and valid", 'Client Error')
+                 } else {
+                    try {
+                       var jsonStr = curr_editor.session.getValue()
+                       var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                       // Call server-side to add new accordian
+                       disableInput()
+                       updateAccordionElement(index, name, newName, jsonBody)
+                    } catch (err) {
+                       enableInput() //(just in case createNewAccordionElement throws)
+                       showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                    }
+                 }
+                 //TODO: I think we want to refresh the query here (after the update is complete)?
+              });
+           }
+        });
+      }
+
+      /** Rebuilds the accordion following a complex table change (delete/update-name/create) */
+      function rebuildAccordion() {
+
+         // Rebuild state
+         var obj = {}
+         _state.copyThenReset(obj)
+         // Rebuild table
+         $("#accordion").empty()
+         buildAccordionTable(obj)
+
+         //TODO: keep entries that are already open, open
+      }
+
+      /** Builds the accordion table from an object (user created or from server) */
+      function buildAccordionTable(obj) {
+          // First element is always the "create":
+          if (obj.hasOwnProperty(defaultKey)) {
+             buildAccordionElement(_state.accordianOneUp, "<b>Build New Table</b>", obj[defaultKey], /*isFirstElement=*/true)
+          }
+
+          // Then the others (sorted)
+          var sortedKeys = []
+          for (var key in obj) {
+             sortedKeys.push(key)
+          }
+          sortedKeys.sort()
+          for (var index in sortedKeys) {
+              var key = sortedKeys[index]
+              if ((key != defaultKey) && (obj.hasOwnProperty(key))) {
+                 buildAccordionElement(_state.accordianOneUp, key, obj[key], /*isFirstElement=*/false)
+              }
+          }
+      }
+
+</script>

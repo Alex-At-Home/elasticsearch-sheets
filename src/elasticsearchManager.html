@@ -1,0 +1,77 @@
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/elasticsearch/15.3.1/elasticsearch.min.js"></script>
+
+<script>
+
+   // Interface with UI
+
+    /** Populate a data table from a SQL query */
+    function populateTable(tableName, tableConfig) {
+       //TODO: decide which to do based on enabled flags
+       performGenericOperation(tableName, tableConfig, performSqlQuery)
+    }
+
+   // Internals
+
+   /** Keeps track of the different clients built so we don't keep rebuilding them (apart from sidebar reloads) */
+   var _clientState = {
+
+      clients: {},
+
+      getOrBuildClient: function(esMeta) {
+         var esMetaStr = JSON.stringify(esMeta)
+         if (this.hasOwnProperty(esMetaStr)) {
+            return this[esMetaStr]
+         } else { // Build client
+            var options = {
+               host: esMeta.url
+            }
+            //TODO: all sorts of works still to be done on auth
+            if (esMeta.auth_type == "password") {
+               //TODO (if password not specified then launch modal dialog for user to specify it)
+               options.httpAuth = esMeta.username + ":" + esMeta.password
+            }
+            if (esMeta.version != "") { //(else default)
+               options.version = esMeta.version
+            }
+            var client_options = esMeta.client_options_json || {}
+            for (var key in client_options) {
+               options[key] = client_options[key]
+            }
+            //TODO: add headers to Host object
+            return new elasticsearch.Client(options)
+         }
+      }
+   }
+
+   /** Launches an ES client operation */
+   function performGenericOperation(tableName, tableConfig, operationLogicFn) {
+      google.script.run.withSuccessHandler(function(obj) {
+         if (obj.es_meta.enabled || true) {
+            operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta))
+         }
+      }).withFailureHandler(function(obj) {
+         showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+      }).getElasticsearchMetadata(tableName)
+   }
+
+   /** Launches a SQL query */
+   function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient) {
+      esClient.transport.request({
+         method: "POST",
+         path: "/_xpack/sql?format=json",
+         body: { "query": tableConfig.sql_table.query },
+         headers: esAndTableMeta.es_meta.headers
+      }, function(err, response, status) {
+         var result = {}
+         // Error or response
+         if (err) { result.err = err.message }
+         else { result.response = response }
+         // (always get status)
+         if (status) { result.status = status }
+
+         google.script.run.handleSqlResponse(tableName, tableConfig, esAndTableMeta, result)
+      })
+   }
+
+</script>

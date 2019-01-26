@@ -1,4 +1,4 @@
-/* 
+/*
  * TableRangeUtils.gs - manages named data ranges corresponding to data tables
  */
 
@@ -29,7 +29,7 @@ function validateNewRange_(ss, configJson) {
       showStatus("No sheet named: [" + newSheetName + "]", "Server Error")
       return false
    } else if (null == newSheet.getRange(newRangeNotation)) {
-      showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")   
+      showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
       return false
    } else {
       var newRange = newSheet.getRange(newRangeNotation)
@@ -53,14 +53,14 @@ function buildTableRange_(ss, tableName, mutableConfigJson) {
   var range = currActive.getActiveRange()
   var rangeNotation = range.getA1Notation()
   var sheetName = range.getSheet().getName()
-  
+
   mutableConfigJson.range = rangeNotation
   mutableConfigJson.sheet = sheetName
 
   // Validate and build range if possible
   if (!validateNewRange_(ss, mutableConfigJson)) {
      return false
-  } else {  
+  } else {
      ss.setNamedRange(buildTableRangeName_(tableName), range)
      return true
   }
@@ -102,6 +102,8 @@ function renameTableRange_(ss, oldName, newName) {
    }
 }
 
+//TODO: what to do with user fields in here? need some defensive logic
+
 /** Move a named range (new range is pre-validated) */
 function moveTableRange_(ss, tableName, configJson) {
    if (!validateNewRange_(ss, configJson)) {
@@ -115,11 +117,11 @@ function moveTableRange_(ss, tableName, configJson) {
      if (null != currMatchingRange) {
         // Build a new range
         var currSheetWithRange = currMatchingRange.getRange().getSheet()
-        if ((currSheetWithRange.getName() != newSheetName) || 
+        if ((currSheetWithRange.getName() != newSheetName) ||
                (currMatchingRange.getRange().getA1Notation().toLowerCase() != newRangeNotation.toLowerCase()))
         {
           var newRange = ss.getSheetByName(newSheetName).getRange(newRangeNotation)
-          
+
           // Clear old range:
           currMatchingRange.getRange().clear()
           // Overwrite range:
@@ -129,5 +131,3 @@ function moveTableRange_(ss, tableName, configJson) {
   }
   return true
 }
-
-

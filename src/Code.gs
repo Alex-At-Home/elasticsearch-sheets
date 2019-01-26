@@ -1,4 +1,4 @@
-/* 
+/*
  * Code.gs - The interface between the App and the Spreadsheet
  */
 
@@ -14,34 +14,34 @@ function onOpen() {
 //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
 //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearch_')
   SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
-  
+
 }
 
+/** Allows expensive initialization/integrity checking operations to be performed only on page load */
 var firstTime = true
 
 /**
  * Creates any required internal state (first time) and launches the ES sidebar
  */
 function launchElasticsearch_() {
-  
+
   // If necessary, initialize the management service
   var mgmtService = getManagementService_()
   if (null == mgmtService) {
      //TODO: the first time, bring up source dialog (form) to populate ES info
     createManagementService_({})
   }
-  
+
   if (firstTime) {
      checkTableRangesAgainstDataRanges_()
      firstTime = false
   }
-  
+
   // Launch the sidebar
-  var html = 
-    HtmlService.createHtmlOutputFromFile('sidebarApp')
-      .setTitle('Elasticsearch Table Builder')
-    
-  SpreadsheetApp.getUi().showSidebar(html)
+  var html = HtmlService.createTemplateFromFile('sidebarApp')
+  html.defaultKey = defaultTableConfigKey_
+
+  SpreadsheetApp.getUi().showSidebar(html.evaluate().setTitle('Elasticsearch Table Builder'))
 }
 
 /** Check that the entries in the management service have named ranges (and vice versa) */
@@ -68,21 +68,69 @@ function checkTableRangesAgainstDataRanges_() {
 
 var defaultTableConfigKey_ = "d_e_f_a_u_l_t"
 var defaultTableConfig_ = {
-  "enabled": true,  
+  "enabled": true,
   "common": {
-  }, 
+//     "refresh": {
+//        "on_query_change": true,
+//        "timed": false,
+//        "refresh_s": 60
+//     },
+     "index_pattern": "tbd",
+     "query": {
+        "type": "none", //points to field to use ("global", "local", "fixed")
+        "global": {
+           "range_name": "tbd"
+        },
+        "local": {
+//           "position": "top" //(or "bottom")
+        },
+        "fixed": {
+           "string": "{} or SQL or lucene"
+        }
+     },
+     "pagination": {
+       "global": {
+          "enabled": false,
+          "range_name": "tbd"
+       },
+       "local": {
+          "enabled": false,
+//          "position": "top", //(or "bottom")
+          "simulate_where_not_supported": true
+       }
+     },
+     "status": {
+        "enabled": true,
+        "position": "top", //(or "bottom")
+        "merge_if_possible": true //(merge with the query/pagination)
+     },
+     "headers": {
+        "enabled": true,
+//        "position": "top", //(or "bottom", or "top_and_bottom")
+        "header_overrides": "", //TODO format?
+        "filter_headers": false //(if true then only select headers specified in the overrides)
+     },
+     "borders": {
+        "enabled": true
+     }
+//     ,
+//     "rotated": false, //(left-to-right instead of top-to-bottom)
+//     "inverted": false //(right-to-left/bottom-to-top)
+  },
   "data_table": {
     "enabled": false,
-  }, 
+  },
   "aggregation_table": {
     "enabled": false,
-  }, 
+  },
   "sql_table": {
     "enabled": false,
-    "query": "SELECT * from $index $query $pagination" //TODO: not sure about this?
+    "query": "SELECT $$headers from $$index WHERE $$query $$pagination" //TODO: not sure about this? how does pagination work exactly? oh and what about field list
   },
   "cat_table": {
-    "enabled": false
+    "enabled": false,
+    "endpoint": "recovery",
+    "options": [ ] // (prefix with '#' to ignore)
   }
 }
 
@@ -107,7 +155,7 @@ function showTableRangeManager(tableName) {
   if (activateTableRange(tableName)) {
      var html = HtmlService.createTemplateFromFile('moveRangeDialog')
      html.tableName = tableName
-     SpreadsheetApp.getUi().showModelessDialog(html.evaluate().setHeight(100), 'Move Table: ' + tableName);  
+     SpreadsheetApp.getUi().showModelessDialog(html.evaluate().setHeight(100), 'Move Table: ' + tableName);
   }
 }
 
@@ -119,7 +167,7 @@ function getCurrentTableRange(tableName) {
   if (null != tableRange) {
      obj.sheet = tableRange.getRange().getSheet().getName()
      obj.range = tableRange.getRange().getA1Notation()
-  } 
+  }
   return obj
 }
 
@@ -160,10 +208,10 @@ function getCurrentSelection() {
 /** Lists the current data tables (including the default one used to populate the "create new table" entry */
 function listTableConfigs() {
   var mgmtService = getManagementService_()
-  
+
   var tableConfigs = listSavedObjects_(mgmtService, /*discardRange=*/true)
   if (!tableConfigs.hasOwnProperty(defaultTableConfigKey_)) {
-    addSavedObject_(mgmtService, defaultTableConfigKey_, JSON.stringify(defaultTableConfig_))
+    addSavedObject_(mgmtService, defaultTableConfigKey_, {})
     return listSavedObjects_(mgmtService, /*discardRange=*/true)
   } else {
     return tableConfigs
@@ -179,7 +227,7 @@ function createTable(name, tableConfigJson) {
 function createTable_(name, tableConfigJson, ignoreNamedRange) {
   var mgmtService = getManagementService_()
   var ss = SpreadsheetApp.getActive()
-  
+
   var matchesExistingRange = findTableRange_(ss, name)
   if (null != matchesExistingRange) {
      showStatus("All names have to be unique when converted to named ranges, conflict with: [" + matchesExistingRange.getName() + "]", 'Server Error')
@@ -191,8 +239,8 @@ function createTable_(name, tableConfigJson, ignoreNamedRange) {
      //(buildTableRange mutates tableConfigJson adding range and sheet)
      rangeValid = buildTableRange_(ss, name, tableConfigJson)
   }
-  if (rangeValid) { 
-    return addSavedObject_(mgmtService, name, tableConfigJson)        
+  if (rangeValid) {
+    return addSavedObject_(mgmtService, name, tableConfigJson)
   } else {
     return false
   }
@@ -203,7 +251,7 @@ function deleteTable(name) {
   // Named range:
   var ss = SpreadsheetApp.getActive()
   deleteTableRange_(ss, name)
-  
+
   // Update mangement service
   var mgmtService = getManagementService_()
   return deleteSavedObject_(mgmtService, name)
@@ -213,19 +261,19 @@ function deleteTable(name) {
 function updateTable(oldName, newName, newTableConfigJson) {
   var ss = SpreadsheetApp.getActive()
   var mgmtService = getManagementService_()
-  
+
   // Marge in existing sheet/range (if it exists)
   var tableConfigs = listSavedObjects_(mgmtService, /*discardRange=*/false)
   var existingJson = tableConfigs[oldName] || {}
   newTableConfigJson.sheet = existingJson.sheet
   newTableConfigJson.range = existingJson.range
-  
+
   if (oldName != newName) { // can use existing primitives
      if (createTable_(newName, newTableConfigJson, /*ignoreNamedRange=*/true)) {
         // Rename named range (can't fail except in catastrophic cases):
         renameTableRange_(ss, oldName, newName)
 
-        // Delete saved old object in management service 
+        // Delete saved old object in management service
         // (if this fails, it most likely didn't exist due to some inconsistent internal state)
         deleteSavedObject_(mgmtService, oldName)
         return true
@@ -237,7 +285,3 @@ function updateTable(oldName, newName, newTableConfigJson) {
      return updateSavedObject_(mgmtService, oldName, newTableConfigJson)
   }
 }
-
-
-
-
