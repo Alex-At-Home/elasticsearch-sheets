@@ -9,7 +9,8 @@
  */
 function onOpen() {
   var menu = [
-    {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearch_'}
+    {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder_'},
+    {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig_'}
   ]
 //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
 //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearch_')
@@ -23,12 +24,12 @@ var firstTime = true
 /**
  * Creates any required internal state (first time) and launches the ES sidebar
  */
-function launchElasticsearch_() {
+function launchElasticsearchTableBuilder_() {
 
   // If necessary, initialize the management service
   var mgmtService = getManagementService_()
   if (null == mgmtService) {
-     //TODO: the first time, bring up source dialog (form) to populate ES info
+    launchElasticsearchConfig_()
     createManagementService_({})
   }
 
@@ -43,6 +44,32 @@ function launchElasticsearch_() {
 
   SpreadsheetApp.getUi().showSidebar(html.evaluate().setTitle('Elasticsearch Table Builder'))
 }
+
+/** Launches the ES configuration dialog */
+function launchElasticsearchConfig_() {
+  var mgmtService = getManagementService_()
+  var html = HtmlService.createTemplateFromFile('elasticsearchConfigDialog')
+  if (null == mgmtService) {
+     html.currentUrl = ""
+     html.currentUsername = ""
+     html.currentAuthType = "anonymous"
+  } else {
+     var es_meta = getEsMeta_(mgmtService)
+     html.currentUrl = es_meta.url
+     html.currentUsername = es_meta.username
+     if (es_meta.auth_type == "password") {
+        if (es_meta.password_global) {
+           html.currentAuthType = "global_password"
+        } else {
+           html.currentAuthType = "local_password"
+        }
+     } else {
+        html.currentAuthType = es_meta.auth_type
+     }
+  }
+  SpreadsheetApp.getUi().showModalDialog(html.evaluate().setWidth(450).setHeight(350), 'Elasticsearch Configuration')
+}
+
 
 /** Check that the entries in the management service have named ranges (and vice versa) */
 function checkTableRangesAgainstDataRanges_() {
@@ -77,43 +104,40 @@ var defaultTableConfig_ = {
 //     },
      "index_pattern": "tbd",
      "query": {
-        "type": "none", //points to field to use ("global", "local", "fixed")
-        "global": {
-           "range_name": "tbd"
-        },
-        "local": {
+        "type": "none"
+        //, //points to field to use ("global", "local", "fixed")
+//        "global": {
+//           "range_name": "tbd"
+//        },
+//        "local": {
 //           "position": "top" //(or "bottom")
-        },
-        "fixed": {
-           "string": "{} or SQL or lucene"
-        }
+//        },
+//        "fixed": {
+//           "string": "{} or SQL or lucene"
+//        }
      },
      "pagination": {
-       "global": {
-          "enabled": false,
-          "range_name": "tbd"
-       },
+//       "global": {
+//          "enabled": false,
+//          "range_name": "tbd"
+//       },
        "local": {
           "enabled": false,
-//          "position": "top", //(or "bottom")
-          "simulate_where_not_supported": true
+//          "position": "bottom", //(or "top")
+          "simulate": true
        }
      },
-     "status": {
-        "enabled": true,
-        "position": "top", //(or "bottom")
-        "merge_if_possible": true //(merge with the query/pagination)
-     },
      "headers": {
-        "enabled": true,
+        "enabled": true
+        //,
 //        "position": "top", //(or "bottom", or "top_and_bottom")
-        "header_overrides": "", //TODO format?
-        "filter_headers": false //(if true then only select headers specified in the overrides)
+//        "header_overrides": "", //TODO format?
+//        "filter_headers": false //(if true then only select headers specified in the overrides)
      },
      "borders": {
         "enabled": true
      }
-//     ,
+     //,
 //     "rotated": false, //(left-to-right instead of top-to-bottom)
 //     "inverted": false //(right-to-left/bottom-to-top)
   },
@@ -125,7 +149,9 @@ var defaultTableConfig_ = {
   },
   "sql_table": {
     "enabled": false,
-    "query": "SELECT $$headers from $$index WHERE $$query $$pagination" //TODO: not sure about this? how does pagination work exactly? oh and what about field list
+    "query": "--DESCRIBE TABLES\n" +
+              "--DESCRIBE <<index>>\n" +
+              "--SELECT $$headers FROM <<index>> WHERE $$query $$pagination"
   },
   "cat_table": {
     "enabled": false,
@@ -247,7 +273,7 @@ function createTable_(name, tableConfigJson, ignoreNamedRange) {
 }
 
 /** Deletes a table from the management service */
-function deleteTable(name) {
+function deleteTable(name) { //TODO: this also deletes all the code
   // Named range:
   var ss = SpreadsheetApp.getActive()
   deleteTableRange_(ss, name)

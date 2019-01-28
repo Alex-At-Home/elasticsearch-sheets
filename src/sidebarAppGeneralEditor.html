@@ -1,0 +1,77 @@
+<script>
+
+   function buildGeneralEditor(index, table_type) {
+      var form =
+      `
+  <form>
+    <div class="form-group">
+      <div class="checkbox">
+         <label><input type="checkbox">Enabled</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Query Bar</label>
+      <select class="input-small form-control">
+        <option>Disabled</option>
+        <option>Top</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Headers</label>
+      <select class="input-small form-control">
+        <option>Top</option>
+        <option>Disabled</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Pagination</label>
+      <select class="input-small form-control">
+        <option>Bottom</option>
+        <option>Disabled</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status Info</label>
+      <select class="input-small form-control">
+        <option>Bottom</option>
+        <option>Disabled</option>
+      </select>
+      <div class="checkbox">
+         <label><input type="checkbox">Merge with query/pagination rows</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Borders</label>
+      <select class="input-small form-control">
+        <option>None</option>
+        <option>Thin</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Table Customization</label>
+      <div class="input-group">
+        <div class="input-group-addon for-rows-and-cols">
+          <span class="input-group-text">Skip rows</span>
+       </div>
+       <input type="text" class="form-control" placeholder="Row offsets to skip" value="">
+      </div>
+      <div class="input-group">
+        <div class="input-group-addon for-rows-and-cols">
+          <span class="input-group-text">Skip columns</span>
+       </div>
+       <input type="text" class="form-control" placeholder="Column offsets to skip" value="">
+      </div>
+     </div>
+  </form>
+      `
+
+      return form
+   }
+
+   function populateGeneralEditor(index, name, json, curr_editor, table_type) {
+   }
+
+   function registerGeneralEditor(index, name, json, curr_editor, table_type) {
+   }
+
+</script>

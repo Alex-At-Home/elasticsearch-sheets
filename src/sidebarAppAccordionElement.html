@@ -59,11 +59,11 @@
          }
 
          var page =
-         `<div class="panel panel-default">
+         `<div id="accordion_${index}" class="panel panel-default">
             <div class="panel-heading clearfix">
-            ${tableTools}
+                ${tableTools}
                 <h4 class="panel-title" ${tableToolsStyle}>
-                    <a id="toggleCollapse${index}" data-parent="#accordion">${name}</a>
+                    <a id="toggleCollapse${index}" data-parent="#accordion"><b>${name}</b></a>
                 </h4>
             </div>
             <div id="collapse${index}" class="panel-collapse collapse out">
@@ -79,7 +79,26 @@
                      ${nameEditor}
                   </div> </div>
                   <div class="form-group">
-                     <div id="editor_${index}"></div>
+                     <select class="input-small form-control" id="type_${index}">
+                        <option disabled selected value>(Choose type)</option>  <!-- TODO populate this class -->
+                        <option value="tabs_unknown_${index}">Data</option>
+                        <option value="tabs_unknown_${index}">Aggregation</option>
+                        <option value="tabs_sql_${index}">SQL (requires license)</option>
+                        <option value="tabs_unknown_${index}">Management</option>
+                        <option value="tabs_json_${index}">Advanced (raw JSON)</option>
+                     </select>
+                  </div>
+                  <!-- The different data tables' definitions -->
+                 <div class="tab-content" id="tabs_${index}">
+                    <div class="tab-pane form-group" id="tabs_unknown_${index}">
+                     </div>
+                    <div class="tab-pane form-group" id="tabs_sql_${index}">
+                       ${buildSqlEditor(index)}
+                       <div id="editor_sql_${index}"></div>
+                     </div>
+                    <div class="tab-pane form-group" id="tabs_json_${index}">
+                       <div id="editor_${index}"></div>
+                     </div>
                   </div>
                 </div>
             </div>
@@ -87,21 +106,61 @@
 
         $("#accordion").append(page).append(function(){ // When complete
 
-           // Add collapse toggle handler
-
-           $(document).ready(function(){
-              $(`#toggleCollapse${index}`).click(function(){
-                 $(`#collapse${index}`).collapse('toggle')
-              });
+           // Add the index to all fields
+           $(`#accordion_${index}`).each(function() {
+              $(this).data("accordion_index", index)
+              //(retrived from handler by $(this).data("accordion_index")
            });
 
-           // Build code editor
+           // Add collapse toggle handler
+
+          $(`#toggleCollapse${index}`).click(function(){
+             $(`#collapse${index}`).collapse('toggle')
+          });
+
+          // Add table selection handler
+
+          $(`#type_${index}`).on('change', function () {
+             var tab = $(this).val()
+             $(`#tabs_${index} .tab-pane`).removeClass('active')
+             $(`#${tab}`).addClass('active');
+
+             // Address issues with (eg) code editors:
+             redrawSqlEditor(index) //(harmless if not switching to SQL editor)
+             ace.edit(`editor_${index}`).resize() //(harmless if not switching to raw editor)
+          });
+
+           // Build raw JSON editor
 
            var curr_editor = ace.edit(`editor_${index}`)
            curr_editor.session.setMode("ace/mode/json")
            curr_editor.session.setTabSize(3)
            curr_editor.session.setUseWrapMode(true)
            curr_editor.session.setValue(JSON.stringify(json, null, 3))
+
+           // Register all the "child" event handlers
+           //TODO + others
+           registerSqlEditor(index, name, json, curr_editor)
+
+           // Register event handler on raw JSON
+           curr_editor.session.on('change', function(delta) {
+             if (!tempDisableJsonChange) { //(if true this is being called because of an eg SQL change)
+               try {
+                  var newJson = JSON.parse(curr_editor.session.getValue()) //(do nothing until valid)
+               } catch {
+                  return
+               }
+               tempDisableJsonChange = true
+               try {
+                  //TODO + others
+                  populateSqlEditor(index, name, newJson, null)
+               } catch (err) {
+                  tempDisableJsonChange = false
+                  throw err
+               }
+               tempDisableJsonChange = false
+             }
+          });
 
            // Add button handlers
 
@@ -124,6 +183,7 @@
                        enableInput() //(just in case createNewAccordionElement throws)
                        showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
                     }
+                    //TODO: and apply the query one creation is complete
                  }
               });
               $(`#cancel_${index}`).click(function(){
@@ -131,6 +191,8 @@
                 curr_editor.session.setValue(JSON.stringify(json, null, 3))
               });
            } else { // query, move - edit name - update, reset, delete
+
+              //TODO: activate the right type
 
               // Top button bar
 
@@ -205,7 +267,7 @@
       function buildAccordionTable(obj) {
           // First element is always the "create":
           if (obj.hasOwnProperty(defaultKey)) {
-             buildAccordionElement(_state.accordianOneUp, "<b>Build New Table</b>", obj[defaultKey], /*isFirstElement=*/true)
+             buildAccordionElement(_state.accordianOneUp, "<div class='text-primary'>Build New Table...</div>", obj[defaultKey], /*isFirstElement=*/true)
           }
 
           // Then the others (sorted)

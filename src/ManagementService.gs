@@ -14,6 +14,7 @@ var esMetaModel_ = {
    "username": "string",
    "password": "string", //(will not normally be populated)
    "auth_type": "string", //"anonymous", "password", in the future: "token", "saml", "oauth" etc
+   "password_global": false, // false if stored locally (ie only accessible for given user)
    "header_json": {}, //key, value map
    "client_options_json": {}, //(passed directly to ES client)
    "enabled": true,
@@ -64,6 +65,7 @@ function getEsMeta_(mgmtService) {
    obj.version = mgmtService.getRange('b2').getValue()
    obj.username = mgmtService.getRange('b3').getValue()
    obj.password = mgmtService.getRange('b4').getValue()
+   obj.password_global = (obj.password && (obj.password != ""))
    obj.auth_type = mgmtService.getRange('b5').getValue()
    try {
       obj.header_json = JSON.parse(mgmtService.getRange('b6').getValue())
