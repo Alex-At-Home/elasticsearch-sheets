@@ -27,6 +27,7 @@
             `
             <div class="btn-toolbar">
                      <button id="create_${index}" type="button" class="btn btn-primary">Create</button>
+                     <button id="test_${index}" type="button" class="btn btn-info">Test</button>
                      <button id="cancel_${index}" type="button" class="btn btn-warning">Cancel</button>
             </div>
             `
@@ -80,7 +81,7 @@
                   </div> </div>
                   <div class="form-group">
                      <select class="input-small form-control" id="type_${index}">
-                        <option disabled selected value>(Choose type)</option>  <!-- TODO populate this class -->
+                        <option disabled selected value>(Choose type)</option>
                         <option value="tabs_unknown_${index}">Data</option>
                         <option value="tabs_unknown_${index}">Aggregation</option>
                         <option value="tabs_sql_${index}">SQL (requires license)</option>
@@ -106,30 +107,6 @@
 
         $("#accordion").append(page).append(function(){ // When complete
 
-           // Add the index to all fields
-           $(`#accordion_${index}`).each(function() {
-              $(this).data("accordion_index", index)
-              //(retrived from handler by $(this).data("accordion_index")
-           });
-
-           // Add collapse toggle handler
-
-          $(`#toggleCollapse${index}`).click(function(){
-             $(`#collapse${index}`).collapse('toggle')
-          });
-
-          // Add table selection handler
-
-          $(`#type_${index}`).on('change', function () {
-             var tab = $(this).val()
-             $(`#tabs_${index} .tab-pane`).removeClass('active')
-             $(`#${tab}`).addClass('active');
-
-             // Address issues with (eg) code editors:
-             redrawSqlEditor(index) //(harmless if not switching to SQL editor)
-             ace.edit(`editor_${index}`).resize() //(harmless if not switching to raw editor)
-          });
-
            // Build raw JSON editor
 
            var curr_editor = ace.edit(`editor_${index}`)
@@ -139,6 +116,61 @@
            curr_editor.session.setValue(JSON.stringify(json, null, 3))
 
            // Register all the "child" event handlers
+           // Add the index to all fields
+           $(`#accordion_${index}`).each(function() {
+              $(this).data("accordion_index", index)
+              //(retrived from handler by $(this).data("accordion_index")
+           });
+
+           // Add collapse toggle handler
+
+            $(`#toggleCollapse${index}`).click(function(){
+               $(`#collapse${index}`).collapse('toggle')
+
+               // Activate the right type
+               if (!isFirstElement) {
+
+                  var tableToTypeMap = {
+                     sql_table: `tabs_sql_${index}`,
+                     data_table: `tabs_unknown_${index}`,
+                     aggregation_table: `tabs_unknown_${index}`,
+                     cat_table: `tabs_unknown_${index}`,
+                     json_table: `tabs_json_${index}`
+                  }
+                  var typeToActivate = ""
+                  for (var typeKey in tableToTypeMap) {
+                     var isThisType = getJson(json, [ typeKey, "enabled" ])
+                     if (isThisType) {
+                        typeToActivate = tableToTypeMap[typeKey] || ""
+                     }
+                  }
+                  if (typeToActivate != "") {
+                     $(`#type_${index}`).val(typeToActivate)
+                     onTableSelection(typeToActivate)
+                  }
+               }
+            });
+
+          var onTableSelection = function(tab) {
+              $(`#tabs_${index} .tab-pane`).removeClass('active')
+              $(`#${tab}`).addClass('active');
+
+              if (tab == `tabs_json_${index}`) {
+                 ace.edit(`editor_${index}`).resize()
+              } else { //(group all the "non raw" editors together)
+                // Update which table we're using and perform any required redraw logic:
+                onSelectSqlEditor(index, tab == `tabs_sql_${index}`, curr_editor)
+                //TODO: other options
+              }
+          }
+
+          // Add table selection handler
+
+           $(`#type_${index}`).on('change', function () {
+              var tab = $(this).val()
+              onTableSelection(tab)
+           });
+
            //TODO + others
            registerSqlEditor(index, name, json, curr_editor)
 
@@ -186,13 +218,16 @@
                     //TODO: and apply the query one creation is complete
                  }
               });
+              $(`#test_${index}`).click(function(){
+                 var jsonStr = curr_editor.session.getValue()
+                 var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                 populateTable(name, jsonBody)
+              });
               $(`#cancel_${index}`).click(function(){
                 $(`#name_${index}`).val("")
                 curr_editor.session.setValue(JSON.stringify(json, null, 3))
               });
            } else { // query, move - edit name - update, reset, delete
-
-              //TODO: activate the right type
 
               // Top button bar
 
@@ -203,7 +238,7 @@
               $(`#query_${index}`).click(function(){
                  var jsonStr = curr_editor.session.getValue()
                  var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-                 populateTable(name, jsonBody) //TODO: update based on the current settings?
+                 populateTable(name, jsonBody)
               });
 
               // Name editing

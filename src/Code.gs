@@ -93,7 +93,10 @@ function checkTableRangesAgainstDataRanges_() {
    }
 }
 
+/** The key name used internally by both service and client to store the default table object described below */
 var defaultTableConfigKey_ = "d_e_f_a_u_l_t"
+
+/** The default table config - also using to sort-of-document the model */
 var defaultTableConfig_ = {
   "enabled": true,
   "common": {
@@ -102,40 +105,47 @@ var defaultTableConfig_ = {
 //        "timed": false,
 //        "refresh_s": 60
 //     },
-     "index_pattern": "tbd",
      "query": {
-        "type": "none"
-        //, //points to field to use ("global", "local", "fixed")
+//       "index_pattern": "tbd",
+       "source": "none",
+        //, //points to field to use ("global", "local", "fixed") .. NOT_SUPPORTED: "global", "fixed"
 //        "global": {
 //           "range_name": "tbd"
 //        },
-//        "local": {
-//           "position": "top" //(or "bottom")
-//        },
+        "local": {
+           "position": "top" //(or "bottom" ... NOT_SUPPORTED: "bottom")
+        }
+        //,
 //        "fixed": {
 //           "string": "{} or SQL or lucene"
 //        }
      },
      "pagination": {
+        "source": "none",
+        //, //points to field to use ("global", "local", "fixed") .. NOT_SUPPORTED: "global", "fixed"
 //       "global": {
 //          "enabled": false,
 //          "range_name": "tbd"
 //       },
        "local": {
-          "enabled": false,
-//          "position": "bottom", //(or "top")
-          "simulate": true
+          "position": "bottom" //(or "top") .. NOT_SUPPORTED: "top"
        }
      },
+     "status": {
+        "position": "top", //(or "bottom", "none")
+        "merge": true //(if false will be its own separate line, else will merge with query/pagination if they exist)
+     },
      "headers": {
-        "enabled": true
-        //,
-//        "position": "top", //(or "bottom", or "top_and_bottom")
+        "position": "top" //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
 //        "header_overrides": "", //TODO format?
 //        "filter_headers": false //(if true then only select headers specified in the overrides)
      },
      "borders": {
-        "enabled": true
+        "style": "none" //(or "none")
+     },
+     "skip": {
+        "rows": "", //comma-separated list of offsets
+        "cols": "", //comma-separated list of offsets
      }
      //,
 //     "rotated": false, //(left-to-right instead of top-to-bottom)
@@ -149,7 +159,7 @@ var defaultTableConfig_ = {
   },
   "sql_table": {
     "enabled": false,
-    "query": "--DESCRIBE TABLES\n" +
+    "query": "--SHOW TABLES\n" +
               "--DESCRIBE <<index>>\n" +
               "--SELECT $$headers FROM <<index>> WHERE $$query $$pagination"
   },

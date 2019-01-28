@@ -23,8 +23,20 @@ function handleSqlResponse(tableName, tableConfig, context, json) {
 
    var ss = SpreadsheetApp.getActive()
    var tableRange = findTableRange_(ss, tableName)
-   if (null == tableRange) { //(nothing to do)
-      return
+   var range = null
+   if (null == tableRange) { //(use current selection, test mode
+      range = ss.getActiveRange()
+      if (null == range) {
+         return
+      } else { // still want to validate
+         tableConfig.sheet = range.getSheet().getName()
+         tableConfig.range = range.getA1Notation()
+         if (!validateNewRange_(ss, tableConfig)) {
+            return
+         }
+      }
+   } else {
+      range = tableRange.getRange()
    }
    if (null != json.response) {
 
@@ -35,15 +47,13 @@ function handleSqlResponse(tableName, tableConfig, context, json) {
       var numDataCols = cols.length
       var numDataRows = rows.length
 
-      var range = tableRange.getRange()
-
       var startRow = 1
       var numTableRows = range.getNumRows()
       var numTableCols = range.getNumColumns()
 
       // Handle headers (if enabled)
       if (numTableCols < numDataCols) {
-         warnings.put("Table not wide enough for all columns, needs to be [" + numDataCols + "], is only [" + numTableCols + "]")
+         warnings.push("Table not wide enough for all columns, needs to be [" + numDataCols + "], is only [" + numTableCols + "]")
       }
 
       //TODO: skip specified rows and cols
@@ -76,7 +86,7 @@ function handleSqlResponse(tableName, tableConfig, context, json) {
       if (paginationSetup) {
          //TODO add pagination info
       } else if (j < numDataRows) {
-         warnings.put("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + j + "]")
+         warnings.push("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + j + "]")
       }
 
       if (false) {

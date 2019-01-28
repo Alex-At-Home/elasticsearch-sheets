@@ -2,9 +2,108 @@
  * TableRangeUtils.gs - manages named data ranges corresponding to data tables
  */
 
+/** Safe way of getting a json element safely */
+function getJson_(json, fieldArray) {
+  var tmpJson = json
+  for (var j in fieldArray) {
+    var key = fieldArray[j]
+    if (tmpJson.hasOwnProperty(key)) {
+      tmpJson = tmpJson[key]
+    } else {
+      return null
+    }
+  }
+  return tmpJson
+}
+
 /** Converts the table name into a pure alphanum string not starting with a digit */
 function buildTableRangeName_(tableName) {
    return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + managementSheetName_
+}
+
+/** Builds the location of the query/status/header/pagination rows */
+function buildSpecialRowInfo_(configJson) {
+  var headers = getJson_(configJson, [ "common", "headers" ])
+  var status = getJson_(configJson, [ "common", "status" ]) || {}
+  var queryBar = getJson_(configJson, [ "common", "query" ]) || {}
+  var localQueryBar = (queryBar.source == "local") ? (queryBar.local || {}) : {}
+  var pagination = getJson_(configJson, [ "common", "pagination" ] ) || {}
+  var localPaginationBar = (pagination.source == "local") ? (pagination.local || {}) : {}
+
+  var specialRows = {
+     query_bar: 0,
+     status: 0,
+     headers: 0,
+     pagination: 0
+     //is_merged - filled in later
+     //min_height - filled in later
+     //min_width - filled in later
+  }
+  var currFromTop = 0
+  var currFromBottom = 0
+
+  switch(localQueryBar.position || "none") {
+    case "top":
+       specialRows.query_bar = ++currFromTop
+       break
+    case "bottom":
+       specialRows.query_bar = --currFromBottom
+       break
+  }
+  switch(localPaginationBar.position || "none") {
+    case "top":
+       specialRows.pagination = ++currFromTop
+       break
+    case "bottom":
+       specialRows.pagination = --currFromBottom
+       break
+  }
+  switch(status.position || "none") {
+    case "top":
+       if (!(status.merge || false) || (currFromTop == 0)) {
+          ++currFromTop
+       }
+       specialRows.status = currFromTop
+       break
+    case "bottom":
+       if (!(status.merge || false) || (currFromBottom == 0)) {
+          --currFromBottom
+       }
+       specialRows.status = currFromBottom
+       break
+  }
+  switch(headers.position || "none") {
+    case "top":
+       specialRows.headers = ++currFromTop
+       break
+    case "bottom":
+       specialRows.headers = --currFromBottom
+       break
+  }
+
+  // Some more processing:
+
+  var minWidth = 1
+  var minHeight = 1
+  for (var k in specialRows) {
+     if (specialRows[k] != 0) {
+        minHeight++
+        if (k != "headers") {
+           minWidth = 2
+        }
+     }
+  }
+  specialRows.is_merged = (specialRows.status != 0) &&
+      ((specialRows.status == specialRows.pagination) || (specialRows.status == specialRows.query_bar))
+
+  if (specialRows.is_merged) {
+     minHeight--
+     minWidth = 4
+  }
+  specialRows.min_height = minHeight
+  specialRows.min_width = minWidth
+
+  return specialRows
 }
 
 /** Validates that the range specified by the JSON is valid */
@@ -32,11 +131,16 @@ function validateNewRange_(ss, configJson) {
       showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
       return false
    } else {
+      // Check range vs width
+      var specialRowInfo = buildSpecialRowInfo_(configJson)
+      var minWidth = specialRowInfo.min_width
+      var minHeight = specialRowInfo.min_height
       var newRange = newSheet.getRange(newRangeNotation)
-      if ((newRange.getHeight() < 4) || (newRange.getWidth() < 4)) {
-         showStatus("Need at least a 4x4 grid to build a data table: [" + newRangeNotation + "] is too small", "Server Error")
+      if ((newRange.getHeight() < minHeight) || (newRange.getWidth() < minWidth)) {
+         showStatus("Need at least a "+minHeight+"x"+minWidth+" grid to build this table: [" + newRangeNotation + "] is too small", "Server Error")
          return false
       }
+      //TODO: maybe validate if the special rows are sane?
    }
    return true
 }
