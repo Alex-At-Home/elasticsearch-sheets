@@ -47,12 +47,12 @@
    /** Launches an ES client operation */
    function performGenericOperation(tableName, tableConfig, operationLogicFn) {
       google.script.run.withSuccessHandler(function(obj) {
-         if (obj.es_meta.enabled || true) {
+         if (obj && (obj.es_meta.enabled || true)) { //(null used to return error which server has already handled)
             operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta))
          }
       }).withFailureHandler(function(obj) {
          showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
-      }).getElasticsearchMetadata(tableName)
+      }).getElasticsearchMetadata(tableName, tableConfig)
    }
 
    /** Launches a SQL query */

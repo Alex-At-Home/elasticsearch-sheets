@@ -18,7 +18,7 @@ function getJson_(json, fieldArray) {
 
 /** Converts the table name into a pure alphanum string not starting with a digit */
 function buildTableRangeName_(tableName) {
-   return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + managementSheetName_
+   return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + managementSheetName_()
 }
 
 /** Builds the location of the query/status/header/pagination rows */
@@ -38,6 +38,8 @@ function buildSpecialRowInfo_(configJson) {
      //is_merged - filled in later
      //min_height - filled in later
      //min_width - filled in later
+     //skip_rows - filled in later
+     //skip_cols - filled in later
   }
   var currFromTop = 0
   var currFromBottom = 0
@@ -121,7 +123,7 @@ function validateNewRange_(ss, configJson) {
    }
    // Both are specified, let's check they are valid
    var newSheet = ss.getSheetByName(newSheetName)
-   if (managementSheetName_ == ss.getActiveSheet().getName()) {
+   if (managementSheetName_() == ss.getActiveSheet().getName()) {
       showStatus("Cannot build data table on management sheet", "Server Error")
       return false
    } else if (null == newSheet) {
@@ -131,16 +133,19 @@ function validateNewRange_(ss, configJson) {
       showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
       return false
    } else {
+      // Format skip rows/cols (error if wrong)
+      //TODO
+
       // Check range vs width
       var specialRowInfo = buildSpecialRowInfo_(configJson)
       var minWidth = specialRowInfo.min_width
       var minHeight = specialRowInfo.min_height
+      //TODO: skip should also add to width/height
       var newRange = newSheet.getRange(newRangeNotation)
       if ((newRange.getHeight() < minHeight) || (newRange.getWidth() < minWidth)) {
          showStatus("Need at least a "+minHeight+"x"+minWidth+" grid to build this table: [" + newRangeNotation + "] is too small", "Server Error")
          return false
       }
-      //TODO: maybe validate if the special rows are sane?
    }
    return true
 }

@@ -13,13 +13,14 @@ function onOpen() {
     {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig_'}
   ]
 //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
-//  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearch_')
+//  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder_')
+//  parentMenu.addItem(''Configure Elasticsearch...', 'launchElasticsearchConfig_')
   SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
 
 }
 
 /** Allows expensive initialization/integrity checking operations to be performed only on page load */
-var firstTime = true
+var firstTime_ = true
 
 /**
  * Creates any required internal state (first time) and launches the ES sidebar
@@ -30,19 +31,27 @@ function launchElasticsearchTableBuilder_() {
   var mgmtService = getManagementService_()
   if (null == mgmtService) {
     launchElasticsearchConfig_()
-    createManagementService_({})
+  }
+  // We get to here when the modal gets stopped, so the management service should now be populated
+  mgmtService = getManagementService_()
+  if (null == mgmtService) {
+     return
   }
 
-  if (firstTime) {
+  if (firstTime_) {
      checkTableRangesAgainstDataRanges_()
-     firstTime = false
+     firstTime_ = false
   }
 
   // Launch the sidebar
   var html = HtmlService.createTemplateFromFile('sidebarApp')
   html.defaultKey = defaultTableConfigKey_
 
-  SpreadsheetApp.getUi().showSidebar(html.evaluate().setTitle('Elasticsearch Table Builder'))
+  if (testMode_) {
+     triggerUiEvent_("sidebarApp", { default_key: html.defaultKey })
+  } else {
+     SpreadsheetApp.getUi().showSidebar(html.evaluate().setTitle('Elasticsearch Table Builder'))
+  }
 }
 
 /** Launches the ES configuration dialog */
@@ -67,9 +76,14 @@ function launchElasticsearchConfig_() {
         html.currentAuthType = es_meta.auth_type
      }
   }
-  SpreadsheetApp.getUi().showModalDialog(html.evaluate().setWidth(450).setHeight(350), 'Elasticsearch Configuration')
+  if (testMode_) {
+     triggerUiEvent_("elasticsearchConfigDialog", {
+        current_url: html.currentUrl, current_username: html.currentUsername, current_auth_type: html.currentAuthType
+     })
+  } else {
+     SpreadsheetApp.getUi().showModalDialog(html.evaluate().setWidth(450).setHeight(350), 'Elasticsearch Configuration')
+  }
 }
-
 
 /** Check that the entries in the management service have named ranges (and vice versa) */
 function checkTableRangesAgainstDataRanges_() {
@@ -176,7 +190,11 @@ var defaultTableConfig_ = {
 
 /** Provides status/error messaging back to user via a toast pop-up */
 function showStatus(message, title) {
-   SpreadsheetApp.getActiveSpreadsheet().toast(message, title)
+   if (testMode_) {
+      triggerUiEvent_("toast", { message: message, title: title })
+   } else {
+      SpreadsheetApp.getActiveSpreadsheet().toast(message, title)
+   }
 }
 
 /** The UI requests that it be reloaded following a change to data that it can't/doesn't want to try to reconcile client-side */

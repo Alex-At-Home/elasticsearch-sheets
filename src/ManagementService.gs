@@ -2,8 +2,16 @@
  * ManagementService.gs - controls persistence of table configurations
  */
 
+// 1] Globals
+
 /** Using a sheet to store all the meta - the sheet name */
-var managementSheetName_ = '__ES_ADDON_INTERNALS__'
+function managementSheetName_() {
+   if (testMode_) {
+      return '__ES_TEST_MODE_ADDON_INTERNALS__'
+   } else {
+      return '__ES_ADDON_INTERNALS__'
+   }
+}
 /** (where the saved objects aka data tables start */
 var savedObjectMinRow_ = 9
 
@@ -22,6 +30,8 @@ var esMetaModel_ = {
    "query_trigger_interval_s": 2
 }
 
+// 2] Methods for manipulating the management service itself
+
 /**
  * The first time ES add-on is launched for a given spreadsheet, builds the management sheet
  */
@@ -29,7 +39,7 @@ function createManagementService_(sourceConfig) {
   var ss = SpreadsheetApp.getActive()
   var currActive = ss.getActiveSheet()
   var currNumSheets = ss.getNumSheets()
-  var newSheet = ss.insertSheet(managementSheetName_, currNumSheets)
+  var newSheet = ss.insertSheet(managementSheetName_(), currNumSheets)
   ss.setActiveSheet(currActive, /*restoreSelection=*/true)
 
   newSheet.getRange('a1').setValue('Elasticsearch URL:')
@@ -47,7 +57,18 @@ function createManagementService_(sourceConfig) {
   newSheet.getRange('e3').setValue('Query Trigger Interval (secs):')
   newSheet.autoResizeColumn(5)
 
+  setEsMeta_(newSheet, sourceConfig)
+
   return newSheet;
+}
+
+/** Delete the management sheet (for testing only?) */
+function deleteManagementService_() {
+  var mgmtService = getManagementService_()
+  if (null != mgmtService) {
+    var ss = SpreadsheetApp.getActive()
+    ss.deleteSheet(mgmtService)
+  }
 }
 
 /**
@@ -55,18 +76,34 @@ function createManagementService_(sourceConfig) {
  */
 function getManagementService_() {
   var ss = SpreadsheetApp.getActive()
-  return ss.getSheetByName(managementSheetName_)
+  return ss.getSheetByName(managementSheetName_())
 }
+
+// 3] Methods for manipulating the ES metadata stored in the management service
 
 /** Retrieves and formats the ES metadata */
 function getEsMeta_(mgmtService) {
    var obj = {}
-   obj.url = mgmtService.getRange('b1').getValue()
-   obj.version = mgmtService.getRange('b2').getValue()
-   obj.username = mgmtService.getRange('b3').getValue()
-   obj.password = mgmtService.getRange('b4').getValue()
-   obj.password_global = (obj.password && (obj.password != ""))
-   obj.auth_type = mgmtService.getRange('b5').getValue()
+   obj.url = mgmtService.getRange('b1').getValue().toString()
+   obj.version = mgmtService.getRange('b2').getValue().toString()
+
+   obj.auth_type = mgmtService.getRange('b5').getValue().toString()
+   if ("anonymous" == obj.auth_type) {
+      obj.username = ""
+      obj.password = ""
+      obj.password_global = false
+   } else { //(there will be others in the future)
+      obj.username = mgmtService.getRange('b3').getValue().toString()
+      obj.password = mgmtService.getRange('b4').getValue().toString()
+
+      obj.password_global = "" != obj.password
+      if (!obj.password_global) {
+         var userProperties = PropertiesService.getUserProperties()
+         obj.username =userProperties.getProperty(managementSheetName_() + "username") || ""
+         obj.password =userProperties.getProperty(managementSheetName_() + "password") || ""
+     }
+   }
+
    try {
       obj.header_json = JSON.parse(mgmtService.getRange('b6').getValue())
    } catch (err) {
@@ -77,15 +114,53 @@ function getEsMeta_(mgmtService) {
    } catch (err) {
       delete obj.client_options_json
    }
-   obj.enabled = mgmtService.getRange('f1').getValue().toLowerCase() != "false"
-   obj.query_trigger = mgmtService.getRange('b1').getValue()
-   var interval = parseInt(mgmtService.getRange('b1').getValue() || "")
+   obj.enabled = mgmtService.getRange('f1').getValue().toString().toLowerCase() != "false"
+   obj.query_trigger = mgmtService.getRange('f2').getValue().toString()
+   var interval = parseInt(mgmtService.getRange('f3').getValue().toString() || "")
    if (!interval || (interval <= 0) || (interval == NaN)) {
      interval = 2
    }
    obj.query_trigger_interval_s = interval
    return obj
 }
+
+/** Fills in ES metadata */
+function setEsMeta_(mgmtService, esConfig) {
+   mgmtService.getRange('b1').setValue(esConfig.url || "")
+   mgmtService.getRange('b2').setNumberFormat("@").setValue(esConfig.version || "")
+   var auth_type = esConfig.auth_type || ""
+   if ("anonymous" == auth_type) {
+      mgmtService.getRange('b3').setValue("")
+      mgmtService.getRange('b4').setValue("")
+      var userProperties = PropertiesService.getUserProperties()
+      userProperties.deleteProperty(managementSheetName_() + "username")
+      userProperties.deleteProperty(managementSheetName_() + "password")
+   } else {
+      var password = esConfig.password || ""
+      if (esConfig.password_global || false) {
+         mgmtService.getRange('b3').setNumberFormat("@").setValue(esConfig.username || "")
+         if (password != "") {
+            mgmtService.getRange('b4').setNumberFormat("@").setValue(password)
+         } //(else leave password alone)
+      } else {
+         mgmtService.getRange('b3').setValue("")
+         mgmtService.getRange('b4').setValue("")
+         var userProperties = PropertiesService.getUserProperties()
+         userProperties.setProperty(managementSheetName_() + "username", esConfig.username || "")
+         if (password != "") {
+            userProperties.setProperty(managementSheetName_() + "password", esConfig.password || "")
+         }
+      }
+   }
+   mgmtService.getRange('b5').setValue(auth_type)
+   mgmtService.getRange('b6').setValue(JSON.stringify(esConfig.header_json, null, 3))
+   mgmtService.getRange('b7').setValue(JSON.stringify(esConfig.client_options_json, null, 3))
+   mgmtService.getRange('f1').setValue(esConfig.enabled || true)
+   mgmtService.getRange('f2').setValue(esConfig.query_trigger || "none")
+   mgmtService.getRange('f3').setValue(esConfig.query_trigger_interval_s || 2)
+}
+
+// 4] Methods for manipulating the saved objects stored inside the management service
 
 /** Creates a saved object in the management service */
 function addSavedObject_(mgmtService, name, configJson) {
