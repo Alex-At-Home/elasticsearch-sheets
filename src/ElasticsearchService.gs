@@ -45,14 +45,14 @@ function getElasticsearchMetadata(tableName, tableConfig) {
    // Build table outline and add pending
 
    var statusInfo = "PENDING [" + new Date().toString() + "]"
-   buildTableOutline_(tableName, tableConfig, range, statusInfo)
+   var tableMeta = buildTableOutline_(tableName, tableConfig, range, statusInfo)
 
    // Fill in table info required for the query
 
    //TODO eg for SQL need the actual query to use (+size limit?)
    //TODO for data query need pagination
 
-   var retVal = { "es_meta": esInfo, "table_meta": {} }
+   var retVal = { "es_meta": esInfo, "table_meta": tableMeta }
 
    return retVal
 }
@@ -137,10 +137,14 @@ function handleSqlResponse(tableName, tableConfig, context, json) {
 
 /** Build the table outline + query bar/status info/pagination
  * returns:
- * { "query": string, "data_size": int, "page": int, status_offset: { row: int, col: int }, page_info_offset: { row: int, col: int } }
+ * { "query": string, "data_size": int, "page": int, <- these are used by the client to build the query
+ *    status_offset: { row: int, col: int }, <- passed back post query completion to avoid double calling
+ *    page_info_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
  * (page starts at 0)
  */
 function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
+
+   var retVal = { }
 
    //TODO: borders
    var doBorders = getJson_(tableConfig, [ "common", "borders", "style" ]) || "none"
@@ -148,14 +152,14 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 /*
   var specialRows = {
      query_bar: 0,
+     pagination: 0,
      status: 0,
      headers: 0,
-     pagination: 0
-     //is_merged - filled in later
-     //min_height - filled in later
-     //min_width - filled in later
-     //skip_rows - filled in later
-     //skip_cols - filled in later
+     //is_merged
+     //min_height
+     //min_width
+     //skip_rows
+     //skip_cols
   }
 */
    var rangeRows = activeRange.getNumRows()

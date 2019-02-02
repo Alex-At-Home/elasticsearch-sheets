@@ -68,9 +68,9 @@ function launchElasticsearchConfig_() {
      html.currentUsername = es_meta.username
      if (es_meta.auth_type == "password") {
         if (es_meta.password_global) {
-           html.currentAuthType = "global_password"
+           html.currentAuthType = "password_global"
         } else {
-           html.currentAuthType = "local_password"
+           html.currentAuthType = "password_local"
         }
      } else {
         html.currentAuthType = es_meta.auth_type
@@ -301,7 +301,7 @@ function createTable_(name, tableConfigJson, ignoreNamedRange) {
 }
 
 /** Deletes a table from the management service */
-function deleteTable(name) { //TODO: this also deletes all the code
+function deleteTable(name) { //TODO: this also deletes all the existing data
   // Named range:
   var ss = SpreadsheetApp.getActive()
   deleteTableRange_(ss, name)

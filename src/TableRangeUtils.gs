@@ -23,7 +23,7 @@ function buildTableRangeName_(tableName) {
 
 /** Builds the location of the query/status/header/pagination rows */
 function buildSpecialRowInfo_(configJson) {
-  var headers = getJson_(configJson, [ "common", "headers" ])
+  var headers = getJson_(configJson, [ "common", "headers" ]) || {}
   var status = getJson_(configJson, [ "common", "status" ]) || {}
   var queryBar = getJson_(configJson, [ "common", "query" ]) || {}
   var localQueryBar = (queryBar.source == "local") ? (queryBar.local || {}) : {}
@@ -32,9 +32,9 @@ function buildSpecialRowInfo_(configJson) {
 
   var specialRows = {
      query_bar: 0,
+     pagination: 0,
      status: 0,
-     headers: 0,
-     pagination: 0
+     headers: 0
      //is_merged - filled in later
      //min_height - filled in later
      //min_width - filled in later
@@ -82,6 +82,12 @@ function buildSpecialRowInfo_(configJson) {
        specialRows.headers = --currFromBottom
        break
   }
+
+  // Skip rows and cols:
+
+  //TODO
+  specialRows.skip_rows = []
+  specialRows.skip_cols = []
 
   // Some more processing:
 

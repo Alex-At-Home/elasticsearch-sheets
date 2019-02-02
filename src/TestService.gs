@@ -14,7 +14,9 @@ var testMethods_ = {
    "Code_TESTlaunchElasticsearchConfig_": TESTlaunchElasticsearchConfig_,
    // Elasticsearch.gs:
    "ElasticsearchService_configureElasticsearch": TESTconfigureElasticsearch_,
-   "ElasticsearchService_getElasticsearchMetadata": TESTgetElasticsearchMetadata_
+   "ElasticsearchService_getElasticsearchMetadata": TESTgetElasticsearchMetadata_,
+   // TableRangeUtils.gs:
+   "TableRangeUtils_buildSpecialRowInfo_": TESTbuildSpecialRowInfo_
 }
 
 // Each test can add triggers for no-arg functions that are called when the "event" (cf testUiEvents_) is seen

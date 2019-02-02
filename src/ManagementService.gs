@@ -15,18 +15,18 @@ function managementSheetName_() {
 /** (where the saved objects aka data tables start */
 var savedObjectMinRow_ = 9
 
-/** Just an illustration of the ES metadata model returned by the management service */
+/** Holds the defaults for (+ illustration of) the ES metadata model returned by the management service */
 var esMetaModel_ = {
-   "url": "string",
-   "version": "string", //(optional)
-   "username": "string",
-   "password": "string", //(will not normally be populated)
-   "auth_type": "string", //"anonymous", "password", in the future: "token", "saml", "oauth" etc
+   "url": "",
+   "version": "", //(optional)
+   "username": "",
+   "password": "", //(will not normally be populated)
+   "auth_type": "", //"anonymous", "password", in the future: "token", "saml", "oauth" etc
    "password_global": false, // false if stored locally (ie only accessible for given user)
    "header_json": {}, //key, value map
    "client_options_json": {}, //(passed directly to ES client)
    "enabled": true,
-   "query_trigger": "string", //"none", "timed", "popup", "timed_or_popup"
+   "query_trigger": "none", //"none", "timed", "popup", "timed_or_popup"
    "query_trigger_interval_s": 2
 }
 
@@ -96,7 +96,7 @@ function getEsMeta_(mgmtService) {
       obj.username = mgmtService.getRange('b3').getValue().toString()
       obj.password = mgmtService.getRange('b4').getValue().toString()
 
-      obj.password_global = "" != obj.password
+      obj.password_global = ("" != obj.password)
       if (!obj.password_global) {
          var userProperties = PropertiesService.getUserProperties()
          obj.username =userProperties.getProperty(managementSheetName_() + "username") || ""
@@ -107,38 +107,47 @@ function getEsMeta_(mgmtService) {
    try {
       obj.header_json = JSON.parse(mgmtService.getRange('b6').getValue())
    } catch (err) {
-      delete obj.header_json
+      obj.header_json = esMetaModel_.header_json
    }
    try {
       obj.client_options_json = JSON.parse(mgmtService.getRange('b7').getValue())
    } catch (err) {
-      delete obj.client_options_json
+      obj.client_options_json = esMetaModel_.client_options_json
    }
-   obj.enabled = mgmtService.getRange('f1').getValue().toString().toLowerCase() != "false"
+   obj.enabled = mgmtService.getRange('f1').getValue().toString().toLowerCase() != "false" //(ie default is true)
    obj.query_trigger = mgmtService.getRange('f2').getValue().toString()
+   if (obj.query_trigger == "") {
+      obj.query_trigger = esMetaModel_.query_trigger
+   }
    var interval = parseInt(mgmtService.getRange('f3').getValue().toString() || "")
    if (!interval || (interval <= 0) || (interval == NaN)) {
-     interval = 2
+     interval = esMetaModel_.query_trigger_interval_s
    }
    obj.query_trigger_interval_s = interval
    return obj
 }
 
-/** Fills in ES metadata */
+/** Fills in ES metadata - missing fields, means don't set (apart from grouped fields like auth_type/user/password/password_global) */
 function setEsMeta_(mgmtService, esConfig) {
-   mgmtService.getRange('b1').setValue(esConfig.url || "")
-   mgmtService.getRange('b2').setNumberFormat("@").setValue(esConfig.version || "")
-   var auth_type = esConfig.auth_type || ""
-   if ("anonymous" == auth_type) {
+   if (esConfig.url) {
+      mgmtService.getRange('b1').setValue(esConfig.url)
+   }
+   if (esConfig.version) {
+      mgmtService.getRange('b2').setNumberFormat("@").setValue(esConfig.version)
+   }
+   var authType = esConfig.auth_type //(if authType is undefined then we don't perform any credenticals config)
+   if ("anonymous" == (authType || "")) {
       mgmtService.getRange('b3').setValue("")
       mgmtService.getRange('b4').setValue("")
       var userProperties = PropertiesService.getUserProperties()
       userProperties.deleteProperty(managementSheetName_() + "username")
       userProperties.deleteProperty(managementSheetName_() + "password")
-   } else {
+   } else if (authType) {
       var password = esConfig.password || ""
-      if (esConfig.password_global || false) {
-         mgmtService.getRange('b3').setNumberFormat("@").setValue(esConfig.username || "")
+      if (esConfig.password_global || false) { //(password_global defaults to false)
+         if (esConfig.username) {
+            mgmtService.getRange('b3').setNumberFormat("@").setValue(esConfig.username)
+         }
          if (password != "") {
             mgmtService.getRange('b4').setNumberFormat("@").setValue(password)
          } //(else leave password alone)
@@ -146,18 +155,32 @@ function setEsMeta_(mgmtService, esConfig) {
          mgmtService.getRange('b3').setValue("")
          mgmtService.getRange('b4').setValue("")
          var userProperties = PropertiesService.getUserProperties()
-         userProperties.setProperty(managementSheetName_() + "username", esConfig.username || "")
+         if (esConfig.username) {
+            userProperties.setProperty(managementSheetName_() + "username", esConfig.username)
+         }
          if (password != "") {
-            userProperties.setProperty(managementSheetName_() + "password", esConfig.password || "")
+            userProperties.setProperty(managementSheetName_() + "password", password)
          }
       }
    }
-   mgmtService.getRange('b5').setValue(auth_type)
-   mgmtService.getRange('b6').setValue(JSON.stringify(esConfig.header_json, null, 3))
-   mgmtService.getRange('b7').setValue(JSON.stringify(esConfig.client_options_json, null, 3))
-   mgmtService.getRange('f1').setValue(esConfig.enabled || true)
-   mgmtService.getRange('f2').setValue(esConfig.query_trigger || "none")
-   mgmtService.getRange('f3').setValue(esConfig.query_trigger_interval_s || 2)
+   if (authType) {
+      mgmtService.getRange('b5').setValue(authType)
+   }
+   if (esConfig.header_json) {
+      mgmtService.getRange('b6').setValue(JSON.stringify(esConfig.header_json, null, 3))
+   }
+   if (esConfig.client_options_json) {
+      mgmtService.getRange('b7').setValue(JSON.stringify(esConfig.client_options_json, null, 3))
+   }
+   if (esConfig.enabled) {
+      mgmtService.getRange('f1').setValue(esConfig.enabled)
+   }
+   if (esConfig.query_trigger) {
+      mgmtService.getRange('f2').setValue(esConfig.query_trigger)
+   }
+   if (esConfig.query_trigger_interval_s) {
+      mgmtService.getRange('f3').setValue(esConfig.query_trigger_interval_s)
+   }
 }
 
 // 4] Methods for manipulating the saved objects stored inside the management service

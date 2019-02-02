@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <base target="_top">
+  </head>
+  <body>
+
+ <form class="form">
+  <div class="form-group">
+    <label for="url">Deployment URL:</label>
+    <input type="url" class="form-control" id="es_url" value="<?= currentUrl ?>">
+  </div>
+  <!-- TODO: ES version -->
+  <div class="form-group">
+    <label for="auth_type">Authentication Type</label>
+     <select id="auth_type" class="form-control">
+       <option value="anonymous">Anonymous</option>
+       <option value="password_local">Local user/pass</option>
+       <option value="password_global">Global user/pass</option>
+     </select>
+  </div>
+  <div class="form-group">
+    <label for="es_username">Username:</label>
+    <input class="form-control" id="es_username" readonly value="<?= currentUsername ?>">
+  </div>
+  <div class="form-group">
+    <label for="es_pwd">Password:</label>
+    <input type="password" class="form-control" id="es_pwd" readonly>
+  </div>
+  <button id="submit" type="submit" class="btn btn-default">Submit</button>
+  <button id="cancel" type="cancel" class="btn btn-default">Cancel</button>
+ </form>
+
+  </body>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
+  <script>
+      /** Status/error display */
+      function showStatus(message, summary) {
+         console.log(JSON.stringify(message))
+      }
+
+     // Trigger handlers to enable/disable password
+     $(`#auth_type`).on('change', function () {
+       var authType = $(this).val()
+       if (authType == "anonymous") {
+          var disabled = true
+       } else {
+          var disabled = false
+       }
+       $(`#es_username`).prop('readonly', disabled);
+       $(`#es_pwd`).prop('readonly', disabled);
+     });
+
+     // Buttons
+     $(`#cancel`).click(function(){
+        google.script.host.close()
+     });
+     $(`#submit`).click(function(){
+        var clientAuthType = $(`#auth_type`).val()
+        switch (clientAuthType) {
+           case "anonymous":
+              var authType = clientAuthType
+              break
+           case "password_local":
+              var authType = "password"
+              var passwordGlobal = false
+              break
+           case "password_global":
+              var authType = "password"
+              var passwordGlobal = true
+              break
+        }
+        var config = {
+           url: $(`#es_url`).val(),
+           username: $(`#es_username`).val(),
+           password: $(`#es_pwd`).val(),
+           auth_type: authType,
+           password_global: passwordGlobal
+        }
+        google.script.run.withSuccessHandler(
+            function(obj) {
+               google.script.host.close()
+            }
+        ).withFailureHandler(
+            function(msg) {
+               //(do nothing)
+               showStatus(msg, "Client Error")
+            }
+       ).configureElasticsearch(config)
+     });
+
+     // Initialization
+
+     var currentAuthType = "<?= currentAuthType ?>"
+     $(`#${currentAuthType}`).prop('selected', function(i, v) { return true; })
+
+  </script>
+</html>

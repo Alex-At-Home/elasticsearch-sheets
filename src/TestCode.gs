@@ -79,12 +79,12 @@ function TESTlaunchElasticsearchConfig_(testSheet, testResults) {
         obj.password = ""
         obj.auth_type = "anonymous"
      },
-     "local_password": function(obj) {
+     "password_local": function(obj) {
         obj.username = "test_user"
         obj.password = "test_pass"
         obj.auth_type = "password"
      },
-     "global_password": function(obj) {
+     "password_global": function(obj) {
         obj.username = "test_user"
         obj.password = "test_pass"
         obj.auth_type = "password"

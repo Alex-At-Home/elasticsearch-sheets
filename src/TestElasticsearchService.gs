@@ -21,6 +21,24 @@ var baseEsConfig_ =  {
    "query_trigger_interval_s": 10
 }
 
+/** The cut down version that comes from the UI */
+var baseUiEsConfig_ =  {
+   "url": "test-url",
+   "username": "user",
+   "password": "pass",
+   "auth_type": "password",
+   "password_global": false
+}
+
+/** (utility function) */
+function overrideDefaultEsConfig_(overrides) {
+   var tmpDefault = deepCopyJson_(esMetaModel_)
+   for (var key in overrides) {
+      tmpDefault[key] = overrides[key]
+   }
+   return tmpDefault
+}
+
 /** (PUBLIC) ElasticsearchService.configureElasticsearch */
 function TESTconfigureElasticsearch_(testSheet, testResults) {
 
@@ -28,7 +46,7 @@ function TESTconfigureElasticsearch_(testSheet, testResults) {
   performTest_(testResults, "mgmt_sheet_created_if_null", function() {
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseEsConfig_)
+     var testConfig = deepCopyJson_(baseUiEsConfig_)
      configureElasticsearch(testConfig)
 
      assertEquals_(true, (getManagementService_() != null))
@@ -39,15 +57,15 @@ function TESTconfigureElasticsearch_(testSheet, testResults) {
 
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseEsConfig_)
+     var testConfig = deepCopyJson_(baseUiEsConfig_)
      testConfig.auth_type = "anonymous"
+     testConfig.username = ""
+     testConfig.password = ""
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
-     testConfig.username = ""
-     testConfig.password = ""
-     assertEquals_(testConfig, newConfig)
-
+     var expectedConfig = overrideDefaultEsConfig_(testConfig)
+     assertEquals_(expectedConfig, newConfig)
   })
 
   // Local user/password:
@@ -55,59 +73,51 @@ function TESTconfigureElasticsearch_(testSheet, testResults) {
 
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseEsConfig_)
+     var testConfig = deepCopyJson_(baseUiEsConfig_)
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
-     assertEquals_(testConfig, newConfig)
-
-  })
-
-  // Local user/password (password unchanged):
-  performTest_(testResults, "local_user_pass", function() {
-
-     deleteManagementService_()
-
-     var testConfig = deepCopyJson_(baseEsConfig_)
-     testConfig.password = ""
-     configureElasticsearch(testConfig)
-
-     var newConfig = getEsMeta_(getManagementService_())
-     testConfig.password = "pass" // (unchanged)
-
-     assertEquals_(testConfig, newConfig)
-
+     var expectedConfig = overrideDefaultEsConfig_(testConfig)
+     assertEquals_(expectedConfig, newConfig)
   })
 
   // Global user/password:
   performTest_(testResults, "global_user_pass", function() {
 
-     var testConfig = deepCopyJson_(baseEsConfig_)
-     testConfig.password = "pass2"
+     var testConfig = deepCopyJson_(baseUiEsConfig_)
      testConfig.password_global = true
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
-     assertEquals_(testConfig, newConfig)
-
+     var expectedConfig = overrideDefaultEsConfig_(testConfig)
+     assertEquals_(expectedConfig, newConfig)
   })
 
   // Safe defaults
-  performTest_(testResults, "default_options", function() {
+  performTest_(testResults, "full_config_minus_password", function() {
+
+     deleteManagementService_()
 
      var testConfig = deepCopyJson_(baseEsConfig_)
-     delete testConfig.enabled
-     delete testConfig.password_global
-     delete testConfig.query_trigger_interval_s
      configureElasticsearch(testConfig)
-     testConfig.enabled = true
-     testConfig.password_global = false
-     testConfig.query_trigger_interval_s = 2
 
      var newConfig = getEsMeta_(getManagementService_())
      assertEquals_(testConfig, newConfig)
 
-  })
+     // Check can update and not include username/password/auth-type
+
+     var testConfig2 = deepCopyJson_(baseEsConfig_)
+     testConfig2.url = "new-url"
+     delete testConfig2.username
+     testConfig2.password = ""
+     testConfig2.auth_type = ""
+     delete testConfig2.password_global
+     configureElasticsearch(testConfig2)
+
+     var newConfig2 = getEsMeta_(getManagementService_())
+     testConfig.url = testConfig2.url
+     assertEquals_(testConfig, newConfig2)
+})
 }
 
 /** (PUBLIC) ElasticsearchService.getElasticsearchMetadata */
