@@ -30,8 +30,12 @@ var testSheetName_ = "__ES_SHEETS_TEST__"
 
 // 1] Generic Test logic
 
-/** Run all the registered tests */
-function testRunner(filter, deleteTestSheets) {
+function testRunner() {
+   testRunner_("", true)
+}
+
+/** Run all the registered tests (with options) */
+function testRunner_(filter, deleteTestSheets) {
 
    testMode_ = true
 
@@ -74,7 +78,9 @@ function testRunner(filter, deleteTestSheets) {
          lastEl.message = "[EXCEPTION]: [" + err.message + "], stack =\n" + err.stack
          lastEl.success = false
       }
-      if (deleteTestSheets || true) {
+      if (deleteTestSheets) {
+         //(named ranges become un-deletable if the sheet is deleted first, so hack this in here:)
+         clearTableRanges_(ss)
          ss.deleteSheet(newSheet)
       }
 
@@ -98,8 +104,8 @@ function testRunner(filter, deleteTestSheets) {
    globalTestSheet.autoResizeColumn(2)
 
    // Delete managment sheet
-   if (deleteTestSheets || true) {
-      deleteManagementService_() //TODO: delete named ranges
+   if (deleteTestSheets) {
+      deleteManagementService_()
    }
 }
 

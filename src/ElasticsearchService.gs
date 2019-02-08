@@ -172,6 +172,13 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
    var specialRows = buildSpecialRowInfo_(tableConfig)
 
+   //TODO: when changing header/status bar etc .. need to do some uemerging, mabye just range.breakApart() at the top?
+   // (ugh though that will mess up the data table ... perhaps I shouldn't do _anything_ here until we have the data ready to go
+   // alternative have a "diff" and do a block delete if changing format? maybe store common in some range specific meta (does such a thing
+   // exist?) and then compare when deciding what to do?
+   // another simple alternative is just to mess up the format of the top/bottom 2? rows and live with whatever damage to the data
+   // that causes...
+
    // Query bar
 
    if (0 != specialRows.query_bar) {
@@ -184,12 +191,12 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
           queryEnd = queryEnd - 2 //(2 cells for status)
       }
       // Unmerge everything on this row
-      activeRange.offset(queryRow, 0, 1).breakApart()
+      activeRange.offset(queryRow - 1, 0, 1).breakApart()
       // Query title:
       var queryTitleCell = activeRange.getCell(queryRow, 1)
       queryTitleCell.setValue("Query:")
       // Query bar
-      var queryCells = activeRange.offset(queryRow, 1, 1, queryEnd - queryStart).merge()
+      var queryCells = activeRange.offset(queryRow - 1, queryStart, 1, queryEnd - queryStart).merge()
       retVal.query = queryCells.getValue()
       // Status:
       if (specialRows.query_bar == specialRows.status) {
@@ -197,7 +204,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
          statusTitleCell.setValue("Status:")
          if (null != statusInfo) {
            var statusCell = activeRange.getCell(queryRow, queryEnd + 2)
-           statusTitleCell.setValue(statusInfo)
+           statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: queryRow, col: queryEnd + 2 }
       }
@@ -212,12 +219,12 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       var statusEnd = rangeCols
       var statusRow = getRow(specialRows.status)
       // Unmerge everything on this row
-      activeRange.offset(queryRow, 0, 1).breakApart()
+      activeRange.offset(statusRow - 1, 0, 1).breakApart()
       // Status title:
       var statusTitleCell = activeRange.getCell(statusRow, 1)
-      queryTitleCell.setValue("Status:")
+      statusTitleCell.setValue("Status:")
       // Status info
-      var statusCells = activeRange.offset(statusRow, 1, 1, statusEnd - statusStart).merge()
+      var statusCells = activeRange.offset(statusRow - 1, statusStart, 1, statusEnd - statusStart).merge()
       if (null != statusInfo) {
           statusCells.setValue(statusInfo)
       }
@@ -263,7 +270,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
          statusTitleCell.setValue("Status:")
          if (null != statusInfo) {
            var statusCell = activeRange.getCell(paginationRow, paginationEnd + 2)
-           statusTitleCell.setValue(statusInfo)
+           statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: paginationRow, col: paginationEnd + 2 }
       }

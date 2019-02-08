@@ -4,7 +4,7 @@
 
 /** Just run the tests in this module */
 function testElasticsearchService() {
-   testRunner("ElasticsearchService_")
+   testRunner_("ElasticsearchService_", /*deleteTestSheets*/true)
 }
 
 /** A handy base ES config for use in testing */
@@ -150,6 +150,40 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       }
    }}
 
+   var defaultA1Notation = "A1:E10"
+
+   performTest_(testResults, "no_special_rows_plus_check_es_meta", function() {
+      var tableConfig = deepCopyJson_(baseTableConfig)
+      // (also test es_meta is filled in correct in this test)
+      var testEsConfig = deepCopyJson_(baseEsConfig_)
+      configureElasticsearch(testEsConfig)
+      // (use active selection)
+      testSheet.setActiveSelection(defaultA1Notation)
+
+      var retVal = getElasticsearchMetadata("use_active_sheet", tableConfig)
+
+      var expectedEsMeta = overrideDefaultEsConfig_(testEsConfig)
+      var expectedTableConfig = { data_size: 10 }
+      assertEquals_(expectedEsMeta, retVal.es_meta, "es_meta")
+      assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta")
+   })
+
+   performTest_(testResults, "validation_failure", function() {
+      var tableConfig = deepCopyJson_(baseTableConfig)
+      tableConfig.common.headers.position = "top" //(ensure needs >1 cell)
+
+      // Single cell:
+      testSheet.setActiveSelection("A1:A1")
+
+      var retVal = getElasticsearchMetadata("use_single_cell", tableConfig)
+      assertEquals_(true, null == retVal, "validation_failed: " + JSON.stringify(retVal || {empty: true}))
+
+      var expectedMessage = "Need at least a 2x1 grid to build this table: [A1] is too small"
+      assertEquals_([{ event: "toast", metadata: { message: expectedMessage, title: "Server Error" }}], testUiEvents_, "check launches")
+   })
+
+   // Now a bunch of similar tests:
+
    // Utilities
    var buildNamedRange = function(name, a1Notation) {
       var ss = SpreadsheetApp.getActive()
@@ -157,7 +191,6 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       buildTableRange_(ss, name, {})
       return findTableRange_(ss, name).getRange()
    }
-   var defaultA1Notation = "A1:E10"
 
    var buildTestCases = function(testArray) {
       var mergeObjs = function(a, b) {
@@ -182,87 +215,130 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       return testCases
    }
    var queryTestCases = {
-      "": { },
+      "": { query: "" },
       "Q": { query: "TEST QUERY" },
    }
    var pageTestCases = {
-      "": { },
+      "": { page_out: 1 },
       "P": { page_in: "2", page_out: 2 },
-      "BADP": { page_in: "rabbit" },
+      "BADP": { page_in: "rabbit", page_out: 1 },
       "NUMBERP": { page_in: 3, page_out: 3 }
    }
+   var tests = {
+     "query_pagination": {},
+     "query_status_pagination": { status: "top", merge: true },
+     "pagination_status": { status: "bottom", merge: true },
+     "query_status_pagination_nomerge": { status: "bottom", merge: false }
+   }
 
-   performTest_(testResults, "no_special_rows_plus_check_es_meta", function() {
-      var tableConfig = deepCopyJson_(baseTableConfig)
-      // (also test es_meta is filled in correct in this test)
-      var testEsConfig = deepCopyJson_(baseEsConfig_)
-      configureElasticsearch(testEsConfig)
-      // (use active selection)
-      testSheet.setActiveSelection(defaultA1Notation)
-
-      var retVal = getElasticsearchMetadata("use_active_sheet", tableConfig)
-
-      var expectedEsMeta = overrideDefaultEsConfig_(testEsConfig)
-      var expectedTableConfig = { data_size: 10 }
-      assertEquals_(expectedEsMeta, retVal.es_meta, "es_meta")
-      assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta")
-   })
-   performTest_(testResults, "query_pagination", function() {
+   var testRunner = function(testName, testConfig) { performTest_(testResults, testName, function() {
       var tableConfig = deepCopyJson_(baseTableConfig)
 
       // (use named range)
-      var range = buildNamedRange("query_pagination", defaultA1Notation)
+      var range = buildNamedRange(testName, defaultA1Notation)
 
-      tableConfig.common.query.local.position = "top"
-      tableConfig.common.query.source = "local"
-      tableConfig.common.pagination.local.position = "bottom"
-      tableConfig.common.pagination.source = "local"
+      var includeQueryBar = testName.indexOf("query") >= 0
+      var includePagination = testName.indexOf("pagination") >= 0
+      var includeStatus = testName.indexOf("status") >= 0
 
+      var expectedDataSize = 10
+      var numTestCases = 1
+      var testCaseInfoArray = []
+      if (includeQueryBar) {
+         expectedDataSize--
+         numTestCases *= Object.keys(queryTestCases).length
+         testCaseInfoArray.push(queryTestCases)
+         tableConfig.common.query.local.position = "top"
+         tableConfig.common.query.source = "local"
+      }
       var pagePosition = { col: 1, row: 10 }
+      if (includePagination) {
+         expectedDataSize--
+         numTestCases *= Object.keys(pageTestCases).length
+         testCaseInfoArray.push(pageTestCases)
+         tableConfig.common.pagination.local.position = "bottom"
+         tableConfig.common.pagination.source = "local"
+      }
+      var statusPosition = { }
+      if (includeStatus) {
+         if (!testConfig.merge) {
+            expectedDataSize--
+            statusPosition.col = 2
+            statusPosition.row = ("top" == testConfig.status)  ?
+               (includeQueryBar ? 2 : 1) :
+               (includePagination ? 9 : 10)
+         } else {
+            statusPosition.col = 5
+            statusPosition.row = ("top" == testConfig.status) ? 1 : 10
+         }
+         tableConfig.common.status.position = testConfig.status
+         tableConfig.common.status.merge = testConfig.merge
+      }
 
-      var testCases = buildTestCases( [ queryTestCases, pageTestCases ] )
+      var testCases = buildTestCases(testCaseInfoArray)
       var testCaseNames = Object.keys(testCases)
-      assertEquals_(8, testCaseNames.length, "num_test_cases: " + testCaseNames) // (check we built the expected number of test cases)
+      assertEquals_(numTestCases, testCaseNames.length, "num_test_cases: " + testCaseNames) // (check we built the expected number of test cases)
 
       for (var testCaseKey in testCases) {
         var testCaseConfig = testCases[testCaseKey]
-        if (testCaseConfig.query) { // write query to the right spot
-           range.offset(1, 2).setValue(testCaseConfig.query)
+        range.clear()
+        if (includeQueryBar) {
+           // query always set - default means "", so write to the right spot
+           range.getCell(1, 2).setValue(testCaseConfig.query)
         }
-        if (testCaseConfig.page_in) {
-           range.offset(pagePosition.row, page.col).setValue(testCaseConfig.page_in)
+        if (includePagination) {
+           // set pagination
+           if (1 != testCaseConfig.page_in) { //1 is defaunt, so clear out to test it gets put back in
+              range.getCell(pagePosition.row, pagePosition.col).setValue(testCaseConfig.page_in)
+           } else {
+              range.getCell(pagePosition.row, pagePosition.col).setValue("")
+           }
         }
-        var expectedQuery = testCaseConfig.query || ""
-        var expectedPage = testCaseConfig.page_out || 1
+        var expectedQuery = testCaseConfig.query
+        var expectedPage = testCaseConfig.page_out
 
         var retVal = getElasticsearchMetadata("use_named_range", tableConfig)
 
-        var expectedTableConfig = { data_size: 8, page: expectedPage, query: expectedQuery, page_info_offset: pagePosition }
-        assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta" + testCaseKey)
+        var expectedTableConfig = { data_size: expectedDataSize, page: expectedPage, query: expectedQuery }
+        if (includePagination) {
+           expectedTableConfig.page_info_offset = pagePosition
+        }
+        if (includeStatus) {
+           expectedTableConfig.status_offset = statusPosition
+        }
+        assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta" + testCaseKey + ": " + JSON.stringify(testCaseConfig))
 
-      //TODO: check table fields built
+        // Check the table contents:
+        var expectedMerges = []
+        if (includeQueryBar) {
+           assertEquals_("Query:", range.getCell(1, 1).getValue(), "query text")
+           assertEquals_(expectedQuery, range.getCell(1, 2).getValue(), "query value")
+           if (("top" == testConfig.status) && testConfig.merge) {
+              expectedMerges.push("B1:C1")
+           } else {
+              expectedMerges.push("B1:E1")
+           }
+        }
+        if (includePagination) {
+           assertEquals_("of ???", range.getCell(pagePosition.row, pagePosition.col + 1).getValue(), "page text")
+           assertEquals_(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value")
+        }
+        if (includeStatus) {
+           assertEquals_("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text")
+           var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
+           assertEquals_(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending)
+           if (!testConfig.merge) {
+              expectedMerges.push("B9:E9")
+           }
+        }
+        // Check formatting:
+        var mergedRanges = range.getMergedRanges()
+        assertEquals_(expectedMerges, mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span")
       }
-   })
-   performTest_(testResults, "query_status_pagination", function() {
-      //TODO
-   })
-   performTest_(testResults, "query_pagination_status", function() {
-      //TODO
-   })
-   performTest_(testResults, "query_pagination_status_nomerge", function() {
-      //TODO
-   })
-   performTest_(testResults, "validation_failure", function() {
-      //TODO
-   })
-
-   //TODO: top level things to test:
-   // status bar: top, merged with query, merged with pagination
-   // page specified/not specified
-   // query specified/not specified
-   // validation: pass/fail
-   // Things to check:
-   // spreadsheet filled in
-   // table meta correct
+   })}
+   for (var testName in tests) {
+     var testConfig = tests[testName]
+     testRunner(testName, testConfig)
+   }
 
 }

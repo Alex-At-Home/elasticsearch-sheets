@@ -68,10 +68,7 @@ function deleteManagementService_() {
   if (null != mgmtService) {
     var ss = SpreadsheetApp.getActive()
     ss.deleteSheet(mgmtService)
-    tableRanges = listTableRanges_(ss)
-    for (var r in tableRanges) {
-       deleteTableRange_(ss, null, tableRanges[r])
-    }
+    clearTableRanges_(ss)
   }
 }
 

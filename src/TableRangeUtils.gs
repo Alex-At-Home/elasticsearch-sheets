@@ -194,7 +194,7 @@ function deleteTableRange_(ss, tableName, range) {
    if (range) {
      tableName = range.getName()
    } else {
-      buildTableRangeName_(tableName)
+      tableName = buildTableRangeName_(tableName)
    }
    if (null != matchingRange) {
       matchingRange.getRange().clear()
@@ -202,18 +202,28 @@ function deleteTableRange_(ss, tableName, range) {
    }
 }
 
-/** Returns a map of table ranges with name as key */
+/** Returns a map of table ranges with name as key
+ * TODO note getNamedRanges does not return #ref ranges
+ */
 function listTableRanges_(ss) {
    var sheetPrefix = managementSheetName_()
    var retVal = {}
    var ranges = ss.getNamedRanges()
    for (var i in ranges) {
       var range = ranges[i]
-      if (0 == range.getName().indexOf(sheetPrefix)) {
+      if (range.getName().indexOf(sheetPrefix) >= 0) {
          retVal[range.getName()] = range
       }
    }
    return retVal
+}
+
+/** Deletes all table ranges */
+function clearTableRanges_(ss) {
+   var tableRanges = listTableRanges_(ss)
+   for (var k in tableRanges) {
+      deleteTableRange_(ss, null, tableRanges[k])
+   }
 }
 
 /** Returns a table range, or null if one doesn't exist */
