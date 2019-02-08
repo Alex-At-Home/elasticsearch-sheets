@@ -129,7 +129,7 @@ function validateNewRange_(ss, configJson) {
    }
    // Both are specified, let's check they are valid
    var newSheet = ss.getSheetByName(newSheetName)
-   if (managementSheetName_() == ss.getActiveSheet().getName()) {
+   if (managementSheetName_() == newSheetName) {
       showStatus("Cannot build data table on management sheet", "Server Error")
       return false
    } else if (null == newSheet) {
@@ -187,13 +187,33 @@ function rebuildTableRange_(ss, tableName, configJson) {
    ss.setNamedRange(buildTableRangeName_(tableName), newRange)
 }
 
-/** Deletes the named range corresponding to the data table (ie as part of deleting the data table) */
-function deleteTableRange_(ss, tableName) {
-   var matchingRange = findTableRange_(ss, tableName)
+/** Deletes the named range corresponding to the data table (ie as part of deleting the data table)
+*/
+function deleteTableRange_(ss, tableName, range) {
+   var matchingRange = range || findTableRange_(ss, tableName)
+   if (range) {
+     tableName = range.getName()
+   } else {
+      buildTableRangeName_(tableName)
+   }
    if (null != matchingRange) {
       matchingRange.getRange().clear()
-      ss.removeNamedRange(buildTableRangeName_(tableName))
+      ss.removeNamedRange(tableName)
    }
+}
+
+/** Returns a map of table ranges with name as key */
+function listTableRanges_(ss) {
+   var sheetPrefix = managementSheetName_()
+   var retVal = {}
+   var ranges = ss.getNamedRanges()
+   for (var i in ranges) {
+      var range = ranges[i]
+      if (0 == range.getName().indexOf(sheetPrefix)) {
+         retVal[range.getName()] = range
+      }
+   }
+   return retVal
 }
 
 /** Returns a table range, or null if one doesn't exist */

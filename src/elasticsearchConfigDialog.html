@@ -96,7 +96,7 @@
      // Initialization
 
      var currentAuthType = "<?= currentAuthType ?>"
-     $(`#${currentAuthType}`).prop('selected', function(i, v) { return true; })
+     $("#auth_type").val(currentAuthType).change()
 
   </script>
 </html>

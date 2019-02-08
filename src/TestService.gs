@@ -31,7 +31,7 @@ var testSheetName_ = "__ES_SHEETS_TEST__"
 // 1] Generic Test logic
 
 /** Run all the registered tests */
-function testRunner() {
+function testRunner(filter, deleteTestSheets) {
 
    testMode_ = true
 
@@ -48,6 +48,7 @@ function testRunner() {
    var success = true
    var numTestsRun = 0
    for (var testName in testMethods_) {
+      if (testName.indexOf(filter || "") < 0) continue
 
       // Create scratch sheet for this test
       var testSheetName = testSheetName_ + testName
@@ -73,7 +74,9 @@ function testRunner() {
          lastEl.message = "[EXCEPTION]: [" + err.message + "], stack =\n" + err.stack
          lastEl.success = false
       }
-      ss.deleteSheet(newSheet)
+      if (deleteTestSheets || true) {
+         ss.deleteSheet(newSheet)
+      }
 
       // Render results on spreadsheet
 
@@ -95,7 +98,9 @@ function testRunner() {
    globalTestSheet.autoResizeColumn(2)
 
    // Delete managment sheet
-   deleteManagementService_()
+   if (deleteTestSheets || true) {
+      deleteManagementService_() //TODO: delete named ranges
+   }
 }
 
 // 2] Utilities

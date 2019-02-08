@@ -47,11 +47,6 @@ function getElasticsearchMetadata(tableName, tableConfig) {
    var statusInfo = "PENDING [" + new Date().toString() + "]"
    var tableMeta = buildTableOutline_(tableName, tableConfig, range, statusInfo)
 
-   // Fill in table info required for the query
-
-   //TODO eg for SQL need the actual query to use (+size limit?)
-   //TODO for data query need pagination
-
    var retVal = { "es_meta": esInfo, "table_meta": tableMeta }
 
    return retVal
@@ -140,13 +135,13 @@ function handleSqlResponse(tableName, tableConfig, context, json) {
  * { "query": string, "data_size": int, "page": int, <- these are used by the client to build the query
  *    status_offset: { row: int, col: int }, <- passed back post query completion to avoid double calling
  *    page_info_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
- * (page starts at 0)
+ * (page starts at 1)
  */
 function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
-   var retVal = { }
+   var retVal = { } //(gets filled in as the method progresses)
 
-   //TODO: borders
+   //TODO: borders (how to unformat borders if table changing size?!)
    var doBorders = getJson_(tableConfig, [ "common", "borders", "style" ]) || "none"
 
 /*
@@ -165,6 +160,8 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    var rangeRows = activeRange.getNumRows()
    var rangeCols = activeRange.getNumColumns()
 
+   var dataSize = rangeRows
+
    var getRow = function(n) {
       if (n >= 0) {
          return n
@@ -178,6 +175,8 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    // Query bar
 
    if (0 != specialRows.query_bar) {
+      dataSize--
+
       var queryStart = 1
       var queryEnd = rangeCols
       var queryRow = getRow(specialRows.query_bar)
@@ -185,48 +184,58 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
           queryEnd = queryEnd - 2 //(2 cells for status)
       }
       // Unmerge everything on this row
-      range.offset(queryRow, 0, 1).breakApart()
+      activeRange.offset(queryRow, 0, 1).breakApart()
       // Query title:
-      var queryTitleCell = range.getCell(queryRow, 1)
+      var queryTitleCell = activeRange.getCell(queryRow, 1)
       queryTitleCell.setValue("Query:")
       // Query bar
-      var queryCells = range.offset(queryRow, 1, 1, queryEnd - queryStart).merge()
+      var queryCells = activeRange.offset(queryRow, 1, 1, queryEnd - queryStart).merge()
+      retVal.query = queryCells.getValue()
       // Status:
       if (specialRows.query_bar == specialRows.status) {
-         var statusTitleCell = range.getCell(queryRow, queryEnd + 1)
+         var statusTitleCell = activeRange.getCell(queryRow, queryEnd + 1)
          statusTitleCell.setValue("Status:")
          if (null != statusInfo) {
-           var statusCell = range.getCell(queryRow, queryEnd + 2)
+           var statusCell = activeRange.getCell(queryRow, queryEnd + 2)
            statusTitleCell.setValue(statusInfo)
          }
+         retVal.status_offset = { row: queryRow, col: queryEnd + 2 }
       }
    }
 
    // Status (if not merged)
 
    if ((0 != specialRows.status) && (!specialRows.is_merged)) {
+      dataSize--
+
       var statusStart = 1
       var statusEnd = rangeCols
       var statusRow = getRow(specialRows.status)
       // Unmerge everything on this row
-      range.offset(queryRow, 0, 1).breakApart()
+      activeRange.offset(queryRow, 0, 1).breakApart()
       // Status title:
-      var statusTitleCell = range.getCell(statusRow, 1)
+      var statusTitleCell = activeRange.getCell(statusRow, 1)
       queryTitleCell.setValue("Status:")
       // Status info
-      var statusCells = range.offset(statusRow, 1, 1, statusEnd - statusStart).merge()
+      var statusCells = activeRange.offset(statusRow, 1, 1, statusEnd - statusStart).merge()
       if (null != statusInfo) {
           statusCells.setValue(statusInfo)
       }
+      retVal.status_offset = { row: statusRow, col: 2 }
    }
 
    // Headers
 
-   //(nothing to do for now)
+   if (0 != specialRows.headers) {
+      dataSize--
+      //(nothing else to do for now)
+   }
 
    // Pagination
 
    if (0 != specialRows.pagination) {
+      dataSize--
+
       var paginationStart = 1
       var paginationEnd = rangeCols
       var paginationRow = getRow(specialRows.pagination)
@@ -234,31 +243,31 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
           paginationEnd = paginationEnd - 2 //(2 cells for status)
       }
       // Unmerge everything on this row
-      range.offset(paginationRow, 0, 1).breakApart()
+      activeRange.offset(paginationRow, 0, 1).breakApart()
       // Page offset
-      var pageCell = range.getCell(paginationRow, 1)
-      var currPage = pageCell.getValue()
-      if (currPage == "") { //TODO get as int
+      var pageCell = activeRange.getCell(paginationRow, 1)
+      var currPage = parseInt(pageCell.getValue())
+      if (!currPage || (NaN == currPage) || ("" == currPage)) {
          currPage = 1
          pageCell.setValue("" + currPage)
       }
+      retVal.page = currPage
       // Page info
-      var pageInfoCell = range.getCell(paginationRow, 2)
+      var pageInfoCell = activeRange.getCell(paginationRow, 2)
       pageInfoCell.setValue("of ???")
+      retVal.page_info_offset = { row: paginationRow, col: 1 }
 
       // Status:
       if (specialRows.pagination == specialRows.status) {
-         var statusTitleCell = range.getCell(paginationRow, paginationEnd + 1)
+         var statusTitleCell = activeRange.getCell(paginationRow, paginationEnd + 1)
          statusTitleCell.setValue("Status:")
          if (null != statusInfo) {
-           var statusCell = range.getCell(paginationRow, paginationEnd + 2)
+           var statusCell = activeRange.getCell(paginationRow, paginationEnd + 2)
            statusTitleCell.setValue(statusInfo)
          }
+         retVal.status_offset = { row: paginationRow, col: paginationEnd + 2 }
       }
    }
-
-   //TODO return metadata required for the table-specific processing (eg query bar contents, pagination info, data size)
+   retVal.data_size = dataSize
+   return retVal
 }
-
-
-//TODO
