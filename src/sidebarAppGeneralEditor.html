@@ -14,6 +14,7 @@
       <select class="input-small form-control" id="querybar_${table_type}_${index}">
         <option value='none'>Disabled</option>
         <option value='top'>Top</option>
+        <option value='bottom'>Bottom</option>
       </select>
     </div>
     <div class="form-group">
@@ -21,6 +22,7 @@
       <select class="input-small form-control" id="headers_${table_type}_${index}">
         <option value='top'>Top</option>
         <option value='none'>Disabled</option>
+        <option value='bottom'>Bottom</option>
       </select>
     </div>
     <div class="form-group">
@@ -28,6 +30,7 @@
       <select class="input-small form-control" id="pagination_${table_type}_${index}">
         <option value='bottom'>Bottom</option>
         <option value='none'>Disabled</option>
+        <option value='top'>Top</option>
       </select>
     </div>
     <div class="form-group">
@@ -41,6 +44,8 @@
          <label><input type="checkbox" id="status_merge_${table_type}_${index}">Merge with query/pagination rows</label>
       </div>
     </div>
+    <!-- TODO: add back when supported -->
+    <!--
     <div class="form-group">
       <label>Borders</label>
       <select class="input-small form-control" id="borders_${table_type}_${index}">
@@ -48,6 +53,9 @@
         <option value='thin'>Thin</option>
       </select>
     </div>
+    -->
+    <!-- TODO: add back when supported -->
+    <!--
     <div class="form-group">
       <label>Table Customization</label>
       <div class="input-group">
@@ -63,6 +71,7 @@
        <input type="text" class="form-control" placeholder="Column offsets to skip" value="" id="skip_cols_${table_type}_${index}">
       </div>
      </div>
+     -->
   </form>
       `
 
@@ -168,6 +177,8 @@
          })
       })
       // Borders
+      //TODO: put back when supported
+      /*
       $(`#borders_${table_type}_${index}`).change(function() {
          var thisValue = this.value
          updateRawJson(curr_editor, function(currJson) {
@@ -175,7 +186,10 @@
             borders.style = thisValue
          })
       })
+      */
       // Skip rows/cols
+      //TODO: put back when supported
+      /*
       $(`#skip_rows_${table_type}_${index}`).on("input", function(e) {
          var thisValue = this.value
          updateRawJson(curr_editor, function(currJson) {
@@ -190,6 +204,7 @@
             skip.cols = thisValue
          })
       })
+      */
    }
 
 </script>

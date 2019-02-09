@@ -10,11 +10,11 @@
 function onOpen() {
   var menu = [
     {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder_'},
-    {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig_'}
+    {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'}
   ]
 //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
 //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder_')
-//  parentMenu.addItem(''Configure Elasticsearch...', 'launchElasticsearchConfig_')
+//  parentMenu.addItem(''Configure Elasticsearch...', 'launchElasticsearchConfig')
   SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
 
 }
@@ -30,7 +30,7 @@ function launchElasticsearchTableBuilder_() {
   // If necessary, initialize the management service
   var mgmtService = getManagementService_()
   if (null == mgmtService) {
-    launchElasticsearchConfig_()
+    launchElasticsearchConfig()
   }
   // We get to here when the modal gets stopped, so the management service should now be populated
   mgmtService = getManagementService_()
@@ -55,7 +55,7 @@ function launchElasticsearchTableBuilder_() {
 }
 
 /** Launches the ES configuration dialog */
-function launchElasticsearchConfig_() {
+function launchElasticsearchConfig() {
   var mgmtService = getManagementService_()
   var html = HtmlService.createTemplateFromFile('elasticsearchConfigDialog')
   if (null == mgmtService) {
@@ -175,7 +175,7 @@ var defaultTableConfig_ = {
     "enabled": false,
     "query": "--SHOW TABLES\n" +
               "--DESCRIBE <<index>>\n" +
-              "--SELECT $$headers FROM <<index>> WHERE $$query $$pagination"
+              "--SELECT * FROM <<index>> WHERE $$query $$pagination"
   },
   "cat_table": {
     "enabled": false,

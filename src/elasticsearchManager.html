@@ -26,9 +26,7 @@
             var options = {
                host: esMeta.url
             }
-            //TODO: all sorts of works still to be done on auth
             if (esMeta.auth_type == "password") {
-               //TODO (if password not specified then launch modal dialog for user to specify it)
                options.httpAuth = esMeta.username + ":" + esMeta.password
             }
             if (esMeta.version != "") { //(else default)
@@ -38,7 +36,6 @@
             for (var key in client_options) {
                options[key] = client_options[key]
             }
-            //TODO: add headers to Host object
             return new elasticsearch.Client(options)
          }
       }
@@ -48,7 +45,12 @@
    function performGenericOperation(tableName, tableConfig, operationLogicFn) {
       google.script.run.withSuccessHandler(function(obj) {
          if (obj && (obj.es_meta.enabled || true)) { //(null used to return error which server has already handled)
-            operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta))
+            //TODO: all sorts of works still to be done on auth
+            if (("password" == obj.es_meta.auth_type) && ("" == obj.es_meta.password)) {
+               google.script.run.launchElasticsearchConfig()
+            } else {
+               operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta))
+            }
          }
       }).withFailureHandler(function(obj) {
          showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
@@ -57,10 +59,21 @@
 
    /** Launches a SQL query */
    function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient) {
+      var tableMeta = esAndTableMeta.table_meta
+      var userQuery = tableMeta.query || "True"
+      var pagination = ""
+      if (tableMeta.page_info_offset) {
+         var rowsToPull = tableMeta.page*tableMeta.data_size // ES SQL currently doesn't support full pagination so have to grovel
+         pagination = "LIMIT " + rowsToPull
+      }
+      var fullSqlQuery = tableConfig.sql_table.query
+         .replace("$$query", userQuery)
+         .replace("$$pagination", pagination)
+
       esClient.transport.request({
          method: "POST",
          path: "/_xpack/sql?format=json",
-         body: { "query": tableConfig.sql_table.query },
+         body: { "query": fullSqlQuery },
          headers: esAndTableMeta.es_meta.headers
       }, function(err, response, status) {
          var result = {}
@@ -70,7 +83,7 @@
          // (always get status)
          if (status) { result.status = status }
 
-         google.script.run.handleSqlResponse(tableName, tableConfig, esAndTableMeta, result)
+         google.script.run.handleSqlResponse(tableName, tableConfig, esAndTableMeta, result, fullSqlQuery)
       })
    }
 
