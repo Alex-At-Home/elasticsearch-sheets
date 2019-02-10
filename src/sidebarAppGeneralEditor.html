@@ -44,16 +44,13 @@
          <label><input type="checkbox" id="status_merge_${table_type}_${index}">Merge with query/pagination rows</label>
       </div>
     </div>
-    <!-- TODO: add back when supported -->
-    <!--
     <div class="form-group">
-      <label>Borders</label>
-      <select class="input-small form-control" id="borders_${table_type}_${index}">
-        <option value='none'>None</option>
-        <option value='thin'>Thin</option>
+      <label>Formatting</label>
+      <select class="input-small form-control" id="formatting_${table_type}_${index}">
+        <option value='none'>Manual</option>
+        <option value='minimal'>Minimal</option>
       </select>
     </div>
-    -->
     <!-- TODO: add back when supported -->
     <!--
     <div class="form-group">
@@ -113,9 +110,9 @@
       var statusMerge = getJson(json, ["common", "status", "merge"]) || true
       $(`#status_merge_${table_type}_${index}`).prop('checked', statusMerge)
 
-      // Borders
-      var borderStyle = getJson(json, ["common", "borders", "style"]) || "none"
-      $(`#borders_${table_type}_${index}`).val(borderStyle)
+      // Formatting
+      var formatTheme = getJson(json, ["common", "formatting", "theme"]) || "none"
+      $(`#formatting_${table_type}_${index}`).val(formatTheme)
 
       // Skip rows/cols
       var skipRows = getJson(json, ["common", "skip", "rows"]) || ""
@@ -176,17 +173,14 @@
             status.merge = thisChecked
          })
       })
-      // Borders
-      //TODO: put back when supported
-      /*
-      $(`#borders_${table_type}_${index}`).change(function() {
+      // Formatting
+      $(`#formatting_${table_type}_${index}`).change(function() {
          var thisValue = this.value
          updateRawJson(curr_editor, function(currJson) {
-            var borders = getOrPutJsonObj(currJson, [ "common", "borders" ])
-            borders.style = thisValue
+            var formatTheme = getOrPutJsonObj(currJson, [ "common", "formatting" ])
+            formatTheme.theme = thisValue
          })
       })
-      */
       // Skip rows/cols
       //TODO: put back when supported
       /*

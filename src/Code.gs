@@ -154,8 +154,8 @@ var defaultTableConfig_ = {
 //        "header_overrides": "", //TODO format?
 //        "filter_headers": false //(if true then only select headers specified in the overrides)
      },
-     "borders": {
-        "style": "none" //(or "none")
+     "formatting": {
+        "theme": "minimal" //(or "none", in the future: "default", etc)
      },
      "skip": {
         "rows": "", //comma-separated list of offsets

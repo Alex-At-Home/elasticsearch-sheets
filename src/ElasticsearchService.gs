@@ -89,7 +89,6 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
          for (var i = 0; i < numTableCols; ++i) {
             var cell = range.getCell(specialRows.headers, i + 1)
             if (i < numDataCols) {
-               cell.setFontWeight("bold")
                cell.setValue(cols[i].name)
             } else {
                cell.clear()
@@ -179,8 +178,8 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
    var retVal = { } //(gets filled in as the method progresses)
 
-   //TODO: borders (how to unformat borders if table changing size?!)
-   var doBorders = getJson_(tableConfig, [ "common", "borders", "style" ]) || "none"
+   //TODO: formatting (how to unformat if table changing size?!)
+   var formatTheme = getJson_(tableConfig, [ "common", "formatting", "theme" ]) || "none"
 
 /*
   var specialRows = {
@@ -210,12 +209,9 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
    var specialRows = buildSpecialRowInfo_(tableConfig)
 
-   //TODO: when changing header/status bar etc .. need to do some uemerging, mabye just range.breakApart() at the top?
-   // (ugh though that will mess up the data table ... perhaps I shouldn't do _anything_ here until we have the data ready to go
-   // alternative have a "diff" and do a block delete if changing format? maybe store common in some range specific meta (does such a thing
-   // exist?) and then compare when deciding what to do?
-   // another simple alternative is just to mess up the format of the top/bottom 2? rows and live with whatever damage to the data
-   // that causes...
+   //TODO: handle switching between formats and styles
+   //TODO: eg currently if I switch the header bar off it preserves the bold
+   //TODO: copy data format from middle to any of the top 3/bottom 3 rows that aren't special
 
    // Query bar
 
@@ -228,13 +224,19 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       if (specialRows.query_bar == specialRows.status) { // status and query bar merged
           queryEnd = queryEnd - 2 //(2 cells for status)
       }
-      // Unmerge everything on this row
-      activeRange.offset(queryRow - 1, 0, 1).breakApart()
+      // Unmerge everything on this row and clear format
+      switch (formatTheme) {
+         case "none":
+            break
+         default:
+            activeRange.offset(queryRow - 1, 0, 1).breakApart().clearFormat()
+            break
+      }
       // Query title:
       var queryTitleCell = activeRange.getCell(queryRow, 1)
       queryTitleCell.setValue("Query:")
       // Query bar
-      var queryCells = activeRange.offset(queryRow - 1, queryStart, 1, queryEnd - queryStart).merge()
+      var queryCells = activeRange.offset(queryRow - 1, queryStart, 1, queryEnd - queryStart)
       retVal.query = queryCells.getValue()
       // Status:
       if (specialRows.query_bar == specialRows.status) {
@@ -246,6 +248,16 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
          }
          retVal.status_offset = { row: queryRow, col: queryEnd + 2 }
       }
+      switch (formatTheme) {
+         case "none": break
+         default:
+            if (retVal.status_offset) {
+               activeRange.getCell(queryRow, queryEnd + 1).setFontWeight("bold")
+            }
+            queryTitleCell.setFontWeight("bold")
+            queryCells.merge()
+            break
+      }
    }
 
    // Status (if not merged)
@@ -256,24 +268,46 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       var statusStart = 1
       var statusEnd = rangeCols
       var statusRow = getRow(specialRows.status)
-      // Unmerge everything on this row
-      activeRange.offset(statusRow - 1, 0, 1).breakApart()
+      // Unmerge everything on this row and clear format
+      switch (formatTheme) {
+         case "none":
+            break
+         default:
+            activeRange.offset(statusRow - 1, 0, 1).breakApart().clearFormat()
+            break
+      }
       // Status title:
       var statusTitleCell = activeRange.getCell(statusRow, 1)
       statusTitleCell.setValue("Status:")
       // Status info
-      var statusCells = activeRange.offset(statusRow - 1, statusStart, 1, statusEnd - statusStart).merge()
+      var statusCells = activeRange.offset(statusRow - 1, statusStart, 1, statusEnd - statusStart)
       if (null != statusInfo) {
           statusCells.setValue(statusInfo)
       }
       retVal.status_offset = { row: statusRow, col: 2 }
+
+      switch (formatTheme) {
+         case "none": break
+         default:
+            statusTitleCell.setFontWeight("bold")
+            statusCells.merge()
+            break
+      }
    }
 
    // Headers
 
    if (0 != specialRows.headers) {
       dataSize--
-      //(nothing else to do for now)
+      var headersRow = getRow(specialRows.headers)
+      // Unmerge everything on this row, clear format, and set to bold
+      switch (formatTheme) {
+         case "none":
+            break
+         default:
+            activeRange.offset(headersRow - 1, 0, 1).breakApart().clearFormat().setFontWeight("bold")
+            break
+      }
    }
 
    // Pagination
@@ -287,20 +321,26 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       if (specialRows.pagination == specialRows.status) { // status and query bar merged
           paginationEnd = paginationEnd - 2 //(2 cells for status)
       }
-      // Unmerge everything on this row
-      activeRange.offset(paginationRow, 0, 1).breakApart()
+      // Unmerge everything on this row and clear format
+      switch (formatTheme) {
+         case "none":
+            break
+         default:
+            activeRange.offset(paginationRow - 1, 0, 1).breakApart().clearFormat()
+            break
+      }
+      // Page info
+      var pageInfoCell = activeRange.getCell(paginationRow, 1)
+      pageInfoCell.setValue("Page (of ???):")
+      retVal.page_info_offset = { row: paginationRow, col: 2 }
       // Page offset
-      var pageCell = activeRange.getCell(paginationRow, 1)
+      var pageCell = activeRange.getCell(paginationRow, 2)
       var currPage = parseInt(pageCell.getValue())
       if (!currPage || (NaN == currPage) || ("" == currPage)) {
          currPage = 1
          pageCell.setValue("" + currPage)
       }
       retVal.page = currPage
-      // Page info
-      var pageInfoCell = activeRange.getCell(paginationRow, 2)
-      pageInfoCell.setValue("of ???")
-      retVal.page_info_offset = { row: paginationRow, col: 1 }
 
       // Status:
       if (specialRows.pagination == specialRows.status) {
@@ -311,6 +351,15 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
            statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: paginationRow, col: paginationEnd + 2 }
+      }
+      switch (formatTheme) {
+         case "none": break
+         default:
+            if (retVal.status_offset) {
+               activeRange.getCell(paginationRow, paginationEnd + 1).setFontWeight("bold")
+            }
+            pageInfoCell.setFontWeight("bold")
+            break
       }
    }
    retVal.data_size = dataSize
