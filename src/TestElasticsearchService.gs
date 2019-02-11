@@ -147,6 +147,9 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       "status": {
             "position": "none",
             "merge": false
+      },
+      "formatting": {
+         "theme": "minimal"
       }
    }}
 
@@ -224,6 +227,10 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       "BADP": { page_in: "rabbit", page_out: 1 },
       "NUMBERP": { page_in: 3, page_out: 3 }
    }
+   var formatTestsCases = {
+      "": { format: false },
+      "F": { format: true }
+   }
    var tests = {
      "query_pagination": {},
      "query_status_pagination": { status: "top", merge: true },
@@ -251,7 +258,7 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
          tableConfig.common.query.local.position = "top"
          tableConfig.common.query.source = "local"
       }
-      var pagePosition = { col: 1, row: 10 }
+      var pagePosition = { col: 2, row: 10 }
       if (includePagination) {
          expectedDataSize--
          numTestCases *= Object.keys(pageTestCases).length
@@ -267,12 +274,16 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
             statusPosition.row = ("top" == testConfig.status)  ?
                (includeQueryBar ? 2 : 1) :
                (includePagination ? 9 : 10)
-         } else {
-            statusPosition.col = 5
+         } else { //top means merge with query bar, bottom means merge with pagination
+            statusPosition.col = ("top" == testConfig.status) ? 5 : 4
             statusPosition.row = ("top" == testConfig.status) ? 1 : 10
          }
          tableConfig.common.status.position = testConfig.status
          tableConfig.common.status.merge = testConfig.merge
+      }
+      if (testName.indexOf("query_status_pagination" >= 0)) { //(covers all the cases)
+         testCaseInfoArray.push(formatTestsCases)
+         numTestCases *= Object.keys(formatTestsCases).length
       }
 
       var testCases = buildTestCases(testCaseInfoArray)
@@ -284,15 +295,22 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
         range.clear()
         if (includeQueryBar) {
            // query always set - default means "", so write to the right spot
+           range.getCell(1, 1).setValue("Query:")
            range.getCell(1, 2).setValue(testCaseConfig.query)
         }
         if (includePagination) {
            // set pagination
+           range.getCell(pagePosition.row, pagePosition.col - 1).setValue("Page (test)")
            if (1 != testCaseConfig.page_in) { //1 is defaunt, so clear out to test it gets put back in
               range.getCell(pagePosition.row, pagePosition.col).setValue(testCaseConfig.page_in)
            } else {
               range.getCell(pagePosition.row, pagePosition.col).setValue("")
            }
+        }
+        if (!testCaseConfig.format) {
+           tableConfig.common.formatting.theme = "none"
+        } else {
+           tableConfig.common.formatting.theme = "minimal"
         }
         var expectedQuery = testCaseConfig.query
         var expectedPage = testCaseConfig.page_out
@@ -306,13 +324,20 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
         if (includeStatus) {
            expectedTableConfig.status_offset = statusPosition
         }
-        assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta" + testCaseKey + ": " + JSON.stringify(testCaseConfig))
+        var extraTestCaseConfig = " / " + testCaseKey + ": " + JSON.stringify(testCaseConfig)
+        assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta" + extraTestCaseConfig)
+
+        var cellFontWeight = "bold"
+        if (!testCaseConfig.format) {
+           cellFontWeight = "normal"
+        }
 
         // Check the table contents:
         var expectedMerges = []
         if (includeQueryBar) {
-           assertEquals_("Query:", range.getCell(1, 1).getValue(), "query text")
-           assertEquals_(expectedQuery, range.getCell(1, 2).getValue(), "query value")
+           assertEquals_("Query:", range.getCell(1, 1).getValue(), "query text" + extraTestCaseConfig)
+           assertEquals_(cellFontWeight, range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
+           assertEquals_(expectedQuery, range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
            if (("top" == testConfig.status) && testConfig.merge) {
               expectedMerges.push("B1:C1")
            } else {
@@ -320,25 +345,39 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
            }
         }
         if (includePagination) {
-           assertEquals_("of ???", range.getCell(pagePosition.row, pagePosition.col + 1).getValue(), "page text")
-           assertEquals_(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value")
+           assertEquals_("Page (of ???):", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
+           assertEquals_(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
+           assertEquals_(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
         }
         if (includeStatus) {
-           assertEquals_("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text")
+           assertEquals_("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
+           assertEquals_(cellFontWeight, range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
            var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
-           assertEquals_(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending)
+           assertEquals_(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
            if (!testConfig.merge) {
               expectedMerges.push("B9:E9")
+           } else if ("bottom" == testConfig.status) {
+              expectedMerges.push("D10:E10")
            }
         }
         // Check formatting:
+        //TODO: check header formats
         var mergedRanges = range.getMergedRanges()
-        assertEquals_(expectedMerges, mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span")
+        if (testCaseConfig.format) {
+           assertEquals_(expectedMerges, mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
+        } else {
+           assertEquals_([], mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
+        }
       }
    })}
    for (var testName in tests) {
      var testConfig = tests[testName]
      testRunner(testName, testConfig)
    }
+   //TODO: tests for fixing formatting when switching between common optons (once impdemented)
+}
 
+/** (PUBLIC) ElasticsearchService.handleSqlResults */
+function TESThandlwSqlResults_(testSheet, testResults) {
+   //TODO: list things to test
 }

@@ -167,6 +167,49 @@ function convertSpecialRows_(specialRows, numTableRows) {
    specialRows.query_bar = getRow(specialRows.query_bar)
 }
 
+/** Infers the data row formats and copies over possible ex-special row formats */
+function resetExSpecialRowFormats_(activeRange, specialRows, formatTheme) {
+
+   var rangeRows = activeRange.getNumRows()
+
+   // Simple attempt at ensuring format is preserved
+   var dataFormatRowSample = null
+   var dataFormatRowSampleOffset = null
+   if ("minimal" == formatTheme) {
+      if (rangeRows >= 8) { // Find the first guaranteed data row
+         dataFormatRowSampleOffset = 4
+      } else { // (small table, make a game attempt to find a data row)
+        for (var ii = 1; ii <= rangeRows - 1; ++ii) {
+           if (activeRange.getCell(ii, 1).getValue().indexOf(":") < 0) {
+              // (jump one more row since it could be the header, note offset and getCell have different first index)
+              dataFormatRowSampleOffset = ii
+              break
+           }
+        }
+      }
+      if (null != dataFormatRowSampleOffset) {
+           dataFormatRowSample = activeRange.offset(dataFormatRowSampleOffset, 0, 1)
+
+           // Now going to copy the data format to any of the first 4 or last 4
+           var maybeCopyRow = function(ii) {
+              if ((ii != specialRows.status) && (ii != specialRows.pagination) &&
+                  (ii != specialRows.headers) && (ii != specialRows.query_bar) && ((ii + 1) != dataFormatRowSampleOffset))
+              {
+                 var offset = activeRange.offset(ii - 1, 0, 1)
+                 dataFormatRowSample.copyTo(offset, {formatOnly:true})
+              }
+           }
+           for (var ii = 1; ii <= 4; ++ii) { // top 4
+              maybeCopyRow(ii)
+           }
+           for (var ii = rangeRows; (ii > rangeRows - 4) && (ii > 4); --ii) { // bottom 4, minus overlaps
+              maybeCopyRow(ii)
+           }
+      }
+   }
+
+}
+
 /** Build the table outline + query bar/status info/pagination
  * returns:
  * { "query": string, "data_size": int, "page": int, <- these are used by the client to build the query
@@ -177,9 +220,6 @@ function convertSpecialRows_(specialRows, numTableRows) {
 function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
    var retVal = { } //(gets filled in as the method progresses)
-
-   //TODO: formatting (how to unformat if table changing size?!)
-   var formatTheme = getJson_(tableConfig, [ "common", "formatting", "theme" ]) || "none"
 
 /*
   var specialRows = {
@@ -198,6 +238,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    var rangeCols = activeRange.getNumColumns()
 
    var dataSize = rangeRows
+   var formatTheme = getJson_(tableConfig, [ "common", "formatting", "theme" ]) || "none"
 
    var getRow = function(n) {
       if (n >= 0) {
@@ -208,10 +249,13 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    }
 
    var specialRows = buildSpecialRowInfo_(tableConfig)
+   convertSpecialRows_(specialRows, rangeRows)
 
-   //TODO: handle switching between formats and styles
-   //TODO: eg currently if I switch the header bar off it preserves the bold
-   //TODO: copy data format from middle to any of the top 3/bottom 3 rows that aren't special
+   // How we handle formatting:
+   // none - complately manual
+   // minimal - we manage the header rows (just bold, no background - some borders in the future)
+   // (in the future, a more colorful headers management, and also manage data with alternating rows)
+   resetExSpecialRowFormats_(activeRange, specialRows, formatTheme)
 
    // Query bar
 
@@ -220,7 +264,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
       var queryStart = 1
       var queryEnd = rangeCols
-      var queryRow = getRow(specialRows.query_bar)
+      var queryRow = specialRows.query_bar
       if (specialRows.query_bar == specialRows.status) { // status and query bar merged
           queryEnd = queryEnd - 2 //(2 cells for status)
       }
@@ -234,9 +278,15 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       }
       // Query title:
       var queryTitleCell = activeRange.getCell(queryRow, 1)
-      queryTitleCell.setValue("Query:")
+      var replaceCurrentQuery = "Query:" == queryTitleCell.getValue()
+      if (!replaceCurrentQuery) {
+         queryTitleCell.setValue("Query:")
+      }
       // Query bar
       var queryCells = activeRange.offset(queryRow - 1, queryStart, 1, queryEnd - queryStart)
+      if (!replaceCurrentQuery) {
+         queryCells.setValue("")
+      }
       retVal.query = queryCells.getValue()
       // Status:
       if (specialRows.query_bar == specialRows.status) {
@@ -251,7 +301,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       switch (formatTheme) {
          case "none": break
          default:
-            if (retVal.status_offset) {
+            if (specialRows.query_bar == specialRows.status) {
                activeRange.getCell(queryRow, queryEnd + 1).setFontWeight("bold")
             }
             queryTitleCell.setFontWeight("bold")
@@ -267,7 +317,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
       var statusStart = 1
       var statusEnd = rangeCols
-      var statusRow = getRow(specialRows.status)
+      var statusRow = specialRows.status
       // Unmerge everything on this row and clear format
       switch (formatTheme) {
          case "none":
@@ -299,7 +349,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 
    if (0 != specialRows.headers) {
       dataSize--
-      var headersRow = getRow(specialRows.headers)
+      var headersRow = specialRows.headers
       // Unmerge everything on this row, clear format, and set to bold
       switch (formatTheme) {
          case "none":
@@ -316,25 +366,27 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       dataSize--
 
       var paginationStart = 1
-      var paginationEnd = rangeCols
-      var paginationRow = getRow(specialRows.pagination)
-      if (specialRows.pagination == specialRows.status) { // status and query bar merged
-          paginationEnd = paginationEnd - 2 //(2 cells for status)
-      }
+      var paginationEnd = 2
+      var paginationRow = specialRows.pagination
       // Unmerge everything on this row and clear format
       switch (formatTheme) {
          case "none":
             break
          default:
             activeRange.offset(paginationRow - 1, 0, 1).breakApart().clearFormat()
+            activeRange.offset(paginationRow - 1, 2, 1, rangeCols - 2).clear()
             break
       }
       // Page info
       var pageInfoCell = activeRange.getCell(paginationRow, 1)
+      var replaceCurrentPage = 0 != pageInfoCell.getValue().indexOf("Page (")
       pageInfoCell.setValue("Page (of ???):")
       retVal.page_info_offset = { row: paginationRow, col: 2 }
       // Page offset
       var pageCell = activeRange.getCell(paginationRow, 2)
+      if (replaceCurrentPage) {
+         pageCell.setValue(1)
+      }
       var currPage = parseInt(pageCell.getValue())
       if (!currPage || (NaN == currPage) || ("" == currPage)) {
          currPage = 1
@@ -346,8 +398,8 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       if (specialRows.pagination == specialRows.status) {
          var statusTitleCell = activeRange.getCell(paginationRow, paginationEnd + 1)
          statusTitleCell.setValue("Status:")
+         var statusCell = activeRange.getCell(paginationRow, paginationEnd + 2)
          if (null != statusInfo) {
-           var statusCell = activeRange.getCell(paginationRow, paginationEnd + 2)
            statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: paginationRow, col: paginationEnd + 2 }
@@ -355,8 +407,9 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       switch (formatTheme) {
          case "none": break
          default:
-            if (retVal.status_offset) {
+            if (specialRows.pagination == specialRows.status) {
                activeRange.getCell(paginationRow, paginationEnd + 1).setFontWeight("bold")
+               activeRange.offset(paginationRow - 1, paginationEnd + 1, 1, rangeCols - paginationEnd - 1).merge()
             }
             pageInfoCell.setFontWeight("bold")
             break
