@@ -2,6 +2,8 @@
  * Handles all the integration between the client application and the ES configuration
  */
 
+//TODO: for fake pagination, grab size + 1 and then do "Page (of N):" or "Page (of >N):" if there are more options!
+
 // 1] Service interface with client
 
 /** Handles the user (re-)configuring Elasticsearch */
@@ -91,7 +93,7 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
             if (i < numDataCols) {
                cell.setValue(cols[i].name)
             } else {
-               cell.clear()
+               cell.clearContent()
             }
          }
       }
@@ -117,17 +119,35 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
             if (i < numDataCols) {
                cell.setValue(rows[dataRowOffset][i])
             } else {
-               cell.clear()
+               cell.clearContent()
             }
          }
          dataRowOffset++
          currRow++
       }
 
-      if (!paginationSetup && (dataRowOffset < numDataRows)) {
-         warnings.push("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + dataRowOffset + "]")
+      // Handle - more/less data than we can write?
+      if (dataRowOffset < numDataRows) { // still have data left to write
+         if (paginationSetup) { // fake pagination but we can use this to tell users if there is more data or not
+            range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
+               .setValue("Page (of > " + context.table_meta.page + "):")
+         } else {
+            warnings.push("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + dataRowOffset + "]")
+         }
+      } else {
+        // Clear remaining data rows:
+        var rowsLeft = numTableRows - (currRow + 1)
+        if (rowsLeft > 0) {
+           range.offset(currRow, 0, rowsLeft).clearContent()
+        }
+        // Update pagination
+        if (paginationSetup) {
+           range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
+              .setValue("Page (of " + context.table_meta.page + "):")
+        }
       }
 
+      // Write warnings to status (never to toaster)
       if (context.table_meta.status_offset) {
          var warningText = ""
          if (warnings.length > 0) {
@@ -135,7 +155,7 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
          }
          setQueryResponseInStatus_(range, context.table_meta.status_offset, "SUCCESS" + warningText)
       }
-   } else if (null != json.err) {
+   } else if (null != json.err) { // Write errors to status or toaster
       var requestError = "ERROR: status = [" + json.status + "], msg = [" + json.err + "], sql = [" + sqlQuery + "]"
       if (context.table_meta.status_offset) {
          setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError)

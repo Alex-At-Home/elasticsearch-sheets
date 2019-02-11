@@ -63,7 +63,8 @@
       var userQuery = tableMeta.query || "True"
       var pagination = ""
       if (tableMeta.page_info_offset) {
-         var rowsToPull = tableMeta.page*tableMeta.data_size // ES SQL currently doesn't support full pagination so have to grovel
+         var rowsToPull = tableMeta.page*tableMeta.data_size + 1 // ES SQL currently doesn't support full pagination so have to grovel
+         //(grab +1 so we know if there are more pages)
          pagination = "LIMIT " + rowsToPull
       }
       var fullSqlQuery = tableConfig.sql_table.query

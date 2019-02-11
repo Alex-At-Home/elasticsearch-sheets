@@ -374,10 +374,15 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
      var testConfig = tests[testName]
      testRunner(testName, testConfig)
    }
-   //TODO: tests for fixing formatting when switching between common optons (once impdemented)
+   //TODO: tests for fixing formatting when switching between common options - just don't clear format between runs maybe?
+   // and then check that the
 }
 
 /** (PUBLIC) ElasticsearchService.handleSqlResults */
-function TESThandlwSqlResults_(testSheet, testResults) {
+function TESThandleSqlResults_(testSheet, testResults) {
    //TODO: list things to test
+   // - dummy data gets written
+   // - page info updated
+   // - warnings and errors
+   // - clears rest of data
 }
