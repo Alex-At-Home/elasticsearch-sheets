@@ -179,7 +179,7 @@ var defaultTableConfig_ = {
   },
   "cat_table": {
     "enabled": false,
-    "endpoint": "recovery",
+    "endpoint": "",
     "options": [ ] // (prefix with '#' to ignore)
   }
 }

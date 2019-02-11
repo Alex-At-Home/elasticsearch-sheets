@@ -85,7 +85,8 @@
                         <option value="tabs_unknown_${index}">Data</option>
                         <option value="tabs_unknown_${index}">Aggregation</option>
                         <option value="tabs_sql_${index}">SQL (requires license)</option>
-                        <option value="tabs_unknown_${index}">Management</option>
+                        <option value="tabs_unknown_${index}">Map Reduce</option>
+                        <option value="tabs_mgmt_${index}">Management</option>
                         <option value="tabs_json_${index}">Advanced (raw JSON)</option>
                      </select>
                   </div>
@@ -95,7 +96,9 @@
                      </div>
                     <div class="tab-pane form-group" id="tabs_sql_${index}">
                        ${buildSqlEditor(index)}
-                       <div id="editor_sql_${index}"></div>
+                     </div>
+                    <div class="tab-pane form-group" id="tabs_mgmt_${index}">
+                       ${buildManagementEditor(index)}
                      </div>
                     <div class="tab-pane form-group" id="tabs_json_${index}">
                        <div id="editor_${index}"></div>
@@ -134,7 +137,8 @@
                      sql_table: `tabs_sql_${index}`,
                      data_table: `tabs_unknown_${index}`,
                      aggregation_table: `tabs_unknown_${index}`,
-                     cat_table: `tabs_unknown_${index}`,
+                     //TODO: mapreduce
+                     cat_table: `tabs_mgmt_${index}`,
                      json_table: `tabs_json_${index}`
                   }
                   var typeToActivate = ""
@@ -160,6 +164,7 @@
               } else { //(group all the "non raw" editors together)
                 // Update which table we're using and perform any required redraw logic:
                 onSelectSqlEditor(index, tab == `tabs_sql_${index}`, curr_editor)
+                onSelectManagementEditor(index, tab == `tabs_mgmt_${index}`, curr_editor)
                 //TODO: other options
               }
           }
@@ -173,6 +178,7 @@
 
            //TODO + others
            registerSqlEditor(index, name, json, curr_editor)
+           registerManagementEditor(index, name, json, curr_editor)
 
            // Register event handler on raw JSON
            curr_editor.session.on('change', function(delta) {
@@ -186,6 +192,7 @@
                try {
                   //TODO + others
                   populateSqlEditor(index, name, newJson, null)
+                  populateManagementEditor(index, name, newJson, null)
                } catch (err) {
                   tempDisableJsonChange = false
                   throw err

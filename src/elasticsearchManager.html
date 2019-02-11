@@ -3,12 +3,22 @@
 
 <script>
 
-   // Interface with UI
+    // Interface with UI
 
-    /** Populate a data table from a SQL query */
+    /** Populate a data table from a query */
     function populateTable(tableName, tableConfig) {
-       //TODO: decide which to do based on enabled flags
-       performGenericOperation(tableName, tableConfig, performSqlQuery)
+       for (var key in tableToQueryMapping) {
+          var enabled = getJson(tableConfig, [ key, "enabled" ]) || false
+          if (enabled) {
+             // Check that the common section doesn't include any incompatible visual elements
+             var queryType = tableToQueryMapping[key]
+             if (!queryType.hasQueryBar) {
+                getOrPutJsonObj(tableConfig, [ "common", "query" ]).source = "none"
+             }
+             performGenericOperation(tableName, tableConfig, queryType.fn)
+             break
+          }
+       }
     }
 
    // Internals
@@ -86,6 +96,38 @@
 
          google.script.run.handleSqlResponse(tableName, tableConfig, esAndTableMeta, result, fullSqlQuery)
       })
+   }
+
+   /** Launches a _cat query */
+   function performCatQuery(tableName, tableConfig, esAndTableMeta, esClient) {
+
+      var endpoint = getJson(tableConfig , [ "cat_table", "endpoint" ]) || ""
+      var options = (getJson(tableConfig , [ "cat_table", "options" ]) || [])
+      var catQuery = `/_cat/${endpoint}?format=json` + (options.length > 0 ? '&' : '') + options.join("&")
+
+      esClient.transport.request({
+         method: "GET",
+         path: catQuery,
+         headers: esAndTableMeta.es_meta.headers
+      }, function(err, response, status) {
+         var result = {}
+         // Error or response
+         if (err) { result.err = err.message }
+         else { result.response = response }
+         // (always get status)
+         if (status) { result.status = status }
+
+         google.script.run.handleCatResponse(tableName, tableConfig, esAndTableMeta, result, catQuery)
+      })
+   }
+
+   // Map to write method
+
+   //TODO other methods
+
+   var tableToQueryMapping = {
+       "cat_table": { fn: performCatQuery, hasQueryBar: false },
+       "sql_table": { fn: performSqlQuery, hasQueryBar: true }
    }
 
 </script>

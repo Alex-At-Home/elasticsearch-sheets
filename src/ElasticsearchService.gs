@@ -57,6 +57,33 @@ function getElasticsearchMetadata(tableName, tableConfig) {
 /** Populates the data table range with the given response (context comes from "getElasticsearchMetadata") */
 function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
 
+   var cols = []
+   var rows = []
+   if (null != json.response) {
+      cols = json.response.columns
+      rows = json.response.rows
+   }
+   handleRowColResponse_(tableName, tableConfig, context, json, sqlQuery, rows, cols, /*supportsSize*/false)
+}
+
+/** Populates the data table range with the given response (context comes from "getElasticsearchMetadata") */
+function handleCatResponse(tableName, tableConfig, context, json, catQuery) {
+
+   if (null != json.response) {
+      var cols = []
+      var rows = json.response
+      if (rows.length > 0) {
+        cols = Object.keys(rows[0]).map(function(x) { return { name: x } })
+      }
+   }
+   handleRowColResponse_(tableName, tableConfig, context, json, catQuery, rows, cols, /*supportsSize*/true)
+}
+
+// 2] Internals
+
+/** Generic row/col handler for ES responses - rows can be eother [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
+function handleRowColResponse_(tableName, tableConfig, context, json, queryString, rows, cols, supportsSize) {
+
    var ss = SpreadsheetApp.getActive()
    var tableRange = findTableRange_(ss, tableName)
    var range = null
@@ -68,8 +95,6 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
    if (null != json.response) {
       var warnings = []
 
-      var cols = json.response.columns
-      var rows = json.response.rows
       var numDataCols = cols.length
       var numDataRows = rows.length
 
@@ -114,10 +139,12 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
             currRow++
             continue
          }
+         var row = rows[dataRowOffset]
+         var rowIsArray = Array.isArray(row)
          for (var i = 0; i < numTableCols; ++i) {
             var cell = range.getCell(currRow, i + 1)
             if (i < numDataCols) {
-               cell.setValue(rows[dataRowOffset][i])
+               cell.setValue(rowIsArray ? row[i] : row[cols[i].name])
             } else {
                cell.clearContent()
             }
@@ -129,8 +156,13 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
       // Handle - more/less data than we can write?
       if (dataRowOffset < numDataRows) { // still have data left to write
          if (paginationSetup) { // fake pagination but we can use this to tell users if there is more data or not
-            range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
-               .setValue("Page (of > " + context.table_meta.page + "):")
+            var pageInfoCell = range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
+            if (supportsSize) {
+              var actualPages = Math.ceil(numDataRows/context.table_meta.data_size)
+               pageInfoCell.setValue("Page (of " + actualPages + "):")
+            } else {
+               pageInfoCell.setValue("Page (of > " + context.table_meta.page + "):")
+            }
          } else {
             warnings.push("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + dataRowOffset + "]")
          }
@@ -156,7 +188,7 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
          setQueryResponseInStatus_(range, context.table_meta.status_offset, "SUCCESS" + warningText)
       }
    } else if (null != json.err) { // Write errors to status or toaster
-      var requestError = "ERROR: status = [" + json.status + "], msg = [" + json.err + "], sql = [" + sqlQuery + "]"
+      var requestError = "ERROR: status = [" + json.status + "], msg = [" + json.err + "], query = [" + queryString + "]"
       if (context.table_meta.status_offset) {
          setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError)
       } else { // pop up toaster
@@ -164,8 +196,6 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
       }
    }
 }
-
-// 2] Internals
 
 /** Adds the error info the status, if necessary */
 function setQueryResponseInStatus_(range, statusLocation, errorString) {

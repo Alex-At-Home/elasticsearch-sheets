@@ -1,14 +1,18 @@
 <script>
 
+   /** Different tables have different elements enabled - this one controls the query bar */
+   function hasQueryBar(tableType) {
+      switch(tableType) {
+         case 'mgmt': return false
+         default: return true
+      }
+   }
+
+   /** Build the HTML for the general editor for this table */
    function buildGeneralEditor(index, table_type) {
-      var form =
+
+      var queryBar =
       `
-  <form>
-    <div class="form-group">
-      <div class="checkbox">
-         <label><input type="checkbox" id="enabled_${table_type}_${index}">Enabled</label>
-      </div>
-    </div>
     <div class="form-group">
       <label>Query Bar</label>
       <select class="input-small form-control" id="querybar_${table_type}_${index}">
@@ -17,6 +21,17 @@
         <option value='bottom'>Bottom</option>
       </select>
     </div>
+      `
+
+      var form =
+      `
+  <form>
+    <div class="form-group">
+      <div class="checkbox">
+         <label><input type="checkbox" id="enabled_${table_type}_${index}">Enabled</label>
+      </div>
+    </div>
+    ${hasQueryBar(table_type) ? queryBar : ""}
     <div class="form-group">
       <label>Headers</label>
       <select class="input-small form-control" id="headers_${table_type}_${index}">
@@ -83,12 +98,15 @@
       $(`#enabled_${table_type}_${index}`).prop('checked', globalEnable)
 
       // Query bar
-      var querySource = getJson(json, ["common", "query", "source"]) || "none"
-      if (querySource == "none") {
-         $(`#querybar_${table_type}_${index}`).val("none")
-      } else {
-         var localQueryPos = getJson(json, ["common", "query", "local", "position"]) || "none"
-         $(`#querybar_${table_type}_${index}`).val(localQueryPos)
+
+      if (hasQueryBar(table_type)) {
+         var querySource = getJson(json, ["common", "query", "source"]) || "none"
+         if (querySource == "none") {
+            $(`#querybar_${table_type}_${index}`).val("none")
+         } else {
+            var localQueryPos = getJson(json, ["common", "query", "local", "position"]) || "none"
+            $(`#querybar_${table_type}_${index}`).val(localQueryPos)
+         }
       }
 
       // Headers
@@ -131,15 +149,17 @@
          })
       })
       // Query bar
-      $(`#querybar_${table_type}_${index}`).change(function() {
-         var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
-            var query = getOrPutJsonObj(currJson, [ "common", "query" ])
-            query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
-            var localQuery = getOrPutJsonObj(currJson, [ "common", "query", "local" ])
-            localQuery.position = thisValue
+      if (hasQueryBar(table_type)) {
+         $(`#querybar_${table_type}_${index}`).change(function() {
+            var thisValue = this.value
+            updateRawJson(curr_editor, function(currJson) {
+               var query = getOrPutJsonObj(currJson, [ "common", "query" ])
+               query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
+               var localQuery = getOrPutJsonObj(currJson, [ "common", "query", "local" ])
+               localQuery.position = thisValue
+            })
          })
-      })
+      }
       // Headers
       $(`#headers_${table_type}_${index}`).change(function() {
          var thisValue = this.value

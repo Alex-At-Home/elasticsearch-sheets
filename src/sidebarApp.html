@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-bootstrap/0.5pre/css/custom-theme/jquery-ui-1.10.0.custom.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
     <style type="text/css" media="screen">
 	   .ace_editor {
@@ -18,6 +19,9 @@
        .for-rows-and-cols {
           min-width: 120px;
        }
+       .vertical-resize-only {
+          resize:vertical;
+       }
     </style>
     <base target="_top">
 </head>
@@ -29,6 +33,7 @@
     <!-- Dependencies -->
 
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
 
@@ -112,6 +117,9 @@
 
    <!-- HTML and jquery code for the SQL editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppSqlTableEditor').getContent(); ?>
+
+   <!-- HTML and jquery code for the Management (_cat) editor in the top level accordion -->
+   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppManagementTableEditor').getContent(); ?>
 
    <!-- HTML and jquery code for the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAccordion').getContent(); ?>
