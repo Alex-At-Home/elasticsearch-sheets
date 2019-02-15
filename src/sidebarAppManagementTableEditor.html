@@ -104,7 +104,9 @@
           })
         }
      }).focus(function () {
-        $(this).autocomplete("search", "")
+        if ("" == $(this).val()) { // only insta-display options if textbox empty
+           $(this).autocomplete("search", "")
+        }
      })
 
 }

@@ -260,14 +260,18 @@
               // Action buttons
 
               $(`#delete_${index}`).click(function(){
-                 _state.removeEntry(index)
-                 disableInput()
-                 try {
-                    deleteAccordionElement(name)
-                 } catch (err) {
-                    enableInput() //(just in case createNewAccordionElement throws)
-                    showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
-                 }
+                 google.script.run.withSuccessHandler(function(obj) {
+                    if (obj) {
+                       _state.removeEntry(index)
+                       disableInput()
+                       try {
+                          deleteAccordionElement(name)
+                       } catch (err) {
+                          enableInput() //(just in case createNewAccordionElement throws)
+                          showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
+                       }
+                    }
+                 }).launchYesNoPrompt("Delete table", "Are you sure you want to delete the table contents and metadata?")
               });
               $(`#reset_${index}`).click(function(){
                 $(`#name_${index}`).val(name)

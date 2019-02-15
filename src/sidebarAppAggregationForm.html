@@ -1,90 +1,209 @@
 <script>
 
-   /** Builds the UI element that manages data tables (aggregationType one of `bucket`, `metric`, `mapreduce` */
-   function buildAggregationForm(index, name, json, subIndex, aggregationType, suggestionMap, suggestionList) {
-      var aggregationTitle = "Unknown Aggregation"
-      switch (aggregationType) {
-         case "bucket": aggregationTitle = "Bucket Aggregation"
-         case "metric": aggregationTitle = "Metric Aggregation"
-         case "mapr": aggregationTitle = "Map Reduce"
-      }
+   var aggFormSuggestionList_ = {
+      bucket: Object.keys(aggFormSuggestionMap.bucket),
+      metric: Object.keys(aggFormSuggestionMap.metric)
+   }
+   var aggFormOneUp_ = 0 //global across all indices - not an index just a uuid
+
+   /** Builds the UI element that manages data tables (aggregationType one of `bucket`, `metric`, `mapr` */
+   function buildAggregationForm(index, aggregationType, parentContainerId, json) { //TODO: also allow pre-populated... (json != null)
+
+      var jsonIsCollapsed = json ? "" : "in" // (collapse the JSON if populating from existing data)
+      var json = json || {}
+
+      var subIndex = ++aggFormOneUp_
+
+      var elementIdSuffix = `agg_${aggregationType}_${index}_${subIndex}`
+
       var aggregationTypeTemplate =
       `
               <div class="input-group">
-                <div class="input-group-addon for-longer-text">
-                  <span class="input-group-text">Bucket type</span>
+                <div class="input-group-addon for-shorter-text">
+                  <span class="input-group-text">Type</span>
                 </div>
-                <input type="text" class="form-control" placeholder="Aggregation type" id="TODO_${parentAccordionId}">
+                <input type="text" class="form-control" placeholder="Aggregation type" value="${json.agg_type || ''}" id="agg_type_${elementIdSuffix}">
+                <div class="input-group-addon hidden" id="help_agg_type_${elementIdSuffix}">
+                   <span class="input-group-text"><a target="_blank">?</a></span>
+                </div>
               </div>
       `
-      if ("mapreduce" == aggregationType) {
+
+      var jsonInfo = ""
+      if ("mapr" == aggregationType) {
          aggregationTypeTemplate =
          `
-         <label>(Use the MapReduce editors below)</label>
+              <div class="input-group">
+                <div class="input-group-addon for-shorter-text">
+                  <span class="input-group-text">Type</span>
+                </div>
+                <input type="text" class="form-control" placeholder="Aggregation type" value="Map Reduce, see (MR) below" id="mr_info_${elementIdSuffix}" disabled>
+              </div>
+         `
+         jsonInfo =
+         `
+         <label>Extra Parameters To Merge:</label>
          `
       }
 
-      var parentAccordionId = `agg_${aggregationType}_${index}_${subIndex}`
+//TODO make names of existing fields non-editable? like with data table accordion?
+//(the reason is that once we start allowing specification of a parent it becomes tricky to edit these on the fly)
 
       var form =
       `
-          <div class="form">
+          <div class="form" id="form_${elementIdSuffix}">
             <div class="form-group">
 
-              <label>${aggregationTitle}</label>
-                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Up"><span class='glyphicon glyphicon-menu-up'></span></button>
-                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Down"><span class='glyphicon glyphicon-menu-down'></span></button>
-                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Down"><span class='glyphicon glyphicon-remove-sign'></span></button>
+              <div class="btn-toolbar">
+                 <div class="btn-group">
+                    <button id="toggle_config_${elementIdSuffix}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Show/hide JSON config">
+                     <a data-toggle="collapse" href="#collapse0_${elementIdSuffix}"><span class='glyphicon glyphicon-wrench'></span></a>
+                    </button>
+                 </div>
+                 <div class="btn-group">
+                    <button id="move_up_${elementIdSuffix}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation up"><span class='glyphicon glyphicon-menu-up'></span></button>
+                    <button id="move_down_${elementIdSuffix}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation down"><span class='glyphicon glyphicon-menu-down'></span></button>
+                 </div>
+                 <div class="btn-group">
+                    <button id="delete_${elementIdSuffix}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Delete aggregation"><span class='glyphicon glyphicon-remove-sign'></span></button>
+                 </div>
+              </div>
 
               <div class="input-group">
-                <div class="input-group-addon for-longer-text">
+                <div class="input-group-addon for-shorter-text">
                   <span class="input-group-text">Name</span>
                 </div>
-                <input type="text" class="form-control" placeholder="Placeholder" value="" id="TODO_${parentAccordionId}">
+                <input type="text" class="form-control" placeholder="Field name" value="${json.name || ''}" id="name_${elementIdSuffix}">
               </div>
 
               ${aggregationTypeTemplate}
 
-              <div id="editor_${parentAccordionId}" class="small_ace_editor">
-              </div>
+              <div id="collapse0_${elementIdSuffix}" class="panel-collapse collapse ${jsonIsCollapsed}">
 
-              <div class="panel-group">
-                <div class="panel panel-default">
-                  <label>
-                    <a data-toggle="collapse" href="#collapse1">Advanced</a>
-                  </label>
-                  <div id="collapse1" class="panel-collapse collapse">
+                 ${jsonInfo}
 
-                    <div class="input-group">
-                      <div class="input-group-addon for-longer-text">
-                        <span class="input-group-text">System fields</span>
+                 <div id="editor_${elementIdSuffix}" class="medium_ace_editor">
+                 </div>
+
+                 <div class="panel-group">
+                   <div class="panel panel-default">
+                      <label>
+                         <a data-toggle="collapse" href="#collapse1_${elementIdSuffix}">Advanced</a>
+                      </label>
+                      <div id="collapse1_${elementIdSuffix}" class="panel-collapse collapse">
+
+                      <div class="input-group">
+                         <div class="input-group-addon for-shorter-text">
+                            <span class="input-group-text">Fields</span>
+                         </div>
+                         <input type="text" class="form-control" placeholder="eg doc_count" value="" id="field_filter_${elementIdSuffix}">
                       </div>
-                      <input type="text" class="form-control" placeholder="eg doc_count" value="" id="TODO_${parentAccordionId}">
-                    </div>
 
-                    <div class="input-group">
-                      <div class="input-group-addon for-longer-text">
-                        <span class="input-group-text">Location</span>
-                      </div>
-                      <select class="form-control" value="automatic" id="TODO_${parentAccordionId}">
-                        <option value="automatic">Automatic</option>
-                        <option value="disabled">Disabled</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                      <div class="input-group">
+                         <div class="input-group-addon for-shorter-text">
+                            <span class="input-group-text">Location</span>
+                         </div>
+                         <select class="form-control for-shorter-text" value="automatic" id="location_${elementIdSuffix}">
+                            <option value="automatic">Automatic</option>
+                            <option value="disabled">Disabled</option>
+                         </select>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
             </div>
           </div>
       `
-      var defaultAggJson = "{\n\n}\n"
+      var defaultAggJson = "{\n}\n"
 
-      $("#${parentAccordionId}").append(form).append(function(){ // When complete
-         var curr_editor = ace.edit(`editor_${parentAccordionId}`)
+      $(`#${parentContainerId}`).append(form).append(function(){
+
+         // When complete...
+
+         // Build JSON editor
+         var curr_editor = ace.edit(`editor_${elementIdSuffix}`)
          curr_editor.session.setMode("ace/mode/json")
          curr_editor.session.setTabSize(3)
          curr_editor.session.setUseWrapMode(true)
-         curr_editor.session.setValue(defaultAggJson)
+         curr_editor.session.setValue(json.config || defaultAggJson)
+
+         // Set-up autocomplete on type:
+         if ("mapr" != aggregationType) {
+            var mySuggestions =  aggFormSuggestionList_[aggregationType]
+            var selectOrChange = function(newValue) {
+            /**/
+            console.log("select or change ... " + newValue)
+
+                  var selected = newValue
+                  var newJson = JSON.parse(JSON.stringify(aggFormSuggestionMap[aggregationType][selected] || {}, null, 3))
+                  var url = newJson['url__']
+                  if (url) { // set href for "? and show
+                     $(`#help_agg_type_${elementIdSuffix} a`).attr("href", url)
+                     $(`#help_agg_type_${elementIdSuffix}`).removeClass('hidden')
+                  } else {
+                     $(`#help_agg_type_${elementIdSuffix} a`).removeAttr("href")
+                     $(`#help_agg_type_${elementIdSuffix}`).addClass('hidden')
+                  }
+                  delete newJson['url__']
+                  var newJsonStr = JSON.stringify(newJson, null, 3)
+               //TODO: get JSON element, get current type, get suggestion for that, if different then ask?
+               /*
+                  var currJson = curr_editor.session.getValue()
+                  if (newJsonStr != currJson) {
+                  } else {
+                  }
+                  */
+                  curr_editor.session.setValue(newJsonStr)
+            }
+            $(`#agg_type_${elementIdSuffix}`).autocomplete({
+               minLength: 0,
+               source: function(request, response) {
+                  var data = $.grep(mySuggestions, function(value) {
+                     return value.substring(0, request.term.length).toLowerCase() == request.term.toLowerCase()
+                  });
+                  response(data)
+               },
+               select: function(event, ui) { selectOrChange(ui.item.value) },
+               change: function(event, ui) { selectOrChange($(`#agg_type_${elementIdSuffix}`).val()) }
+            //TODO
+            /**
+               change: function( event, ui ) {
+                var endpoint = $(`#agg_type_${elementIdSuffix}`).val()
+                updateRawJson(curr_editor, function(currJson) {
+                    var cat = getOrPutJsonObj(currJson, [ "cat_table" ])
+                    cat.endpoint = endpoint
+                })
+              }
+              */
+            }).focus(function () {
+               if ("" == $(this).val()) { // only insta-display options if textbox empty
+                  $(this).autocomplete("search", "")
+               }
+            })
+         }
+
+         // Handle the control buttons
+         $(`#move_up_${elementIdSuffix}`).click(function(){
+            //TODO: move in JSON and then...
+            var prev = $(`#form_${elementIdSuffix}`).prev()
+            $(`#form_${elementIdSuffix}`).insertBefore(prev)
+         })
+         $(`#move_down_${elementIdSuffix}`).click(function(){
+            //TODO: move in JSON and then...
+            var next = $(`#form_${elementIdSuffix}`).next()
+            $(`#form_${elementIdSuffix}`).insertAfter(next)
+         })
+         $(`#delete_${elementIdSuffix}`).click(function(){
+             google.script.run.withSuccessHandler(function(obj) {
+             if (obj) {
+                //TODO: remove from JSON then:
+                $(`#form_${elementIdSuffix}`).remove()
+             }
+           }).launchYesNoPrompt("Delete metric", "Are you sure you want to delete this metric?")
+         })
+
+         //TODO change any of the fields?
       })
    }
 

@@ -9,6 +9,10 @@
           height: 500px;
 		  width: 100%;
 	   }
+	   .medium_ace_editor {
+	     height: 300px;
+	     width: 100%;
+	   }
 	   .small_ace_editor {
 	     height: 100px;
 	     width: 100%;
@@ -19,6 +23,9 @@
        }
        .btn-toolbar{
           text-align: center;
+       }
+       .for-shorter-text {
+          min-width: 75px;
        }
        .for-longer-text {
           min-width: 120px;
@@ -119,7 +126,9 @@
    <!-- HTML and jquery code for the general editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppGeneralEditor').getContent(); ?>
 
-   <!-- HTML and jquery code for the SQL editor in the top level accordion -->
+   <!-- HTML and jquery code for the Aggregation editor in the top level accordion -->
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationForm').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationTableEditor').getContent(); ?>
 
    <!-- HTML and jquery code for the SQL editor in the top level accordion -->

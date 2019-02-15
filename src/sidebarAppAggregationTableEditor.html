@@ -26,7 +26,7 @@
         </div>
         <div id="accordion_query_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="query_agg_${index}"></div>
+               <div id="query_agg_${index}" class="medium_ace_editor"></div>
             </div>
         </div>
 
@@ -37,6 +37,7 @@
         </div>
         <div id="accordion_buckets_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
+               <div id="buckets_agg_${index}"></div>
                <div class="btn-toolbar">
                   <button class="btn btn-default" id="add_bucket_agg_${index}">Add Bucket</button>
                </div>
@@ -50,6 +51,7 @@
         </div>
         <div id="accordion_metrics_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
+               <div id="metrics_agg_${index}"></div>
                <div class="btn-toolbar">
                   <button class="btn btn-default" id="add_metric_agg_${index}">Add Metric</button>
                </div>
@@ -59,6 +61,7 @@
             </div>
         </div>
 
+       <!------------------------------------------------------------------------------------->
        <hr/>
 
         <div class="panel-heading">
@@ -68,7 +71,7 @@
         </div>
         <div id="accordion_params_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="params_agg_${index}"></div>
+               <div id="params_agg_${index}" class="medium_ace_editor"></div>
             </div>
         </div>
 
@@ -79,7 +82,7 @@
         </div>
         <div id="accordion_init_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="init_agg_${index}"></div>
+               <div id="init_agg_${index}" class="medium_ace_editor"></div>
             </div>
         </div>
 
@@ -90,7 +93,7 @@
         </div>
         <div id="accordion_map_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="map_agg_${index}"></div>
+               <div id="map_agg_${index}" class="ace_editor"></div>
             </div>
         </div>
 
@@ -101,7 +104,7 @@
         </div>
         <div id="accordion_combine_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="combine_agg_${index}"></div>
+               <div id="combine_agg_${index}" class="ace_editor"></div>
             </div>
         </div>
 
@@ -112,7 +115,7 @@
         </div>
         <div id="accordion_reduce_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="reduce_agg_${index}"></div>
+               <div id="reduce_agg_${index}" class="ace_editor"></div>
             </div>
         </div>
 
@@ -123,7 +126,7 @@
         </div>
         <div id="accordion_lib_agg_${index}" class="panel-collapse collapse in">
             <div class="panel-body">
-               <div id="lib_agg_${index}"></div>
+               <div id="lib_agg_${index}" class="ace_editor"></div>
             </div>
         </div>
     </div>
@@ -184,8 +187,18 @@
            }
            curr_editor.session.setTabSize(3)
            curr_editor.session.setUseWrapMode(true)
-           curr_editor.session.setValue("TODO")
+           curr_editor.session.setValue("//TODO")
+      })
+
+      $(`#add_bucket_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'bucket', `buckets_agg_${index}`)
+      })
+      $(`#add_metric_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'metric', `metrics_agg_${index}`)
+      })
+      $(`#add_mapr_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'mapr', `metrics_agg_${index}`)
       })
 
 }
-</script>
+</script>a

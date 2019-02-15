@@ -19,6 +19,20 @@ function onOpen() {
 
 }
 
+/** Allows the UI to launch a full-screen-aligned YES/NO prompt, returns true iff YES */
+function launchYesNoPrompt(title, question) {
+  if (testMode_) {
+     triggerUiEvent_("launchYesNoPrompt", {
+        title: title, question: question
+     })
+     return (title.indexOf("YES") >= 0)
+  } else {
+   var ui = SpreadsheetApp.getUi()
+   var response = ui.alert(title, question, ui.ButtonSet.YES_NO)
+   return (response == ui.Button.YES)
+  }
+}
+
 /** Allows expensive initialization/integrity checking operations to be performed only on page load */
 var firstTime_ = true
 
