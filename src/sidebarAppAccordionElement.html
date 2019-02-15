@@ -83,9 +83,8 @@
                      <select class="input-small form-control" id="type_${index}">
                         <option disabled selected value>(Choose type)</option>
                         <option value="tabs_unknown_${index}">Data</option>
-                        <option value="tabs_unknown_${index}">Aggregation</option>
+                        <option value="tabs_agg_${index}">Aggregation/Map Reduce</option>
                         <option value="tabs_sql_${index}">SQL (requires license)</option>
-                        <option value="tabs_unknown_${index}">Map Reduce</option>
                         <option value="tabs_mgmt_${index}">Management</option>
                         <option value="tabs_json_${index}">Advanced (raw JSON)</option>
                      </select>
@@ -93,6 +92,9 @@
                   <!-- The different data tables' definitions -->
                  <div class="tab-content" id="tabs_${index}">
                     <div class="tab-pane form-group" id="tabs_unknown_${index}">
+                     </div>
+                    <div class="tab-pane form-group" id="tabs_agg_${index}">
+                       ${buildAggregationEditor(index)}
                      </div>
                     <div class="tab-pane form-group" id="tabs_sql_${index}">
                        ${buildSqlEditor(index)}
@@ -136,8 +138,7 @@
                   var tableToTypeMap = {
                      sql_table: `tabs_sql_${index}`,
                      data_table: `tabs_unknown_${index}`,
-                     aggregation_table: `tabs_unknown_${index}`,
-                     //TODO: mapreduce
+                     aggregation_table: `tabs_agg_${index}`,
                      cat_table: `tabs_mgmt_${index}`,
                      json_table: `tabs_json_${index}`
                   }
@@ -177,6 +178,7 @@
            });
 
            //TODO + others
+           registerAggregationEditor(index, name, json, curr_editor)
            registerSqlEditor(index, name, json, curr_editor)
            registerManagementEditor(index, name, json, curr_editor)
 
@@ -191,6 +193,7 @@
                tempDisableJsonChange = true
                try {
                   //TODO + others
+                  populateAggregationEditor(index, name, newJson, null)
                   populateSqlEditor(index, name, newJson, null)
                   populateManagementEditor(index, name, newJson, null)
                } catch (err) {

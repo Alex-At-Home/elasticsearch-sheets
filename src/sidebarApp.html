@@ -9,6 +9,10 @@
           height: 500px;
 		  width: 100%;
 	   }
+	   .small_ace_editor {
+	     height: 100px;
+	     width: 100%;
+	   }
        .disabledbutton {
           pointer-events: none;
           opacity: 0.4;
@@ -16,7 +20,7 @@
        .btn-toolbar{
           text-align: center;
        }
-       .for-rows-and-cols {
+       .for-longer-text {
           min-width: 120px;
        }
        .vertical-resize-only {
@@ -114,6 +118,9 @@
 
    <!-- HTML and jquery code for the general editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppGeneralEditor').getContent(); ?>
+
+   <!-- HTML and jquery code for the SQL editor in the top level accordion -->
+   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationTableEditor').getContent(); ?>
 
    <!-- HTML and jquery code for the SQL editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppSqlTableEditor').getContent(); ?>

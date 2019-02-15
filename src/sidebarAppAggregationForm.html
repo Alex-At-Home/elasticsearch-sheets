@@ -1,0 +1,91 @@
+<script>
+
+   /** Builds the UI element that manages data tables (aggregationType one of `bucket`, `metric`, `mapreduce` */
+   function buildAggregationForm(index, name, json, subIndex, aggregationType, suggestionMap, suggestionList) {
+      var aggregationTitle = "Unknown Aggregation"
+      switch (aggregationType) {
+         case "bucket": aggregationTitle = "Bucket Aggregation"
+         case "metric": aggregationTitle = "Metric Aggregation"
+         case "mapr": aggregationTitle = "Map Reduce"
+      }
+      var aggregationTypeTemplate =
+      `
+              <div class="input-group">
+                <div class="input-group-addon for-longer-text">
+                  <span class="input-group-text">Bucket type</span>
+                </div>
+                <input type="text" class="form-control" placeholder="Aggregation type" id="TODO_${parentAccordionId}">
+              </div>
+      `
+      if ("mapreduce" == aggregationType) {
+         aggregationTypeTemplate =
+         `
+         <label>(Use the MapReduce editors below)</label>
+         `
+      }
+
+      var parentAccordionId = `agg_${aggregationType}_${index}_${subIndex}`
+
+      var form =
+      `
+          <div class="form">
+            <div class="form-group">
+
+              <label>${aggregationTitle}</label>
+                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Up"><span class='glyphicon glyphicon-menu-up'></span></button>
+                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Down"><span class='glyphicon glyphicon-menu-down'></span></button>
+                <button id="TODO_${parentAccordionId}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Move aggregation Down"><span class='glyphicon glyphicon-remove-sign'></span></button>
+
+              <div class="input-group">
+                <div class="input-group-addon for-longer-text">
+                  <span class="input-group-text">Name</span>
+                </div>
+                <input type="text" class="form-control" placeholder="Placeholder" value="" id="TODO_${parentAccordionId}">
+              </div>
+
+              ${aggregationTypeTemplate}
+
+              <div id="editor_${parentAccordionId}" class="small_ace_editor">
+              </div>
+
+              <div class="panel-group">
+                <div class="panel panel-default">
+                  <label>
+                    <a data-toggle="collapse" href="#collapse1">Advanced</a>
+                  </label>
+                  <div id="collapse1" class="panel-collapse collapse">
+
+                    <div class="input-group">
+                      <div class="input-group-addon for-longer-text">
+                        <span class="input-group-text">System fields</span>
+                      </div>
+                      <input type="text" class="form-control" placeholder="eg doc_count" value="" id="TODO_${parentAccordionId}">
+                    </div>
+
+                    <div class="input-group">
+                      <div class="input-group-addon for-longer-text">
+                        <span class="input-group-text">Location</span>
+                      </div>
+                      <select class="form-control" value="automatic" id="TODO_${parentAccordionId}">
+                        <option value="automatic">Automatic</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      `
+      var defaultAggJson = "{\n\n}\n"
+
+      $("#${parentAccordionId}").append(form).append(function(){ // When complete
+         var curr_editor = ace.edit(`editor_${parentAccordionId}`)
+         curr_editor.session.setMode("ace/mode/json")
+         curr_editor.session.setTabSize(3)
+         curr_editor.session.setUseWrapMode(true)
+         curr_editor.session.setValue(defaultAggJson)
+      })
+   }
+
+</script>
