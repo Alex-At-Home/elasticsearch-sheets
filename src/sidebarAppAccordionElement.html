@@ -166,6 +166,7 @@
                 // Update which table we're using and perform any required redraw logic:
                 onSelectSqlEditor(index, tab == `tabs_sql_${index}`, curr_editor)
                 onSelectManagementEditor(index, tab == `tabs_mgmt_${index}`, curr_editor)
+                onSelectAggregationEditor(index, tab == `tabs_agg_${index}`, curr_editor)
                 //TODO: other options
               }
           }
@@ -193,7 +194,7 @@
                tempDisableJsonChange = true
                try {
                   //TODO + others
-                  populateAggregationEditor(index, name, newJson, null)
+                  populateAggregationEditor(index, name, newJson)
                   populateSqlEditor(index, name, newJson, null)
                   populateManagementEditor(index, name, newJson, null)
                } catch (err) {

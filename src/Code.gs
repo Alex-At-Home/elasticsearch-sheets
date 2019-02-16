@@ -182,9 +182,20 @@ var defaultTableConfig_ = {
   "data_table": {
     "enabled": false,
   },
-  "aggregation_table": {
-    "enabled": false,
-  },
+   "aggregation_table": {
+      "enabled": false,
+      "query": {
+         "match_all": {}
+      },
+      "map_reduce": {
+         "params": {},
+         "init": "//Init \"state\" variable, eg:\n//(list or map)\n//state.collect = [];\n//state.collect = [:];",
+         "map": "//Update state with info\n//from \"doc\" or \"params._source\"\n//(called once per doc)\n//eg state.collect.add(\n//    doc['field'].value\n// );\n// or (fold)\n// state.collect.stat += \n//    doc['field'].value;",
+         "combine": "//Called once per shard\n//once all docs processed\n//eg:\n//return state.collect\n//   .stream()\n//   .filter(t => true)\n//   .collect(shardCollector);",
+         "reduce": "//Called once on \"states\",\n//a list of the return\n//values from each shard's\n//combine:\n//return states.stream()\n//   .collect(finalCollector);",
+         "lib": "//Add internal logic here\n//to keep the map/etc scripts\n//easier to follow.\n//Everything in here is \n//available to all other\n//scripts. Eg:\n//def myFunction(def param) {\n// return value   \n//}"
+      }
+   },
   "sql_table": {
     "enabled": false,
     "query": "--SHOW TABLES\n" +

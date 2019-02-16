@@ -47,7 +47,7 @@
    /** Handles elements that need custom redraw logic if the underlying fields were changed */
    function onSelectManagementEditor(index, selected, curr_editor) {
       // Update top-level JSON since we're switching mode
-      updateRawJson(curr_editor, function(currJson) {
+      updateRawJsonNow(curr_editor, function(currJson) {
            var cat = getOrPutJsonObj(currJson, [ "cat_table" ])
            cat.enabled = selected
       })

@@ -66,9 +66,15 @@
         * apart from one place (the raw JSON editor), this should not be needed in "client" code
         */
       var tempDisableJsonChange = false
+      var jsonUpdateTimerId
+      var jsonUpdateTimerInterval = 200 //ms
 
       /** Update the raw JSON in the ACE code editor */
       function updateRawJson(editor, updateFn) {
+         clearTimeout(jsonUpdateTimerId)
+         jsonUpdateTimerId = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval)
+      }
+      function updateRawJsonNow(editor, updateFn) {
         if (!tempDisableJsonChange) {
           var jsonStr = editor.session.getValue()
           try {

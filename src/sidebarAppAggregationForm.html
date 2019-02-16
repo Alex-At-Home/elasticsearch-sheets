@@ -7,7 +7,7 @@
    var aggFormOneUp_ = 0 //global across all indices - not an index just a uuid
 
    /** Builds the UI element that manages data tables (aggregationType one of `bucket`, `metric`, `mapr` */
-   function buildAggregationForm(index, aggregationType, parentContainerId, json) { //TODO: also allow pre-populated... (json != null)
+   function buildAggregationForm(index, aggregationType, parentContainerId, json) {
 
       var jsonIsCollapsed = json ? "" : "in" // (collapse the JSON if populating from existing data)
       var json = json || {}
@@ -38,6 +38,9 @@
                   <span class="input-group-text">Type</span>
                 </div>
                 <input type="text" class="form-control" placeholder="Aggregation type" value="Map Reduce, see (MR) below" id="mr_info_${elementIdSuffix}" disabled>
+                <div class="input-group-addon" id="help_agg_type_${elementIdSuffix}">
+                   <span class="input-group-text"><a target="_blank" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-scripted-metric-aggregation.html">?</a></span>
+                </div>
               </div>
          `
          jsonInfo =
@@ -132,8 +135,6 @@
          if ("mapr" != aggregationType) {
             var mySuggestions =  aggFormSuggestionList_[aggregationType]
             var selectOrChange = function(newValue) {
-            /**/
-            console.log("select or change ... " + newValue)
 
                   var selected = newValue
                   var newJson = JSON.parse(JSON.stringify(aggFormSuggestionMap[aggregationType][selected] || {}, null, 3))

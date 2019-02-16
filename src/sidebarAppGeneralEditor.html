@@ -144,7 +144,7 @@
       // Globally enabled:
       $(`#enabled_${table_type}_${index}`).change(function() {
          var thisChecked = this.checked
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             currJson.enabled = thisChecked
          })
       })
@@ -152,7 +152,7 @@
       if (hasQueryBar(table_type)) {
          $(`#querybar_${table_type}_${index}`).change(function() {
             var thisValue = this.value
-            updateRawJson(curr_editor, function(currJson) {
+            updateRawJsonNow(curr_editor, function(currJson) {
                var query = getOrPutJsonObj(currJson, [ "common", "query" ])
                query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
                var localQuery = getOrPutJsonObj(currJson, [ "common", "query", "local" ])
@@ -163,7 +163,7 @@
       // Headers
       $(`#headers_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             var headers = getOrPutJsonObj(currJson, [ "common", "headers" ])
             headers.position = thisValue
          })
@@ -171,7 +171,7 @@
       // Pagination
       $(`#pagination_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             var pagination = getOrPutJsonObj(currJson, [ "common", "pagination" ])
             pagination.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
             var localPagination = getOrPutJsonObj(currJson, [ "common", "pagination", "local" ])
@@ -181,14 +181,14 @@
       // Status
       $(`#status_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             var status = getOrPutJsonObj(currJson, [ "common", "status" ])
             status.position = thisValue
          })
       })
       $(`#status_merge_${table_type}_${index}`).change(function() {
          var thisChecked = this.checked
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             var status = getOrPutJsonObj(currJson, [ "common", "status" ])
             status.merge = thisChecked
          })
@@ -196,7 +196,7 @@
       // Formatting
       $(`#formatting_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
+         updateRawJsonNow(curr_editor, function(currJson) {
             var formatTheme = getOrPutJsonObj(currJson, [ "common", "formatting" ])
             formatTheme.theme = thisValue
          })
