@@ -71,7 +71,7 @@
 
       /** Update the raw JSON in the ACE code editor */
       function updateRawJson(editor, updateFn) {
-         clearTimeout(jsonUpdateTimerId)
+         clearTimeout(jsonUpdateTimerId) //TODO: technically this can lose updates if you're jumping between elements fast
          jsonUpdateTimerId = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval)
       }
       function updateRawJsonNow(editor, updateFn) {
@@ -111,6 +111,27 @@
          return tmpJson
       }
 
+      /** Gets a nested JSON element array, creates it if it doesn't exist */
+      function getOrPutJsonArray(json, fieldArray) {
+         var tmpJson = json
+         var maxIndex = fieldArray.length - 1
+         for (var j in fieldArray) {
+            var key = fieldArray[j]
+            if (tmpJson.hasOwnProperty(key)) {
+               tmpJson = tmpJson[key]
+            } else {
+               var tmp = {}
+               if (j == maxIndex) {
+                  tmp = []
+               }
+               tmpJson[key] = tmp
+               tmpJson = tmp
+            }
+         }
+         return tmpJson
+      }
+
+
       /** Gets a nested JSON element object, creates it if it doesn't exist */
       function getOrPutJsonObj(json, fieldArray) {
          var tmpJson = json
@@ -121,7 +142,7 @@
             } else {
                var tmp = {}
                tmpJson[key] = tmp
-               return tmp
+               tmpJson = tmp
             }
          }
          return tmpJson

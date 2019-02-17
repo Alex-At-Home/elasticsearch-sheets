@@ -154,7 +154,9 @@
    }
 
    /** Populate the data for this form */
-   function populateAggregationEditor(index, name, json) {
+   function populateAggregationEditor(index, name, json, globalEditor) {
+
+//TODO: this seems to be breaking the global editor - if I press enter it insta-disappears and text gets reformatted as soon as it's valid JSON?
 
        // General
 
@@ -162,11 +164,13 @@
 
        // Buckets and metrics
 
-       //TODO: remove all the divs from "metrics_agg_${index}" and "buckets_agg_${index}" first...
+       // Clear any existing elements
+       $(`#metrics_agg_${index}`).empty()
+       $(`#buckets_agg_${index}`).empty()
 
        var buckets = getJson(json, [ "aggregation_table", "buckets" ]) || []
        buckets.forEach(function(bucket) {
-          buildAggregationForm(index, 'bucket', `buckets_agg_${index}`, bucket)
+          buildAggregationForm(index, 'bucket', globalEditor, `buckets_agg_${index}`, bucket)
        })
        var metrics = getJson(json, [ "aggregation_table", "metrics" ]) || []
        metrics.forEach(function(metric) {
@@ -174,7 +178,7 @@
           if (metric.map_reduce) {
              aggType = 'mapr'
           }
-          buildAggregationForm(index, 'metric', `metrics_agg_${index}`, metric)
+          buildAggregationForm(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
        })
 
        // MR
@@ -210,18 +214,18 @@
       })
 
       // Populate all the fields:
-      populateAggregationEditor(index, name, json)
+      populateAggregationEditor(index, name, json, curr_editor)
 
       // Now add the handlers:
 
       $(`#add_bucket_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'bucket', `buckets_agg_${index}`)
+         buildAggregationForm(index, 'bucket', curr_editor, `buckets_agg_${index}`)
       })
       $(`#add_metric_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'metric', `metrics_agg_${index}`)
+         buildAggregationForm(index, 'metric', curr_editor, `metrics_agg_${index}`)
       })
       $(`#add_mapr_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'mapr', `metrics_agg_${index}`)
+         buildAggregationForm(index, 'mapr', curr_editor, `metrics_agg_${index}`)
       })
 
       // Change triggers for all the MR code
@@ -254,4 +258,5 @@
           })
       })
    }
+
 </script>
