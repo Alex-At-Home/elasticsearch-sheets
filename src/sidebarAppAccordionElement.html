@@ -56,7 +56,7 @@
                 </div>
             `
             tableToolsStyle = "style='padding-top: 6px;'"
-            disabledNameEditor = "disabled"
+            disabledNameEditor = "readonly"
          }
 
          var page =
@@ -254,9 +254,15 @@
 
               // Name editing
 
-              $(`#editname_${index}`).click(function(){
-                $(`#name_${index}`).prop('disabled', function(i, v) { return !v; });
+              $(`#editname_${index}`).on('mousedown', function(){
+                $(`#name_${index}`).prop('readonly', function(i, v) { return !v; });
               });
+              if ($(`#editname_${index}`).length) { //name is in edit mode
+                 // Also support focusout
+                 $(`#name_${index}`).on('focusout', function(){
+                    $(`#name_${index}`).prop('readonly', true)
+                 })
+              }
 
               // Action buttons
 

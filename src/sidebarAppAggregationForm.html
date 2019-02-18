@@ -8,12 +8,11 @@
 
    /** Builds the UI element that manages data tables (aggregationType one of `bucket`, `metric`, `mapr` */
    function buildAggregationForm(index, aggregationType, globalEditor, parentContainerId, json) {
+      var subIndex = ++aggFormOneUp_
 
       var jsonIsCollapsed = json ? "" : "in" // (collapse the JSON if populating from existing data)
       var isNewElement = json ? false : true
-      var json = json || {}
-
-      var subIndex = ++aggFormOneUp_
+      var json = json || { name: "FIELD" + subIndex }
 
       var elementIdSuffix = `agg_${aggregationType}_${index}_${subIndex}`
 
@@ -29,6 +28,13 @@
                 </div>
               </div>
       `
+
+      // Handle name editing:
+      var nameEditor = ""
+      var disabledNameEditor = ""
+      if (!isNewElement) {
+         disabledNameEditor = "disabled"
+     }
 
       var jsonInfo = ""
       if ("mapr" == aggregationType) {
@@ -49,9 +55,6 @@
          <label>Extra Parameters To Merge:</label>
          `
       }
-
-//TODO make names of existing fields non-editable? like with data table accordion?
-//(the reason is that once we start allowing specification of a parent it becomes tricky to edit these on the fly)
 
       var form =
       `
@@ -77,7 +80,10 @@
                 <div class="input-group-addon for-shorter-text">
                   <span class="input-group-text">Name</span>
                 </div>
-                <input type="text" class="form-control" placeholder="Field name" value="${json.name || ''}" id="name_${elementIdSuffix}">
+                <input type="text" class="form-control" placeholder="Field name" value="${json.name || ''}" id="name_${elementIdSuffix}" ${disabledNameEditor}>
+                <span class="input-group-btn">
+                  <button id="editname_${elementIdSuffix}" class="btn btn-default" type="button" data-toggle="tooltip" title="Edit name"><span class='glyphicon glyphicon-pencil'></span></button>
+                </span>
               </div>
 
               ${aggregationTypeTemplate}
@@ -185,16 +191,23 @@
 
          // Handle the control buttons
          $(`#move_up_${elementIdSuffix}`).click(function(){
-            //TODO: move in JSON and then...
+            var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+            updateRawJsonNow(globalEditor, function(currJson) {
+               moveCurrAggFormJson_(subIndex, -1, aggregationType, currJson)
+            })
             var prev = $(`#form_${elementIdSuffix}`).prev()
             $(`#form_${elementIdSuffix}`).insertBefore(prev)
          })
          $(`#move_down_${elementIdSuffix}`).click(function(){
-            //TODO: move in JSON and then...
+            var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+            updateRawJsonNow(globalEditor, function(currJson) {
+               moveCurrAggFormJson_(subIndex, +1, aggregationType, currJson)
+            })
             var next = $(`#form_${elementIdSuffix}`).next()
             $(`#form_${elementIdSuffix}`).insertAfter(next)
          })
          $(`#delete_${elementIdSuffix}`).click(function(){
+            //TODO: update all my dependents
              google.script.run.withSuccessHandler(function(obj) {
              if (obj) {
                 updateRawJsonNow(globalEditor, function(currJson) {
@@ -208,17 +221,64 @@
 
          // Other change handlers:
 
+         // JSON editor
          curr_editor.session.on('change', function(delta) {
             updateRawJson(globalEditor, function(currJson) {
                var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
                try {
                   currJsonForm.config = JSON.parse(curr_editor.session.getValue())
-               } catch (err) { //(do nothing if it's not valid JSON)
-               }
+               } catch (err) {} //(do nothing if it's not valid JSON)
             })
          })
 
-         //TODO handle other fields (JSON/location/name/field filter)
+         // Field filter
+         $(`#field_filter_${elementIdSuffix}`).on("input", function(e) {
+            var thisValue = this.value
+            updateRawJson(curr_editor, function(currJson) {
+               var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+               currJsonForm.field_filter = thisValue
+            })
+         })
+         // Name
+         var onNameChange = function(thisValue, alwaysReturnTrue) {
+            $(`#name_${elementIdSuffix}`).prop('readonly', function(i, isReadonly) {
+               if (!isReadonly && thisValue) {
+                  var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+                  updateRawJsonNow(globalEditor, function(currJson) {
+                     // Ensure all names are unique:
+                     var nameMap = getAggFormNameMap_(currJson, subIndex)
+                     /**/console.log("?? " + JSON.stringify(nameMap))
+                     for (var i = 0; ; i++) {
+                        if (nameMap[thisValue]) { // this name exists, so change it
+                           thisValue = thisValue + i
+                           $(`#name_${elementIdSuffix}`).val(thisValue)
+                        } else {
+                           break
+                        }
+                     }
+                     //TODO: update all my dependents
+
+                     var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+                     currJsonForm.name = thisValue
+                  })
+               }
+               return alwaysReturnTrue || !isReadonly
+            })
+         }
+         $(`#name_${elementIdSuffix}`).focusout(function() {
+            onNameChange(this.value, /*alwaysReturnTrue*/true)
+         })
+         $(`#editname_${elementIdSuffix}`).on('mousedown', function() {
+            onNameChange($(`#name_${elementIdSuffix}`).val(), /*alwaysReturnTrue*/false)
+         })
+         // Location
+         $(`#location_${elementIdSuffix}`).change(function() {
+            var thisValue = this.value
+            updateRawJsonNow(globalEditor, function(currJson) {
+               var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+               currJsonForm.location = thisValue
+            })
+         })
       })
    }
 
@@ -237,7 +297,14 @@
    }
    /** Moves the JSON element at the specified index */
    function moveCurrAggFormJson_(subIndex, offset, aggregationType, parentJson) {
-      //TODO
+      var jsonArray = getOrPutJsonArray(parentJson, getAggFormPath_(aggregationType))
+      var newIndex = subIndex + offset
+      if (newIndex < 0) {
+         newIndex = 0
+      } else if (newIndex >= jsonArray.length) {
+         newIndex = jsonArray.length - 1
+      }
+      jsonArray.splice(newIndex, 0, jsonArray.splice(subIndex, 1)[0])
    }
    /** Returns the JSON element at the specified index */
    function getCurrAggFormJson_(formDiv, parentContainerId, aggregationType, parentJson) {
@@ -249,6 +316,20 @@
    function getCurrAggFormJsonIndex_(formDiv, parentContainerId) {
       var index = $(`#${parentContainerId} .aggregation_form_element`).index(formDiv)
       return index
+   }
+   /** Get all the metric/bucket fieldnames */
+   function getAggFormNameMap_(parentJson, indexExclude) {
+      var fieldList = [ 'buckets', 'metrics' ]
+      var retVal = {}
+      fieldList.forEach(function(aggType, ii) {
+         if (indexExclude != ii) {
+            var jsonArray = getJson(parentJson, [ "aggregation_table", aggType ]) || []
+            jsonArray.forEach(function(json) {
+               if (json.name) retVal[json.name] = true
+            })
+         }
+      })
+      return retVal
    }
 
 </script>

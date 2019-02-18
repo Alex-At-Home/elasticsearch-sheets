@@ -24,10 +24,12 @@
    },
    "composite": {
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html",
+      "size": 100,
       "sources": [
       {
          "AGGNAME": {
             "AGGTYPE": {
+               "order": "desc"
             }
          }
       }
@@ -70,7 +72,8 @@
 //TODO...
    "terms": {
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html",
-      "field": "FIELDNAME"
+      "field": "FIELDNAME",
+      "size": 100
    }
 }, "metric": {
    "avg": {

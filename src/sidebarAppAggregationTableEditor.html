@@ -156,8 +156,6 @@
    /** Populate the data for this form */
    function populateAggregationEditor(index, name, json, globalEditor) {
 
-//TODO: this seems to be breaking the global editor - if I press enter it insta-disappears and text gets reformatted as soon as it's valid JSON?
-
        // General
 
        populateGeneralEditor(index, name, json, 'agg')
@@ -242,8 +240,7 @@
                if (("query" == field) || ("params" == field)) {
                   try {
                      code[field] = JSON.parse(curr_mr_editor.session.getValue())
-                  } catch (err) { //(do nothing if it's not valid JSON)
-                  }
+                  } catch (err) {} //(do nothing if it's not valid JSON)
                } else {
                   code[field] = curr_mr_editor.session.getValue()
                }

@@ -71,8 +71,10 @@
 
       /** Update the raw JSON in the ACE code editor */
       function updateRawJson(editor, updateFn) {
-         clearTimeout(jsonUpdateTimerId) //TODO: technically this can lose updates if you're jumping between elements fast
-         jsonUpdateTimerId = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval)
+         if (!tempDisableJsonChange) {
+            clearTimeout(jsonUpdateTimerId) //TODO: technically this can lose updates if you're jumping between elements fast
+            jsonUpdateTimerId = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval)
+         }
       }
       function updateRawJsonNow(editor, updateFn) {
         if (!tempDisableJsonChange) {
