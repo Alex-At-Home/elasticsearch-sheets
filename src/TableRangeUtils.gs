@@ -16,6 +16,16 @@ function getJson_(json, fieldArray) {
   return tmpJson
 }
 
+/** Quick shallow copy of JSON */
+function shallowCopy_(json) {
+  var retVal = {}
+  for (var k in json) {
+    retVal[k] = json[k]
+  }
+  return retVal
+}
+
+
 /** Converts the table name into a pure alphanum string not starting with a digit */
 function buildTableRangeName_(tableName) {
    return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + managementSheetName_()

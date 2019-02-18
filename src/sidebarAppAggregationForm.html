@@ -198,6 +198,11 @@
                   $(this).autocomplete("search", "")
                }
             })
+         } else { // Map reduce, just set the type
+             updateRawJsonNow(globalEditor, function(currJson) {
+                var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+                currJsonForm.agg_type = "__map_reduce__"
+             })
          }
 
          // Handle the control buttons

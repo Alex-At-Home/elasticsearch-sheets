@@ -185,7 +185,9 @@ var defaultTableConfig_ = {
    "aggregation_table": {
       "enabled": false,
       "query": {
-         "match_all": {}
+         "query": {
+            "match_all": {}
+         }
       },
       "map_reduce": {
          "params": {},

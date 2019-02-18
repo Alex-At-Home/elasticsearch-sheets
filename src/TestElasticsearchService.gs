@@ -386,3 +386,87 @@ function TESThandleSqlResults_(testSheet, testResults) {
    // - warnings and errors
    // - clears rest of data
 }
+
+/** (PRIVATE) ElasticsearchService.buildAggregationQuery_ */
+function TESTbuildAggregationQuery_(testSheet, testResults) {
+
+  var baseConfig = {
+     "aggregation_table": {
+       "map_reduce": {
+          "params": {
+             "k1": "v1"
+          },
+          "init": "i",
+          "map": "m",
+          "combine": "c",
+          "reduce": "r"
+       },
+       "query": {
+          "query": { "testqk": "testqv" }
+       },
+       "buckets": [
+         { }, //(skip, no name)
+
+         { "name": "n1", "agg_type": "t1", "config": { "ck1": "cv1" }, "location": "automatic" },
+         { "name": "n2", "agg_type": "t2" },
+         { "name": "n3", "agg_type": "t3", "config": { "ck3": "cv3" }, "location": "n1" }
+       ],
+       "metrics": [
+         { "name": "n4", "agg_type": "t4", "config": { "ck4": "cv4" } },
+         { "name": "n5", "agg_type": "__map_reduce__", "config": { "ck5": "cv5" }, "location": "n2" },
+
+         { "name": "testname", "agg_type": "testtype", "location": "disabled" } //(skip, disabled)
+       ],
+       "pipeline": [
+         { "name": "n6", "agg_type": "__map_reduce__", "config": { "ck6": "cv6" } },
+
+         { "name": "testname", "agg_type": "testtype", "location": "disabled" }, //(skip, disabled)
+
+         { "name": "n7", "agg_type": "t7", "config": { "ck7": "cv7" }, "location": "n1" }
+       ]
+     }
+  }
+
+  performTest_(testResults, "normal_usage", function() {
+     var postBody = buildAggregationQuery_(baseConfig)
+
+     var expectedBody = { //TODO: this is nearly right, just need to get the custom location positions correct
+       "aggregations": {
+          "n1": {
+             "aggregations": {
+                "n2": {
+                   "aggregations": {
+                      "n4": {
+                         "t4": {
+                            "ck4": "cv4"
+                         }
+                      },
+                      "n6": {
+                         "scripted_metric": {
+                            "combine": "\n\nc",
+                            "init": "\n\ni",
+                            "map": "\n\nm",
+                            "params": {
+                               "__name__": "n6",
+                               "ck6": "cv6",
+                               "k1": "v1"
+                            },
+                            "reduce": "\n\nr"
+                         }
+                      }
+                   }
+                }
+             },
+             "t1": {
+                "ck1": "cv1"
+             }
+          }
+       },
+       "query": {
+          "match_all": {}
+       }
+    }
+     assertEquals_({}, postBody)
+  })
+
+}

@@ -468,3 +468,96 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    retVal.data_size = dataSize
    return retVal
 }
+
+/** Builds an aggregation query from the UI focused config model */
+function buildAggregationQuery_(config) {
+   /* Here's the model:
+      {
+         "name": "string", //(also used as the header - ignore any element with no name)
+         "agg_type": "string", //"__map_reduce__" or any ES aggregation, ignore any element with no agg_type
+         "location": "string" // "automatic" (all the buckets follow each other, all the metrics/pipelines at the bottom), "
+                              // disabled" (ignore), or under a specified "name"
+         "field_filter": "string" // (not used in the query building, controls the display)
+         "config": { .. } // the aggregation config
+   */
+
+   // (Stores elements with a custom position)
+   var elsByCustomPosition = {}
+   // (All the elements by name so we can add to them if they have custom position)
+   var elementsByName = {}
+   var aggList = []
+
+   var postBody = shallowCopy_(config.query || { "query": { "match_all": {} } })
+   var aggregationsLocation = (postBody.aggregations ? postBody.aggregations : postBody.aggregations = {})
+
+   var aggTable = getJson_(config, [ "aggregation_table" ]) || {}
+   var insertElementsFrom = function(listName, nestEveryTime) {
+      var configArray = aggTable[listName] || []
+      configArray
+         .filter(function(el) {
+            return el.name && el.agg_type && ("disabled" || el.location)
+         })
+         .forEach(function(el) {
+            var configEl = transformConfig_(config, el)
+            elementsByName[el.name] = configEl
+            if (!el.location || ("automatic" == el.location)) {
+               aggregationsLocation[el.name] = configEl
+               if (nestEveryTime) {
+                  aggregationsLocation =
+                     (configEl.aggregations ? configEl.aggregations : configEl.aggregations = {})
+               }
+            } else { // (we'll stash it and sort it out later)
+               var storedEl = {}
+               storedEl[el.name] = configEl
+               var currArray = elsByCustomPosition[el.location] || []
+               if (0 == currArray.length) {
+                  elsByCustomPosition[el.location] = currArray
+               }
+               currArray.push(configEl)
+            }
+         })
+   }
+   //(state aggregationsLocation preserved between these calls)
+   insertElementsFrom('buckets', true)
+   insertElementsFrom('metrics', false)
+   insertElementsFrom('pipeline', false)
+
+   // Now inject any elements with a custom position
+   for (var k in elsByCustomPosition) {
+     var insertInto = elementsByName[k] || {}
+     aggregationsLocation = (insertInto.aggregations ? insertInto.aggregations : insertInto.aggregations = {}) //TODO: this construct (used in 3 places appears broken)
+     (elsByCustomPosition[k] || []).forEach(function(el) {
+         Object.keys(el).forEach(function(name) {
+            aggregationsLocation[name] = transformConfig_(config, el[name])
+         })
+     })
+   }
+   return postBody
+}
+
+/** Converts the __map_reduce__ custom type into a scripted_metric, otherwise just embeds into its own object */
+function transformConfig_(globalConfig, configEl) {
+  var retVal = {}
+  if ("__map_reduce__" == configEl.agg_type) {
+     var aggTable = globalConfig.aggregation_table || {}
+     var mapReduce = aggTable.map_reduce || {}
+     var lib = (mapReduce.lib || "") + "\n\n"
+     // Combine the 2 params
+     var combinedParams = configEl.config || {}
+     combinedParams['__name__'] = configEl.name //(can use the same script boxes for different jobs)
+     var params = mapReduce.params || {}
+     for (var k in params) {
+        combinedParams[k] = params[k]
+     }
+     retVal.scripted_metric = {
+        params: combinedParams,
+        init: lib + (mapReduce.init || ""),
+        map: lib + (mapReduce.map || ""),
+        combine: lib + (mapReduce.combine || ""),
+        reduce: lib + (mapReduce.reduce || "")
+     }
+  } else {
+     retVal[configEl.agg_type] = configEl.config
+  }
+  return retVal
+}

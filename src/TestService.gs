@@ -11,10 +11,11 @@ var testMode_ = false
 var testMethods_ = {
    // Code.gs:
    "Code_TESTlaunchElasticsearchTableBuilder": TESTlaunchElasticsearchTableBuilder_,
-   "Code_TESTlaunchElasticsearchConfig_": TESTlaunchElasticsearchConfig_,
+   "Code_TESTlaunchElasticsearchConfig": TESTlaunchElasticsearchConfig_,
    // Elasticsearch.gs:
    "ElasticsearchService_configureElasticsearch": TESTconfigureElasticsearch_,
    "ElasticsearchService_getElasticsearchMetadata": TESTgetElasticsearchMetadata_,
+   "ElasticsearchService_buildAggregationQuery_": TESTbuildAggregationQuery_,
    // TableRangeUtils.gs:
    "TableRangeUtils_buildSpecialRowInfo_": TESTbuildSpecialRowInfo_
 }
@@ -192,6 +193,13 @@ function deepCopyJson_(obj) {
 /** orders strings while JSONifying */
 function orderedStringify_(obj) {
    var allKeys = [];
-   JSON.stringify(obj, function(k, v) { allKeys.push(k); return v; })
+   var allKeySet = {}
+   JSON.stringify(obj, function(k, v) {
+      if (!allKeySet[k]) {
+         allKeys.push(k)
+         allKeySet[k] = true
+      }
+      return v
+   })
    return JSON.stringify(obj, allKeys.sort(), 3);
 }
