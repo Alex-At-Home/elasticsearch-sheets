@@ -94,6 +94,30 @@
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-median-absolute-deviation-aggregation.html",
       "field": "FIELDNAME"
    }
+}, "pipeline": {
+   "avg_bucket": {
+      "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline-avg-bucket-aggregation.html",
+      "buckets_path": "BUCKETPATH",
+      "gap_policy": "skip"
+   },
+//TODO...
+   "bucket_selector": {
+      "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline-bucket-selector-aggregation.html",
+      "buckets_path": {
+         "PARAM1": "BUCKETPATH1",
+         "PARAM2": "BUCKETPATH2"
+      },
+      "script": "params.PARAM1 > params.PARAM2"
+   },
+   "bucket_sort": {
+      "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline-bucket-sort-aggregation.html",
+      "sort": [
+         { "FIELDNAME": { "order": "desc" } }
+      ],
+      "from": 0,
+      "size": 100
+   }
+//TODO...
 }
 }
 

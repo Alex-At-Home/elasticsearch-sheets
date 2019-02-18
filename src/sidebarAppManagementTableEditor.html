@@ -1,41 +1,147 @@
 <script>
 
-   /** Builds the forms that define the generation of cat generation */
-   function buildManagementEditor(index) {
+   /** The non-dynamic (bucket/metric) fields for aggregations */
+   var mapReduceFields_ = [ "query", "params", "init", "map", "combine", "reduce", "lib" ]
 
+   /** Builds the forms that define the generation of Aggregation queries */
+   function buildAggregationEditor(index) {
        var accordion =
        `
-<div id="accordion_mgmt_${index}" class="panel-group">
+<div id="accordion_agg_${index}" class="panel-group">
     <div class="panel panel-default">
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_general_mgmt_${index}">General</a>
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_general_agg_${index}">General</a>
             </h4>
         </div>
-        <div id="accordion_general_mgmt_${index}" class="panel-collapse collapse out">
+        <div id="accordion_general_agg_${index}" class="panel-collapse collapse out">
             <div class="panel-body form-horizontal">
-               ${buildGeneralEditor(index, 'mgmt')}
+               ${buildGeneralEditor(index, 'agg')}
             </div>
         </div>
+
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_edit_mgmt_${index}">Management</a>
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_query_agg_${index}">Query</a>
             </h4>
         </div>
-        <div id="accordion_edit_mgmt_${index}" class="panel-collapse collapse in">
+        <div id="accordion_query_agg_${index}" class="panel-collapse collapse out">
             <div class="panel-body">
-               <div class="form-group">
-                  <div class="input-group">
-                     <div class="input-group-addon">
-                         <span class="input-group-text">_cat/</span>
-                     </div>
-                     <input type="text" class="form-control" placeholder="" value="" id="endpoint_mgmt_${index}">
-                  </div>
+               <div id="query_agg_${index}" class="medium_ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_buckets_agg_${index}">Buckets (eg groupings)</a>
+            </h4>
+        </div>
+        <div id="accordion_buckets_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="buckets_agg_${index}"></div>
+               <div class="btn-toolbar">
+                  <button class="btn btn-default" id="add_bucket_agg_${index}">Add Bucket</button>
                </div>
-               <div class="form-group">
-                  <label for="options_mgmt_${index}">Options (one per line)</label>
-                  <textarea class="form-control vertical-resize-only" rows="5" id="options_mgmt_${index}"></textarea>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_metrics_agg_${index}">Metrics (inc Map Reduce)</a>
+            </h4>
+        </div>
+        <div id="accordion_metrics_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="metrics_agg_${index}"></div>
+               <div class="btn-toolbar">
+                  <button class="btn btn-default" id="add_metric_agg_${index}">Add Metric</button>
                </div>
+               <div class="btn-toolbar">
+                  <button class="btn btn-default" id="add_mapr_agg_${index}">Add Map Reduce Task</button>
+               </div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_pipelines_agg_${index}">Pipelines (eg sort/filter)</a>
+            </h4>
+        </div>
+        <div id="accordion_pipelines_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="pipelines_agg_${index}"></div>
+               <div class="btn-toolbar">
+                  <button class="btn btn-default" id="add_pipeline_agg_${index}">Add Pipeline</button>
+               </div>
+            </div>
+        </div>
+
+       <!------------------------------------------------------------------------------------->
+       <hr/>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_params_agg_${index}">(MR) Parameters</a>
+            </h4>
+        </div>
+        <div id="accordion_params_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="params_agg_${index}" class="medium_ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_init_agg_${index}">(MR) Init Script</a>
+            </h4>
+        </div>
+        <div id="accordion_init_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="init_agg_${index}" class="medium_ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_map_agg_${index}">(MR) Map Script</a>
+            </h4>
+        </div>
+        <div id="accordion_map_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="map_agg_${index}" class="ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_combine_agg_${index}">(MR) Combine Script</a>
+            </h4>
+        </div>
+        <div id="accordion_combine_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="combine_agg_${index}" class="ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_reduce_agg_${index}">(MR) Reduce Script</a>
+            </h4>
+        </div>
+        <div id="accordion_reduce_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="reduce_agg_${index}" class="ace_editor"></div>
+            </div>
+        </div>
+
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_lib_agg_${index}">(MR) Library Functions</a>
+            </h4>
+        </div>
+        <div id="accordion_lib_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="lib_agg_${index}" class="ace_editor"></div>
             </div>
         </div>
     </div>
@@ -45,69 +151,131 @@
    }
 
    /** Handles elements that need custom redraw logic if the underlying fields were changed */
-   function onSelectManagementEditor(index, selected, curr_editor) {
+   function onSelectAggregationEditor(index, selected, curr_editor) {
       // Update top-level JSON since we're switching mode
       updateRawJsonNow(curr_editor, function(currJson) {
-           var cat = getOrPutJsonObj(currJson, [ "cat_table" ])
-           cat.enabled = selected
+           var aggregationTable = getOrPutJsonObj(currJson, [ "aggregation_table" ])
+           aggregationTable.enabled = selected
       })
+      // Display redraw:
+      if (selected) {
+         //TODO bucket and metrics
+         // MR params
+         mapReduceFields_.forEach(function(field) {
+            ace.edit(`${field}_agg_${index}`).resize()
+         })
+      }
    }
 
    /** Populate the data for this form */
-   function populateManagementEditor(index, name, json) {
-       populateGeneralEditor(index, name, json, 'mgmt')
-       var cat = getJson(json, [ "cat_table" ]) || {}
-       $(`#endpoint_mgmt_${index}`).val(cat.endpoint || "")
-       $(`#options_mgmt_${index}`).val((cat.options || []).join("\n"))
+   function populateAggregationEditor(index, name, json, globalEditor) {
+
+       // General
+
+       populateGeneralEditor(index, name, json, 'agg')
+
+       // Buckets and metrics
+
+       // Clear any existing elements
+       $(`#pipelines_agg_${index}`).empty()
+       $(`#metrics_agg_${index}`).empty()
+       $(`#buckets_agg_${index}`).empty()
+
+       var buckets = getJson(json, [ "aggregation_table", "buckets" ]) || []
+       buckets.forEach(function(bucket) {
+          buildAggregationForm(index, 'bucket', globalEditor, `buckets_agg_${index}`, bucket)
+       })
+       var metrics = getJson(json, [ "aggregation_table", "metrics" ]) || []
+       metrics.forEach(function(metric) {
+          var aggType = 'metric'
+          if (metric.map_reduce) {
+             aggType = 'mapr'
+          }
+          buildAggregationForm(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
+       })
+       var pipelines = getJson(json, [ "aggregation_table", "pipelines" ]) || []
+       buckets.forEach(function(bucket) {
+          buildAggregationForm(index, 'pipeline', globalEditor, `buckets_agg_${index}`, bucket)
+       })
+
+       // MR
+       mapReduceFields_.forEach(function(field) {
+          var fieldPath = [ "aggregation_table", "map_reduce", field ]
+          if ("query" == field) {
+            fieldPath = [ "aggregation_table", field ]
+          }
+          var mrCode = getJson(json, fieldPath) || "" //TODO: move query off this
+           if (("query" == field) || ("params" == field)) { //(these are JSON)
+             mrCode = JSON.stringify(mrCode, null, 3)
+           }
+          ace.edit(`${field}_agg_${index}`).session.setValue(mrCode)
+       })
    }
 
-   var listOfCatOptions = [
-      "recovery", "indices", "shards", "nodes", "snapshots"
-   ]
+   /** Called once all the HTML elements for this SQL table exist, populates the data and registers event handlers */
+   function registerAggregationEditor(index, name, json, curr_editor) {
 
-   /** Called once all the HTML elements for this Management table exist, populates the data and registers event handlers */
-   function registerManagementEditor(index, name, json, curr_editor) {
+     registerGeneralEditor(index, name, json, curr_editor, 'agg')
 
-     populateManagementEditor(index, name, json) //(before we register the handlers - note calls populateGeneralEditor)
+      mapReduceFields_.forEach(function(field) {
+           var editorId = `${field}_agg_${index}`
+           var curr_mr_editor = ace.edit(editorId)
+           if (("query" == field) || ("params" == field)) {
+              curr_mr_editor.session.setMode("ace/mode/json")
+           } else {
+              curr_mr_editor.session.setMode("ace/mode/java")
+           }
+           curr_mr_editor.session.setTabSize(3)
+           curr_mr_editor.session.setUseWrapMode(true)
+           //contents set from "populateAggregationEditor" below
+      })
 
-     // General handlers
+      // Populate all the fields:
+      populateAggregationEditor(index, name, json, curr_editor)
 
-     registerGeneralEditor(index, name, json, curr_editor, 'mgmt')
+      // Now add the handlers:
 
-     // Management specific handlers:
+      $(`#add_bucket_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'bucket', curr_editor, `buckets_agg_${index}`)
+      })
+      $(`#add_metric_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'metric', curr_editor, `metrics_agg_${index}`)
+      })
+      $(`#add_mapr_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'mapr', curr_editor, `metrics_agg_${index}`)
+      })
+      $(`#add_pipeline_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'pipeline', curr_editor, `pipelines_agg_${index}`)
+      })
 
-     $(`#accordion_edit_mgmt_${index}`).on('shown.bs.collapse', function () {
-        onSelectManagementEditor(index, /*selected*/ true, curr_editor) //(ensures all the elements are redrawn as we change the display settings)
-     })
-
-     $(`#options_mgmt_${index}`).on('input', function() {
-         var options = $(this).val().split("\n").map(function(x) { return x.trim() }).filter(function(x) { return x != "" })
-         updateRawJson(curr_editor, function(currJson) {
-           var cat = getOrPutJsonObj(currJson, [ "cat_table" ])
-           cat.options = options
-        })
-     })
-
-     $(`#endpoint_mgmt_${index}`).autocomplete({
-        minLength: 0,
-        source: function(request, response) {
-           var data = $.grep(listOfCatOptions, function(value) {
-              return value.substring(0, request.term.length).toLowerCase() == request.term.toLowerCase()
-           });
-           response(data)
-        },
-        change: function( event, ui ) {
-            var endpoint = $(`#endpoint_mgmt_${index}`).val()
+      // Change triggers for all the MR code
+      mapReduceFields_.forEach(function(field) {
+         var editorId = `${field}_agg_${index}`
+         var curr_mr_editor = ace.edit(editorId)
+         curr_mr_editor.session.on('change', function(delta) {
             updateRawJson(curr_editor, function(currJson) {
-              var cat = getOrPutJsonObj(currJson, [ "cat_table" ])
-              cat.endpoint = endpoint
-          })
-        }
-     }).focus(function () {
-        if ("" == $(this).val()) { // only insta-display options if textbox empty
-           $(this).autocomplete("search", "")
-        }
-     })
+               var codePath = [ "aggregation_table", "map_reduce" ]
+               if ("query" == field) {
+                  codePath = [ "aggregation_table" ]
+               }
+               var code = getOrPutJsonObj(currJson, codePath)
+               if (("query" == field) || ("params" == field)) {
+                  try {
+                     code[field] = JSON.parse(curr_mr_editor.session.getValue())
+                  } catch (err) {} //(do nothing if it's not valid JSON)
+               } else {
+                  code[field] = curr_mr_editor.session.getValue()
+               }
+            })
+        })
+      })
 
-}
+      // Resize each editor if its accordion is opened
+      mapReduceFields_.forEach(function(field) {
+          $(`#accordion_${field}_agg_${index}`).on('shown.bs.collapse', function () {
+             ace.edit(`${field}_agg_${index}`).resize()
+          })
+      })
+   }
+
 </script>

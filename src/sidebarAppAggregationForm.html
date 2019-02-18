@@ -2,7 +2,8 @@
 
    var aggFormSuggestionList_ = {
       bucket: Object.keys(aggFormSuggestionMap.bucket),
-      metric: Object.keys(aggFormSuggestionMap.metric)
+      metric: Object.keys(aggFormSuggestionMap.metric),
+      pipeline: Object.keys(aggFormSuggestionMap.pipeline)
    }
    var aggFormOneUp_ = 0 //global across all indices - not an index just a uuid
 
@@ -65,6 +66,9 @@
                  <div class="btn-group">
                     <button id="toggle_config_${elementIdSuffix}" class="btn btn-xs btn-default" type="button" data-toggle="tooltip" title="Show/hide JSON config">
                      <a data-toggle="collapse" href="#collapse0_${elementIdSuffix}"><span class='glyphicon glyphicon-wrench'></span></a>
+                     <!-- TODO: after a move this no longer works until the wrench of _another_ element is pressed (+doesn't seem to work first time?)
+                          This is probably: https://github.com/twbs/bootstrap/issues/2274 (suggestion: go with jquery show/hide?)
+                     -->
                     </button>
                  </div>
                  <div class="btn-group">
@@ -154,7 +158,7 @@
                   var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
 
                   var selected = newValue
-                  var newJson = JSON.parse(JSON.stringify(aggFormSuggestionMap[aggregationType][selected] || {}, null, 3))
+                  var newJson = shallowCopy(aggFormSuggestionMap[aggregationType][selected])
                   var url = newJson['url__']
                   if (url) { // set href for "? and show
                      $(`#help_agg_type_${elementIdSuffix} a`).attr("href", url)
@@ -165,11 +169,18 @@
                   }
                   delete newJson['url__']
                   var newJsonStr = JSON.stringify(newJson, null, 3)
-               //TODO: get JSON element, get current type, get suggestion for that, if different then ask?
 
-                  curr_editor.session.setValue(newJsonStr)
-                  currJsonForm.agg_type = newValue
-                  currJsonForm.config = newJson
+                  // Need to check if we're going to mess up existing content:
+                  var currDefaultForType = JSON.stringify(
+                     shallowCopy(aggFormSuggestionMap[aggregationType][currJsonForm.agg_type || ""] || {}, "url__"))
+                  var currContents = JSON.stringify(currJsonForm.config || {})
+
+                  if (("{}" == currContents) || (currContents == currDefaultForType)) {
+                    curr_editor.session.setValue(newJsonStr)
+                    currJsonForm.agg_type = newValue
+                    currJsonForm.config = newJson
+                  }
+                  //(else do nothing, user has already entered data)
                })
             }
             $(`#agg_type_${elementIdSuffix}`).autocomplete({
@@ -247,7 +258,6 @@
                   updateRawJsonNow(globalEditor, function(currJson) {
                      // Ensure all names are unique:
                      var nameMap = getAggFormNameMap_(currJson, subIndex)
-                     /**/console.log("?? " + JSON.stringify(nameMap))
                      for (var i = 0; ; i++) {
                         if (nameMap[thisValue]) { // this name exists, so change it
                            thisValue = thisValue + i
@@ -286,6 +296,8 @@
    function getAggFormPath_(aggregationType) {
       if ("bucket" == aggregationType) {
          return [ "aggregation_table", "buckets" ]
+      } else if ("pipeline" == aggregationType) {
+         return [ "aggregation_table", "pipelines" ]
       } else {
          return [ "aggregation_table", "metrics" ]
       }
@@ -319,7 +331,7 @@
    }
    /** Get all the metric/bucket fieldnames */
    function getAggFormNameMap_(parentJson, indexExclude) {
-      var fieldList = [ 'buckets', 'metrics' ]
+      var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
       var retVal = {}
       fieldList.forEach(function(aggType, ii) {
          if (indexExclude != ii) {

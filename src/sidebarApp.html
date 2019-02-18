@@ -99,6 +99,17 @@
         }
      }
 
+      /** Shallow copy of a JSON element */
+      function shallowCopy(json, excludeField) {
+         var retVal = {}
+         for (var k in json) {
+            if (k != excludeField) {
+               retVal[k] = json[k]
+            }
+         }
+         return retVal
+      }
+
       /** Gets a nested JSON element */
       function getJson(json, fieldArray) {
          var tmpJson = json
