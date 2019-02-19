@@ -487,8 +487,12 @@ function buildAggregationQuery_(config) {
    var elementsByName = {}
    var aggList = []
 
+   var getOrPutJsonField = function(json, field) {
+     return json[field] || (json[field] = {})
+   }
+
    var postBody = shallowCopy_(config.query || { "query": { "match_all": {} } })
-   var aggregationsLocation = (postBody.aggregations ? postBody.aggregations : postBody.aggregations = {})
+   var aggregationsLocation = getOrPutJsonField(postBody, 'aggregations')
 
    var aggTable = getJson_(config, [ "aggregation_table" ]) || {}
    var insertElementsFrom = function(listName, nestEveryTime) {
@@ -503,8 +507,7 @@ function buildAggregationQuery_(config) {
             if (!el.location || ("automatic" == el.location)) {
                aggregationsLocation[el.name] = configEl
                if (nestEveryTime) {
-                  aggregationsLocation =
-                     (configEl.aggregations ? configEl.aggregations : configEl.aggregations = {})
+                  aggregationsLocation = getOrPutJsonField(configEl, 'aggregations')
                }
             } else { // (we'll stash it and sort it out later)
                var storedEl = {}
@@ -513,7 +516,7 @@ function buildAggregationQuery_(config) {
                if (0 == currArray.length) {
                   elsByCustomPosition[el.location] = currArray
                }
-               currArray.push(configEl)
+               currArray.push(storedEl)
             }
          })
    }
@@ -525,10 +528,11 @@ function buildAggregationQuery_(config) {
    // Now inject any elements with a custom position
    for (var k in elsByCustomPosition) {
      var insertInto = elementsByName[k] || {}
-     aggregationsLocation = (insertInto.aggregations ? insertInto.aggregations : insertInto.aggregations = {}) //TODO: this construct (used in 3 places appears broken)
-     (elsByCustomPosition[k] || []).forEach(function(el) {
+     aggregationsLocation = getOrPutJsonField(insertInto, 'aggregations')
+     var toInsertArray = elsByCustomPosition[k] || []
+     toInsertArray.forEach(function(el) {
          Object.keys(el).forEach(function(name) {
-            aggregationsLocation[name] = transformConfig_(config, el[name])
+            aggregationsLocation[name] = el[name]
          })
      })
    }
@@ -557,7 +561,7 @@ function transformConfig_(globalConfig, configEl) {
         reduce: lib + (mapReduce.reduce || "")
      }
   } else {
-     retVal[configEl.agg_type] = configEl.config
+     retVal[configEl.agg_type] = configEl.config || {}
   }
   return retVal
 }

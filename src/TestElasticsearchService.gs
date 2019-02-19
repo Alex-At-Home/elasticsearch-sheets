@@ -5,6 +5,8 @@
 /** Just run the tests in this module */
 function testElasticsearchService() {
    testRunner_("ElasticsearchService_", /*deleteTestSheets*/true)
+//sub-tests:
+//   testRunner_("buildAggregationQuery", /*deleteTestSheets*/true)
 }
 
 /** A handy base ES config for use in testing */
@@ -396,6 +398,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
           "params": {
              "k1": "v1"
           },
+          "lib": "l",
           "init": "i",
           "map": "m",
           "combine": "c",
@@ -408,8 +411,8 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
          { }, //(skip, no name)
 
          { "name": "n1", "agg_type": "t1", "config": { "ck1": "cv1" }, "location": "automatic" },
-         { "name": "n2", "agg_type": "t2" },
-         { "name": "n3", "agg_type": "t3", "config": { "ck3": "cv3" }, "location": "n1" }
+         { "name": "n2", "agg_type": "t2", "location": "n3" },
+         { "name": "n3", "agg_type": "t3", "config": { "ck3": "cv3" } }
        ],
        "metrics": [
          { "name": "n4", "agg_type": "t4", "config": { "ck4": "cv4" } },
@@ -430,12 +433,30 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
   performTest_(testResults, "normal_usage", function() {
      var postBody = buildAggregationQuery_(baseConfig)
 
-     var expectedBody = { //TODO: this is nearly right, just need to get the custom location positions correct
+     var expectedBody = {
        "aggregations": {
           "n1": {
              "aggregations": {
-                "n2": {
+                "n3": {
                    "aggregations": {
+                      "n2": {
+                         "aggregations": {
+                            "n5": {
+                               "scripted_metric": {
+                                  "combine": "l\n\nc",
+                                  "init": "l\n\ni",
+                                  "map": "l\n\nm",
+                                  "params": {
+                                     "__name__": "n5",
+                                     "ck5": "cv5",
+                                     "k1": "v1"
+                                  },
+                                  "reduce": "l\n\nr"
+                               }
+                            }
+                         },
+                         "t2": {}
+                      },
                       "n4": {
                          "t4": {
                             "ck4": "cv4"
@@ -443,17 +464,25 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
                       },
                       "n6": {
                          "scripted_metric": {
-                            "combine": "\n\nc",
-                            "init": "\n\ni",
-                            "map": "\n\nm",
+                            "combine": "l\n\nc",
+                            "init": "l\n\ni",
+                            "map": "l\n\nm",
                             "params": {
                                "__name__": "n6",
                                "ck6": "cv6",
                                "k1": "v1"
                             },
-                            "reduce": "\n\nr"
+                            "reduce": "l\n\nr"
                          }
                       }
+                   },
+                   "t3": {
+                      "ck3": "cv3"
+                   }
+                },
+                "n7": {
+                   "t7": {
+                      "ck7": "cv7"
                    }
                 }
              },
@@ -466,7 +495,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
           "match_all": {}
        }
     }
-     assertEquals_({}, postBody)
+    assertEquals_(expectedBody, postBody)
   })
 
 }
