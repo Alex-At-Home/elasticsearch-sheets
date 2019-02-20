@@ -1,0 +1,108 @@
+<script>
+      // Misc utils:
+
+      /** Status/error display */
+      function showStatus(message, summary) {
+         google.script.run.showStatus(message, summary)
+      }
+
+      /** quick and dirty way of avoiding circular event changes -
+        * apart from one place (the raw JSON editor), this should not be needed in "client" code
+        */
+      var tempDisableJsonChange = false
+      var jsonUpdateTimerId
+      var jsonUpdateTimerInterval = 200 //ms
+
+      /** Update the raw JSON in the ACE code editor */
+      function updateRawJson(editor, updateFn) {
+         if (!tempDisableJsonChange) {
+            clearTimeout(jsonUpdateTimerId) //TODO: technically this can lose updates if you're jumping between elements fast
+            jsonUpdateTimerId = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval)
+         }
+      }
+      function updateRawJsonNow(editor, updateFn) {
+        if (!tempDisableJsonChange) {
+          var jsonStr = editor.session.getValue()
+          try {
+             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+          } catch {
+             return // (just do nothing until JSON is valid)
+          }
+
+          updateFn(jsonBody)
+          var newJsonStr = JSON.stringify(jsonBody, null, 3)
+
+          tempDisableJsonChange = true  //(avoids eg SQL -> raw JSON -> SQL circle)
+          try {
+               editor.session.setValue(newJsonStr)
+          } catch (err) {
+               tempDisableJsonChange = false
+               throw err
+          }
+          tempDisableJsonChange = false
+        }
+     }
+
+      /** Shallow copy of a JSON element */
+      function shallowCopy(json, excludeField) {
+         var retVal = {}
+         for (var k in json) {
+            if (k != excludeField) {
+               retVal[k] = json[k]
+            }
+         }
+         return retVal
+      }
+
+      /** Gets a nested JSON element */
+      function getJson(json, fieldArray) {
+         var tmpJson = json
+         for (var j in fieldArray) {
+            var key = fieldArray[j]
+            if (tmpJson.hasOwnProperty(key)) {
+               tmpJson = tmpJson[key]
+            } else {
+               return null
+            }
+         }
+         return tmpJson
+      }
+
+      /** Gets a nested JSON element array, creates it if it doesn't exist */
+      function getOrPutJsonArray(json, fieldArray) {
+         var tmpJson = json
+         var maxIndex = fieldArray.length - 1
+         for (var j in fieldArray) {
+            var key = fieldArray[j]
+            if (tmpJson.hasOwnProperty(key)) {
+               tmpJson = tmpJson[key]
+            } else {
+               var tmp = {}
+               if (j == maxIndex) {
+                  tmp = []
+               }
+               tmpJson[key] = tmp
+               tmpJson = tmp
+            }
+         }
+         return tmpJson
+      }
+
+
+      /** Gets a nested JSON element object, creates it if it doesn't exist */
+      function getOrPutJsonObj(json, fieldArray) {
+         var tmpJson = json
+         for (var j in fieldArray) {
+            var key = fieldArray[j]
+            if (tmpJson.hasOwnProperty(key)) {
+               tmpJson = tmpJson[key]
+            } else {
+               var tmp = {}
+               tmpJson[key] = tmp
+               tmpJson = tmp
+            }
+         }
+         return tmpJson
+      }
+
+</script>

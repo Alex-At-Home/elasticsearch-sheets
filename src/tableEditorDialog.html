@@ -41,7 +41,7 @@
 
     <div class="panel-group" id="accordion"></div>
 
-    <!-- Dependencies -->
+   <!-- Dependencies -->
 
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
@@ -81,12 +81,33 @@
    <script>
 
       // Create the tables UI elements on load
-      buildAccordionTableFromSource()
+      //TODO: named accordion element only
+      _state.accordianOneUp = 1
+      function buildAccordionElementFromSource() {
+         google.script.run.withSuccessHandler( //TODO replace this with object
+             function(obj) {
+                var sortedKeys = []
+                for (var key in obj) {
+                   sortedKeys.push(key)
+                }
+                sortedKeys.sort()
+                var key = sortedKeys[0]
+                if ((key != defaultKey) && (obj.hasOwnProperty(key))) {
+                   //TODO: fix up the UI here, to remove controls we don't want etc
+                   buildAccordionElement(_state.accordianOneUp, key, obj[key], /*isFirstElement=*/false)
+                }
+             }
+         ).withFailureHandler(
+             function(msg) {
+                console.log("listTableConfigs: error: [" + JSON.stringify(msg) + "]")
+                showStatus(JSON.stringify(msg, 3), 'Client Error')
+             }
+         ).listTableConfigs()
+      }
+      buildAccordionElementFromSource()
+
 
    </script>
-
-   <!-- All of the ES client related logic (including its interface with the backend server) -->
-   <?!= HtmlService.createHtmlOutputFromFile('elasticsearchManager').getContent(); ?>
 
 </body>
 

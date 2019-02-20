@@ -6,7 +6,7 @@
     // Interface with UI
 
     /** Populate a data table from a query */
-    function populateTable(tableName, tableConfig) {
+    function populateTable(tableName, tableConfig, testMode) {
        for (var key in tableToQueryMapping) {
           var enabled = getJson(tableConfig, [ key, "enabled" ]) || false
           if (enabled) {
@@ -15,7 +15,7 @@
              if (!queryType.hasQueryBar) {
                 getOrPutJsonObj(tableConfig, [ "common", "query" ]).source = "none"
              }
-             performGenericOperation(tableName, tableConfig, queryType.fn)
+             performGenericOperation(tableName, tableConfig, queryType.fn, testMode)
              break
           }
        }
@@ -52,14 +52,14 @@
    }
 
    /** Launches an ES client operation */
-   function performGenericOperation(tableName, tableConfig, operationLogicFn) {
+   function performGenericOperation(tableName, tableConfig, operationLogicFn, testMode) {
       google.script.run.withSuccessHandler(function(obj) {
          if (obj && (obj.es_meta.enabled || true)) { //(null used to return error which server has already handled)
             //TODO: all sorts of works still to be done on auth
             if (("password" == obj.es_meta.auth_type) && ("" == obj.es_meta.password)) {
                google.script.run.launchElasticsearchConfig()
             } else {
-               operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta))
+               operationLogicFn(tableName, tableConfig, obj, _clientState.getOrBuildClient(obj.es_meta), testMode)
             }
          }
       }).withFailureHandler(function(obj) {
@@ -68,7 +68,7 @@
    }
 
    /** Launches a SQL query */
-   function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient) {
+   function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
       var tableMeta = esAndTableMeta.table_meta
       var userQuery = tableMeta.query || "True"
       var pagination = ""
@@ -81,10 +81,20 @@
          .replace("$$query", userQuery)
          .replace("$$pagination", pagination)
 
+      var endpoint = "/_xpack/sql?format=json"
+      var body = { "query": fullSqlQuery }
+
+      if (testMode) {
+         google.script.run.launchQueryViewer('View SQL query: ' + tableName,
+            'POST', endpoint, JSON.stringify(body, null, 3)
+         )
+         return
+      }
+
       esClient.transport.request({
          method: "POST",
-         path: "/_xpack/sql?format=json",
-         body: { "query": fullSqlQuery },
+         path: endpoint,
+         body: body,
          headers: esAndTableMeta.es_meta.headers
       }, function(err, response, status) {
          var result = {}
@@ -99,11 +109,19 @@
    }
 
    /** Launches a _cat query */
-   function performCatQuery(tableName, tableConfig, esAndTableMeta, esClient) {
+   function performCatQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
 
       var endpoint = getJson(tableConfig , [ "cat_table", "endpoint" ]) || ""
       var options = (getJson(tableConfig , [ "cat_table", "options" ]) || [])
+      options = options.filter(function(o) { return o.trim().indexOf('#') != 0 })
       var catQuery = `/_cat/${endpoint}?format=json` + (options.length > 0 ? '&' : '') + options.join("&")
+
+      if (testMode) {
+         google.script.run.launchQueryViewer('View _cat query: ' + tableName,
+            'GET', catQuery, ""
+         )
+         return
+      }
 
       esClient.transport.request({
          method: "GET",

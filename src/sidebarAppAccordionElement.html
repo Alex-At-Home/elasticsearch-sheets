@@ -51,8 +51,17 @@
             tableTools =
             `
                <div class="btn-group pull-right no-padding" role="group">
-                   <button id="query_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Refresh query"><span class='glyphicon glyphicon-refresh'></span></button>
-                   <button id="move_${index}" class="btn btn-default btn-sm" type="button" data-toggle="tooltip" title="Move/resize range"><span class='glyphicon glyphicon-move'></span></button>
+<div class="dropdown">
+  <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdown_${index}" data-toggle="dropdown">
+     <span class="caret"></span>
+  </button>
+  <div class="dropdown-menu" role="menu" style="right:0;left: auto;">
+    <li><a class="dropdown-item" id="move_${index}">Show/Move/Resize Range</a></li>
+    <li><a class="dropdown-item" id="query_${index}">Refresh Table</a></li>
+    <li><a class="dropdown-item">Expand Editor</a></li>
+    <li><a class="dropdown-item" id="viewquery_${index}">View Query</a></li>
+  </div>
+</div>
                 </div>
             `
             tableToolsStyle = "style='padding-top: 6px;'"
@@ -249,7 +258,12 @@
               $(`#query_${index}`).click(function(){
                  var jsonStr = curr_editor.session.getValue()
                  var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-                 populateTable(name, jsonBody)
+                 populateTable(name, jsonBody, /*testMode*/false)
+              });
+              $(`#viewquery_${index}`).click(function(){
+                 var jsonStr = curr_editor.session.getValue()
+                 var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+                 populateTable(name, jsonBody, /*testMode*/true)
               });
 
               // Name editing

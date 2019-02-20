@@ -33,6 +33,39 @@ function launchYesNoPrompt(title, question) {
   }
 }
 
+/** Allows for UI to launch a full screen dialog showing the query that would be launched */
+function launchQueryViewer(title, queryMethod, queryUrl, queryBody) {
+  if (testMode_) {
+     triggerUiEvent_("launchQueryViewer", {
+        title: title, queryMethod: queryMethod, queryUrl: queryUrl, queryBody:queryBody
+     })
+  } else {
+     var html = HtmlService.createTemplateFromFile('queryViewerDialog')
+     html.queryMethod = queryMethod
+     html.queryUrl = queryUrl
+     html.queryBody = queryBody
+     var ui = SpreadsheetApp.getUi()
+     ui.showModalDialog(html.evaluate().setWidth(600).setHeight(600), title)
+  }
+}
+
+/** Allows for UI to launch a full screen dialog showing the query that would be launched */
+function launchJsonEditor(title, jsonConfig) {
+  if (testMode_) {
+     triggerUiEvent_("launchJsonEditor", {
+        title: title, config: jsonConfig
+     })
+  } else {
+     var html = HtmlService.createTemplateFromFile('tableEditorDialog')
+     html.defaultKey = defaultTableConfigKey_
+     //html.config = JSON.stringify(jsonConfig)
+     var ui = SpreadsheetApp.getUi()
+     ui.showModalDialog(html.evaluate().setWidth(1000).setHeight(1000), title || "(no title)")
+  }
+  //TODO: return updated JSON
+}
+
+
 /** Allows expensive initialization/integrity checking operations to be performed only on page load */
 var firstTime_ = true
 
@@ -40,6 +73,8 @@ var firstTime_ = true
  * Creates any required internal state (first time) and launches the ES sidebar
  */
 function launchElasticsearchTableBuilder_() {
+  /**/
+  launchJsonEditor()
 
   // If necessary, initialize the management service
   var mgmtService = getManagementService_()
