@@ -213,12 +213,38 @@ function updateSavedObject_(mgmtService, name, configJson) {
       var curr = mgmtService.getRange('b' + matchingRow)
       var range = mgmtService
          .getRange('a' + matchingRow + ':' + 'c' + matchingRow) //(col 'c' will be to store temp objects in the future)
+
+      //(just unset a couple of temp fields, shouldn't be set here)
+      delete configJson.temp
+      delete configJson.name
+
       range.setValues([ [ name, JSON.stringify(configJson, null, 3), "" ] ])
      return true
   } else {
      return false
   }
 }
+
+/** Updates an object (name stays the same) */
+function updateTempSavedObject_(mgmtService, name, tempName, configJson) {
+  var matchingRow = savedObjectMinRow_ - 1
+  var found = false
+  while (!found) {
+    matchingRow++
+    found = (name == mgmtService.getRange('a' + matchingRow).getValue())
+  }
+  if (found) {
+      var curr = mgmtService.getRange('b' + matchingRow)
+      var range = mgmtService
+         .getRange('c' + matchingRow + ':' + 'c' + matchingRow) //(col 'c' will be to store temp objects in the future)
+      configJson.name = tempName //(insert name in case it's different)
+      range.setValue(JSON.stringify(configJson, null, 3))
+     return true
+  } else {
+     return false
+  }
+}
+
 
 /** Deletes the entire row containing the saved object with the given name */
 function deleteSavedObject_(mgmtService, name) {
@@ -246,10 +272,14 @@ function listSavedObjects_(mgmtService, discardRange) {
     try {
       var savedObjName = savedObjRow.getCell(1, 1).getValue()
       var savedObjStr = savedObjRow.getCell(1, 2).getValue()
+      var tempObjStr = savedObjRow.getCell(1, 3).getValue()
       if ((savedObjName == defaultTableConfigKey_) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
          var savedObj = defaultTableConfig_
       } else {
          var savedObj = JSON.parse(savedObjStr)
+      }
+      if (tempObjStr) {
+         savedObj.temp = JSON.parse(tempObjStr)
       }
       // Don't expose these parameters to the UI, they are retrieved/managed separately
       if (discardRange) {

@@ -113,6 +113,7 @@
          google.script.run.withSuccessHandler(
              function(obj) {
                 buildAccordionTable(obj)
+                selectedTable = "" //(reset, ie only do it once)
              }
          ).withFailureHandler(
              function(msg) {

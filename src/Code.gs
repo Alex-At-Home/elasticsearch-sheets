@@ -33,6 +33,8 @@ function launchYesNoPrompt(title, question) {
   }
 }
 
+// Query viewing
+
 /** Allows for UI to launch a full screen dialog showing the query that would be launched */
 function launchQueryViewer(title, queryMethod, queryUrl, queryBody) {
   if (testMode_) {
@@ -49,22 +51,33 @@ function launchQueryViewer(title, queryMethod, queryUrl, queryBody) {
   }
 }
 
+// JSON editing
+
 /** Allows for UI to launch a full screen dialog showing the query that would be launched */
-function launchJsonEditor(title, jsonConfig) {
+function launchJsonEditor(tableName, currName, jsonConfig) {
+  var mgmtService = getManagementService_()
+  updateTempSavedObject_(mgmtService, tableName, currName, jsonConfig) //(save current contents)
   if (testMode_) {
      triggerUiEvent_("launchJsonEditor", {
-        title: title, config: jsonConfig
+        table_name: tableName, config: jsonConfig
      })
   } else {
      var html = HtmlService.createTemplateFromFile('tableEditorDialog')
      html.defaultKey = defaultTableConfigKey_
-     //html.config = JSON.stringify(jsonConfig)
+     html.curr_name = currName
+     html.table_name = tableName
+     html.config = JSON.stringify(jsonConfig, null, 3)
      var ui = SpreadsheetApp.getUi()
-     ui.showModalDialog(html.evaluate().setWidth(1000).setHeight(1000), title || "(no title)")
+     ui.showModalDialog(html.evaluate().setWidth(800).setHeight(1000), 'Edit: ' + (currName || "(no name)"))
   }
-  //TODO: return updated JSON
 }
 
+/** Handles the result of a JSON table edit - doesn't store anywhere */
+function stashJsonFromEditor(tableName, currName, jsonConfig) {
+  var mgmtService = getManagementService_()
+  updateTempSavedObject_(mgmtService, tableName, currName, jsonConfig) //(save updated contents from editor)
+  launchElasticsearchTableBuilder_(tableName)
+}
 
 /** Allows expensive initialization/integrity checking operations to be performed only on page load */
 var firstTime_ = true
@@ -72,10 +85,7 @@ var firstTime_ = true
 /**
  * Creates any required internal state (first time) and launches the ES sidebar
  */
-function launchElasticsearchTableBuilder_() {
-  /**/
-  launchJsonEditor()
-
+function launchElasticsearchTableBuilder_(tableNameToSelect) {
   // If necessary, initialize the management service
   var mgmtService = getManagementService_()
   if (null == mgmtService) {
@@ -95,9 +105,10 @@ function launchElasticsearchTableBuilder_() {
   // Launch the sidebar
   var html = HtmlService.createTemplateFromFile('sidebarApp')
   html.defaultKey = defaultTableConfigKey_
+  html.selectedTable = tableNameToSelect || ""
 
   if (testMode_) {
-     triggerUiEvent_("sidebarApp", { default_key: html.defaultKey })
+     triggerUiEvent_("sidebarApp", { default_key: html.defaultKey, selected_table: html.selectedTable })
   } else {
      SpreadsheetApp.getUi().showSidebar(html.evaluate().setTitle('Elasticsearch Table Builder'))
   }

@@ -4,14 +4,19 @@
    var mapReduceFields_ = [ "query", "params", "init", "map", "combine", "reduce", "lib" ]
 
    /** Builds the forms that define the generation of Aggregation queries */
-   function buildAggregationEditor(index) {
+   function buildAggregationEditor(index, standaloneEdit) {
+       var groupCollapse = ''
+       if (!standaloneEdit) {
+          groupCollapse = `data-parent="#accordion_agg_${index}"`
+       }
+
        var accordion =
        `
 <div id="accordion_agg_${index}" class="panel-group">
     <div class="panel panel-default">
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_general_agg_${index}">General</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_general_agg_${index}">General</a>
             </h4>
         </div>
         <div id="accordion_general_agg_${index}" class="panel-collapse collapse out">
@@ -22,7 +27,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_query_agg_${index}">Query</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_query_agg_${index}">Query</a>
             </h4>
         </div>
         <div id="accordion_query_agg_${index}" class="panel-collapse collapse out">
@@ -33,7 +38,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_buckets_agg_${index}">Buckets</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_buckets_agg_${index}">Buckets (eg groupings)</a>
             </h4>
         </div>
         <div id="accordion_buckets_agg_${index}" class="panel-collapse collapse out">
@@ -47,7 +52,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_metrics_agg_${index}">Metrics</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_metrics_agg_${index}">Metrics (inc Map Reduce)</a>
             </h4>
         </div>
         <div id="accordion_metrics_agg_${index}" class="panel-collapse collapse out">
@@ -62,12 +67,26 @@
             </div>
         </div>
 
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_pipelines_agg_${index}">Pipelines (eg sort/filter)</a>
+            </h4>
+        </div>
+        <div id="accordion_pipelines_agg_${index}" class="panel-collapse collapse out">
+            <div class="panel-body">
+               <div id="pipelines_agg_${index}"></div>
+               <div class="btn-toolbar">
+                  <button class="btn btn-default" id="add_pipeline_agg_${index}">Add Pipeline</button>
+               </div>
+            </div>
+        </div>
+
        <!------------------------------------------------------------------------------------->
        <hr/>
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_params_agg_${index}">(MR) Parameters</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_params_agg_${index}">(MR) Parameters</a>
             </h4>
         </div>
         <div id="accordion_params_agg_${index}" class="panel-collapse collapse out">
@@ -78,7 +97,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_init_agg_${index}">(MR) Init Script</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_init_agg_${index}">(MR) Init Script</a>
             </h4>
         </div>
         <div id="accordion_init_agg_${index}" class="panel-collapse collapse out">
@@ -89,7 +108,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_map_agg_${index}">(MR) Map Script</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_map_agg_${index}">(MR) Map Script</a>
             </h4>
         </div>
         <div id="accordion_map_agg_${index}" class="panel-collapse collapse out">
@@ -100,7 +119,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_combine_agg_${index}">(MR) Combine Script</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_combine_agg_${index}">(MR) Combine Script</a>
             </h4>
         </div>
         <div id="accordion_combine_agg_${index}" class="panel-collapse collapse out">
@@ -111,7 +130,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_reduce_agg_${index}">(MR) Reduce Script</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_reduce_agg_${index}">(MR) Reduce Script</a>
             </h4>
         </div>
         <div id="accordion_reduce_agg_${index}" class="panel-collapse collapse out">
@@ -122,7 +141,7 @@
 
         <div class="panel-heading">
             <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_lib_agg_${index}">(MR) Library Functions</a>
+                <a data-toggle="collapse" ${groupCollapse} href="#accordion_lib_agg_${index}">(MR) Library Functions</a>
             </h4>
         </div>
         <div id="accordion_lib_agg_${index}" class="panel-collapse collapse out">
@@ -163,6 +182,7 @@
        // Buckets and metrics
 
        // Clear any existing elements
+       $(`#pipelines_agg_${index}`).empty()
        $(`#metrics_agg_${index}`).empty()
        $(`#buckets_agg_${index}`).empty()
 
@@ -177,6 +197,10 @@
              aggType = 'mapr'
           }
           buildAggregationForm(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
+       })
+       var pipelines = getJson(json, [ "aggregation_table", "pipelines" ]) || []
+       buckets.forEach(function(bucket) {
+          buildAggregationForm(index, 'pipeline', globalEditor, `buckets_agg_${index}`, bucket)
        })
 
        // MR
@@ -224,6 +248,9 @@
       })
       $(`#add_mapr_agg_${index}`).click(function(){
          buildAggregationForm(index, 'mapr', curr_editor, `metrics_agg_${index}`)
+      })
+      $(`#add_pipeline_agg_${index}`).click(function(){
+         buildAggregationForm(index, 'pipeline', curr_editor, `pipelines_agg_${index}`)
       })
 
       // Change triggers for all the MR code
