@@ -32,7 +32,13 @@
         </div>
         <div id="accordion_query_agg_${index}" class="panel-collapse collapse out">
             <div class="panel-body">
-               <div id="query_agg_${index}" class="medium_ace_editor"></div>
+                <div class="input-group">
+                  <div class="input-group-addon for-shorter-text">
+                    <span class="input-group-text">Indices</span>
+                 </div>
+                 <input type="text" class="form-control" placeholder="Index Pattern" value="" id="index_agg_${index}">
+                </div>
+                <div id="query_agg_${index}" class="medium_ace_editor"></div>
             </div>
         </div>
 
@@ -179,6 +185,10 @@
 
        populateGeneralEditor(index, name, json, 'agg')
 
+       // Index:
+       var indexPattern = getJson(json, [ "aggregation_table", "index_pattern" ]) || ""
+       $(`#index_agg_${index}`).val(indexPattern)
+
        // Buckets and metrics
 
        // Clear any existing elements
@@ -199,8 +209,8 @@
           buildAggregationForm(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
        })
        var pipelines = getJson(json, [ "aggregation_table", "pipelines" ]) || []
-       buckets.forEach(function(bucket) {
-          buildAggregationForm(index, 'pipeline', globalEditor, `buckets_agg_${index}`, bucket)
+       pipelines.forEach(function(pipeline) {
+          buildAggregationForm(index, 'pipeline', globalEditor, `pipelines_agg_${index}`, pipeline)
        })
 
        // MR
@@ -239,6 +249,14 @@
       populateAggregationEditor(index, name, json, curr_editor)
 
       // Now add the handlers:
+
+      $(`#index_agg_${index}`).on("input", function(e) {
+         var thisValue = this.value
+         updateRawJson(curr_editor, function(currJson) {
+            var aggTable = getOrPutJsonObj(currJson, [ "aggregation_table" ])
+            aggTable.index_pattern = thisValue
+         })
+      })
 
       $(`#add_bucket_agg_${index}`).click(function(){
          buildAggregationForm(index, 'bucket', curr_editor, `buckets_agg_${index}`)

@@ -74,6 +74,7 @@ function launchJsonEditor(tableName, currName, jsonConfig) {
 
 /** Handles the result of a JSON table edit - doesn't store anywhere */
 function stashJsonFromEditor(tableName, currName, jsonConfig) {
+//TODO: need to clear the temp saved object (inc default) on create/(update - done)/reset/clear
   var mgmtService = getManagementService_()
   updateTempSavedObject_(mgmtService, tableName, currName, jsonConfig) //(save updated contents from editor)
   launchElasticsearchTableBuilder_(tableName)
@@ -232,7 +233,7 @@ var defaultTableConfig_ = {
       "enabled": false,
       "query": {
          "query": {
-            "match_all": {}
+            "query_string": { "query": "$$query" }
          }
       },
       "map_reduce": {
@@ -345,6 +346,18 @@ function listTableConfigs() {
   }
 }
 
+/** Stores the temp config */
+function stashTempConfig(tableName, currName, tempConfig) {
+   var mgmtService = getManagementService_()
+   updateTempSavedObject_(mgmtService, tableName, currName, tempConfig)
+}
+
+/** Clears the temp config */
+function clearTempConfig(tableName) {
+   var mgmtService = getManagementService_()
+   updateTempSavedObject_(mgmtService, tableName, null, null)
+}
+
 /** Adds a new table to the management service */
 function createTable(name, tableConfigJson) {
    return createTable_(name, tableConfigJson, /*ignoreNamedRange=*/false)
@@ -367,7 +380,11 @@ function createTable_(name, tableConfigJson, ignoreNamedRange) {
      rangeValid = buildTableRange_(ss, name, tableConfigJson)
   }
   if (rangeValid) {
-    return addSavedObject_(mgmtService, name, tableConfigJson)
+    var retVal = addSavedObject_(mgmtService, name, tableConfigJson)
+    if (retVal) { // clear temp
+       updateTempSavedObject_(mgmtService, defaultTableConfigKey_, null, null)
+    }
+    return retVal
   } else {
     return false
   }

@@ -210,7 +210,6 @@ function updateSavedObject_(mgmtService, name, configJson) {
     found = (name == mgmtService.getRange('a' + matchingRow).getValue())
   }
   if (found) {
-      var curr = mgmtService.getRange('b' + matchingRow)
       var range = mgmtService
          .getRange('a' + matchingRow + ':' + 'c' + matchingRow) //(col 'c' will be to store temp objects in the future)
 
@@ -225,7 +224,7 @@ function updateSavedObject_(mgmtService, name, configJson) {
   }
 }
 
-/** Updates an object (name stays the same) */
+/** Updates an object (name stays the same) - set configJson to null to unset */
 function updateTempSavedObject_(mgmtService, name, tempName, configJson) {
   var matchingRow = savedObjectMinRow_ - 1
   var found = false
@@ -234,11 +233,16 @@ function updateTempSavedObject_(mgmtService, name, tempName, configJson) {
     found = (name == mgmtService.getRange('a' + matchingRow).getValue())
   }
   if (found) {
-      var curr = mgmtService.getRange('b' + matchingRow)
       var range = mgmtService
-         .getRange('c' + matchingRow + ':' + 'c' + matchingRow) //(col 'c' will be to store temp objects in the future)
-      configJson.name = tempName //(insert name in case it's different)
-      range.setValue(JSON.stringify(configJson, null, 3))
+         .getRange('c' + matchingRow) //(col 'c' will be to store temp objects in the future)
+      if (configJson) {
+         if (tempName) {
+            configJson.name = tempName //(insert name in case it's different)
+         }
+         range.setValue(JSON.stringify(configJson, null, 3))
+      } else {
+         range.setValue("")
+      }
      return true
   } else {
      return false

@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
     <style type="text/css" media="screen">
 	   .ace_editor {
-          height: 500px;
+          height: 580px;
 		  width: 100%;
 	   }
     </style>
@@ -16,7 +16,6 @@
       <div class="form-group">
         <div id="viewer" readonly></div>
       </div>
-      <button id="cancel" class="btn btn-default">Close</button>
     </form>
   </body>
 
@@ -36,10 +35,6 @@
       curr_editor.session.setMode("ace/mode/javascript")
       curr_editor.session.setUseWrapMode(true)
       curr_editor.session.setValue(contents)
-
-     $(`#cancel`).click(function(){
-        google.script.host.close()
-     });
 
   </script>
 

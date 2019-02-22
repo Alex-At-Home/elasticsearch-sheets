@@ -2,7 +2,7 @@
  * Handles all the integration between the client application and the ES configuration
  */
 
-//TODO: for fake pagination, grab size + 1 and then do "Page (of N):" or "Page (of >N):" if there are more options!
+//TODO: in test mode don't write anything to spreadsheet, just return info
 
 // 1] Service interface with client
 
@@ -17,7 +17,7 @@ function configureElasticsearch(esConfig) {
 }
 
 /** Retrieves the ES info from the mangement service so the _client_ can perform the call. Also table info */
-function getElasticsearchMetadata(tableName, tableConfig) {
+function getElasticsearchMetadata(tableName, tableConfig, testMode) {
    var mgmtService = getManagementService_()
    var ss = SpreadsheetApp.getActive()
 
@@ -47,7 +47,7 @@ function getElasticsearchMetadata(tableName, tableConfig) {
    // Build table outline and add pending
 
    var statusInfo = "PENDING [" + new Date().toString() + "]"
-   var tableMeta = buildTableOutline_(tableName, tableConfig, range, statusInfo)
+   var tableMeta = buildTableOutline_(tableName, tableConfig, range, statusInfo, testMode)
 
    var retVal = { "es_meta": esInfo, "table_meta": tableMeta }
 
@@ -267,7 +267,7 @@ function resetExSpecialRowFormats_(activeRange, specialRows, formatTheme) {
  *    page_info_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
  * (page starts at 1)
  */
-function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
+function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo, testMode) {
 
    var retVal = { } //(gets filled in as the method progresses)
 
@@ -305,7 +305,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
    // none - complately manual
    // minimal - we manage the header rows (just bold, no background - some borders in the future)
    // (in the future, a more colorful headers management, and also manage data with alternating rows)
-   resetExSpecialRowFormats_(activeRange, specialRows, formatTheme)
+   if (!testMode) resetExSpecialRowFormats_(activeRange, specialRows, formatTheme)
 
    // Query bar
 
@@ -319,7 +319,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
           queryEnd = queryEnd - 2 //(2 cells for status)
       }
       // Unmerge everything on this row and clear format
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none":
             break
          default:
@@ -330,7 +330,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       var queryTitleCell = activeRange.getCell(queryRow, 1)
       var replaceCurrentQuery = "Query:" == queryTitleCell.getValue()
       if (!replaceCurrentQuery) {
-         queryTitleCell.setValue("Query:")
+         if (!testMode) queryTitleCell.setValue("Query:")
       }
       // Query bar
       var queryCells = activeRange.offset(queryRow - 1, queryStart, 1, queryEnd - queryStart)
@@ -341,14 +341,14 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       // Status:
       if (specialRows.query_bar == specialRows.status) {
          var statusTitleCell = activeRange.getCell(queryRow, queryEnd + 1)
-         statusTitleCell.setValue("Status:")
+         if (!testMode) statusTitleCell.setValue("Status:")
          if (null != statusInfo) {
            var statusCell = activeRange.getCell(queryRow, queryEnd + 2)
-           statusCell.setValue(statusInfo)
+           if (!testMode) statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: queryRow, col: queryEnd + 2 }
       }
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none": break
          default:
             if (specialRows.query_bar == specialRows.status) {
@@ -369,7 +369,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       var statusEnd = rangeCols
       var statusRow = specialRows.status
       // Unmerge everything on this row and clear format
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none":
             break
          default:
@@ -378,15 +378,15 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       }
       // Status title:
       var statusTitleCell = activeRange.getCell(statusRow, 1)
-      statusTitleCell.setValue("Status:")
+      if (!testMode) statusTitleCell.setValue("Status:")
       // Status info
       var statusCells = activeRange.offset(statusRow - 1, statusStart, 1, statusEnd - statusStart)
       if (null != statusInfo) {
-          statusCells.setValue(statusInfo)
+          if (!testMode) statusCells.setValue(statusInfo)
       }
       retVal.status_offset = { row: statusRow, col: 2 }
 
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none": break
          default:
             statusTitleCell.setFontWeight("bold")
@@ -401,7 +401,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       dataSize--
       var headersRow = specialRows.headers
       // Unmerge everything on this row, clear format, and set to bold
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none":
             break
          default:
@@ -419,7 +419,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       var paginationEnd = 2
       var paginationRow = specialRows.pagination
       // Unmerge everything on this row and clear format
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none":
             break
          default:
@@ -430,31 +430,31 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
       // Page info
       var pageInfoCell = activeRange.getCell(paginationRow, 1)
       var replaceCurrentPage = 0 != pageInfoCell.getValue().indexOf("Page (")
-      pageInfoCell.setValue("Page (of ???):")
+      if (!testMode) pageInfoCell.setValue("Page (of ???):")
       retVal.page_info_offset = { row: paginationRow, col: 2 }
       // Page offset
       var pageCell = activeRange.getCell(paginationRow, 2)
       if (replaceCurrentPage) {
-         pageCell.setValue(1)
+         if (!testMode) pageCell.setValue(1)
       }
       var currPage = parseInt(pageCell.getValue())
       if (!currPage || (NaN == currPage) || ("" == currPage)) {
          currPage = 1
-         pageCell.setValue("" + currPage)
+         if (!testMode) pageCell.setValue("" + currPage)
       }
       retVal.page = currPage
 
       // Status:
       if (specialRows.pagination == specialRows.status) {
          var statusTitleCell = activeRange.getCell(paginationRow, paginationEnd + 1)
-         statusTitleCell.setValue("Status:")
+         if (!testMode) statusTitleCell.setValue("Status:")
          var statusCell = activeRange.getCell(paginationRow, paginationEnd + 2)
          if (null != statusInfo) {
-           statusCell.setValue(statusInfo)
+           if (!testMode) statusCell.setValue(statusInfo)
          }
          retVal.status_offset = { row: paginationRow, col: paginationEnd + 2 }
       }
-      switch (formatTheme) {
+      if (!testMode) switch (formatTheme) {
          case "none": break
          default:
             if (specialRows.pagination == specialRows.status) {
@@ -470,7 +470,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo) {
 }
 
 /** Builds an aggregation query from the UI focused config model */
-function buildAggregationQuery_(config) {
+function buildAggregationQuery(config, querySubstitution) {
    /* Here's the model:
       {
          "name": "string", //(also used as the header - ignore any element with no name)
@@ -491,10 +491,18 @@ function buildAggregationQuery_(config) {
      return json[field] || (json[field] = {})
    }
 
-   var postBody = shallowCopy_(config.query || { "query": { "match_all": {} } })
+   var aggTable = getJson_(config || {}, [ "aggregation_table" ]) || {}
+
+   var queryString = JSON.stringify(aggTable.query || { "query": { "match_all": {} } })
+   var jsonEscapedStr = function(str) {
+      var escapedInQuotes = JSON.stringify(str)
+      return escapedInQuotes.substring(1, escapedInQuotes.length - 1)
+   }
+   queryString = queryString.replace("$$query", jsonEscapedStr(querySubstitution || "*"))
+   var postBody = JSON.parse(queryString)
+   postBody.size = 0 //(never have any interest in returning docs)
    var aggregationsLocation = getOrPutJsonField(postBody, 'aggregations')
 
-   var aggTable = getJson_(config, [ "aggregation_table" ]) || {}
    var insertElementsFrom = function(listName, nestEveryTime) {
       var configArray = aggTable[listName] || []
       configArray
@@ -523,7 +531,7 @@ function buildAggregationQuery_(config) {
    //(state aggregationsLocation preserved between these calls)
    insertElementsFrom('buckets', true)
    insertElementsFrom('metrics', false)
-   insertElementsFrom('pipeline', false)
+   insertElementsFrom('pipelines', false)
 
    // Now inject any elements with a custom position
    for (var k in elsByCustomPosition) {

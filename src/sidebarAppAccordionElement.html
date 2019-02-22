@@ -16,6 +16,7 @@
          }
 
          // Now we've stashed the saved entries, handle any temp copies
+         var savedJson = json //(for cancel/reset)
          var tmp = json.temp
          var isSelectedOnLoad = false
          if (tmp) {
@@ -320,8 +321,9 @@
                 $(`#cancel_${index}`).click(function(){
                   $(`#name_${index}`).val("")
                   $(`#type_${index}`).val(`tabs_unknown_${index}`).change()
-                  curr_editor.session.setValue(JSON.stringify(json, null, 3))
+                  curr_editor.session.setValue(JSON.stringify(savedJson, null, 3))
                   $(`#dropdown_${index}`).attr('disabled', true)
+                  google.script.run.clearTempConfig(defaultKey)
                 });
              } else { // query, move - edit name - update, reset, delete
 
@@ -367,7 +369,8 @@
                 });
                 $(`#reset_${index}`).click(function(){
                   $(`#name_${index}`).val(name)
-                  curr_editor.session.setValue(JSON.stringify(json, null, 3))
+                  curr_editor.session.setValue(JSON.stringify(savedJson, null, 3))
+                  google.script.run.clearTempConfig(name)
                 });
                 $(`#update_${index}`).click(function(){
                    var newName = $(`#name_${index}`).val()

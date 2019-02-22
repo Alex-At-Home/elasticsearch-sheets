@@ -15,7 +15,7 @@ var testMethods_ = {
    // Elasticsearch.gs:
    "ElasticsearchService_configureElasticsearch": TESTconfigureElasticsearch_,
    "ElasticsearchService_getElasticsearchMetadata": TESTgetElasticsearchMetadata_,
-   "ElasticsearchService_buildAggregationQuery_": TESTbuildAggregationQuery_,
+   "ElasticsearchService_buildAggregationQuery": TESTbuildAggregationQuery_,
    // TableRangeUtils.gs:
    "TableRangeUtils_buildSpecialRowInfo_": TESTbuildSpecialRowInfo_
 }

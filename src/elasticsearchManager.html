@@ -64,8 +64,28 @@
          }
       }).withFailureHandler(function(obj) {
          showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
-      }).getElasticsearchMetadata(tableName, tableConfig)
+      }).getElasticsearchMetadata(tableName, tableConfig, testMode)
    }
+
+   /** Launches an aggregation query */
+   function performAggregationQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
+      // Have an extra comms with the backend to build the query
+      var tableMeta = esAndTableMeta.table_meta
+      google.script.run.withSuccessHandler(function(obj) {
+
+         //TODO
+         var endpoint = (getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
+
+         //TODO: add ES option
+         google.script.run.launchQueryViewer('View Aggregation: ' + tableName,
+            'POST', endpoint, JSON.stringify(obj, null, 3)
+         )
+
+      }).withFailureHandler(function(obj) {
+         showStatus("Failed to build aggregation query: [" + JSON.stringify(obj) + "]")
+      }).buildAggregationQuery(tableConfig, tableMeta.query || "")
+   }
+
 
    /** Launches a SQL query */
    function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
@@ -145,7 +165,8 @@
 
    var tableToQueryMapping = {
        "cat_table": { fn: performCatQuery, hasQueryBar: false },
-       "sql_table": { fn: performSqlQuery, hasQueryBar: true }
+       "sql_table": { fn: performSqlQuery, hasQueryBar: true },
+       "aggregation_table": { fn: performAggregationQuery, hasQueryBar: true },
    }
 
 </script>

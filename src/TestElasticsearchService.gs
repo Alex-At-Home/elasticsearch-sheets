@@ -250,6 +250,9 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       var includePagination = testName.indexOf("pagination") >= 0
       var includeStatus = testName.indexOf("status") >= 0
 
+      //TODO: also runs some test where this is true
+      var testMode = false
+
       var expectedDataSize = 10
       var numTestCases = 1
       var testCaseInfoArray = []
@@ -317,7 +320,7 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
         var expectedQuery = testCaseConfig.query
         var expectedPage = testCaseConfig.page_out
 
-        var retVal = getElasticsearchMetadata("use_named_range", tableConfig)
+        var retVal = getElasticsearchMetadata("use_named_range", tableConfig, testMode)
 
         var expectedTableConfig = { data_size: expectedDataSize, page: expectedPage, query: expectedQuery }
         if (includePagination) {
@@ -389,7 +392,7 @@ function TESThandleSqlResults_(testSheet, testResults) {
    // - clears rest of data
 }
 
-/** (PRIVATE) ElasticsearchService.buildAggregationQuery_ */
+/** (PUBLIC) ElasticsearchService.buildAggregationQuery */
 function TESTbuildAggregationQuery_(testSheet, testResults) {
 
   var baseConfig = {
@@ -405,7 +408,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
           "reduce": "r"
        },
        "query": {
-          "query": { "testqk": "testqv" }
+          "query": { "testqk": "testqv:$$query" }
        },
        "buckets": [
          { }, //(skip, no name)
@@ -420,7 +423,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
 
          { "name": "testname", "agg_type": "testtype", "location": "disabled" } //(skip, disabled)
        ],
-       "pipeline": [
+       "pipelines": [
          { "name": "n6", "agg_type": "__map_reduce__", "config": { "ck6": "cv6" } },
 
          { "name": "testname", "agg_type": "testtype", "location": "disabled" }, //(skip, disabled)
@@ -431,7 +434,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
   }
 
   performTest_(testResults, "normal_usage", function() {
-     var postBody = buildAggregationQuery_(baseConfig)
+     var postBody = buildAggregationQuery(baseConfig, "\"*\"")
 
      var expectedBody = {
        "aggregations": {
@@ -492,8 +495,9 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
           }
        },
        "query": {
-          "match_all": {}
-       }
+          "testqk": "testqv:\"*\""
+       },
+       "size": 0
     }
     assertEquals_(expectedBody, postBody)
   })

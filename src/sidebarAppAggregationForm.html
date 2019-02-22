@@ -34,7 +34,7 @@
       var nameEditor = ""
       var disabledNameEditor = ""
       if (!isNewElement) {
-         disabledNameEditor = "disabled"
+         disabledNameEditor = "readonly"
      }
 
       var jsonInfo = ""
@@ -262,7 +262,7 @@
                   var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
                   updateRawJsonNow(globalEditor, function(currJson) {
                      // Ensure all names are unique:
-                     var nameMap = getAggFormNameMap_(currJson, subIndex)
+                     var nameMap = getAggFormNameMap_(currJson, subIndex, aggregationType)
                      for (var i = 0; ; i++) {
                         if (nameMap[thisValue]) { // this name exists, so change it
                            thisValue = thisValue + i
@@ -335,16 +335,19 @@
       return index
    }
    /** Get all the metric/bucket fieldnames */
-   function getAggFormNameMap_(parentJson, indexExclude) {
+   function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
       var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
+      var fieldPathToExcludeStr = getAggFormPath_(typeExclude).toString()
       var retVal = {}
-      fieldList.forEach(function(aggType, ii) {
-         if (indexExclude != ii) {
-            var jsonArray = getJson(parentJson, [ "aggregation_table", aggType ]) || []
-            jsonArray.forEach(function(json) {
+      fieldList.forEach(function(aggType) {
+         var path = [ "aggregation_table", aggType ]
+         var pathStr = path.toString()
+         var jsonArray = getJson(parentJson, path) || []
+         jsonArray.forEach(function(json, ii) {
+            if ((indexExclude != ii) || (fieldPathToExcludeStr != pathStr)) {
                if (json.name) retVal[json.name] = true
-            })
-         }
+            }
+         })
       })
       return retVal
    }
