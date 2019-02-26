@@ -4,9 +4,9 @@
 
 /** Just run the tests in this module */
 function testElasticsearchService() {
-   testRunner_("ElasticsearchService_", /*deleteTestSheets*/true)
+//   testRunner_("ElasticsearchService_", /*deleteTestSheets*/true)
 //sub-tests:
-//   testRunner_("buildAggregationQuery", /*deleteTestSheets*/true)
+   testRunner_("ElasticsearchService_build", /*deleteTestSheets*/true)
 }
 
 /** A handy base ES config for use in testing */
@@ -433,6 +433,40 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
      }
   }
 
+  performTest_(testResults, "no duplicates", function() {
+    try {
+      badConfig = {
+         "aggregation_table": {
+           "buckets": [
+             { "name": "dup1", config: {} }
+           ],
+           "metrics": [
+             { "name": "dup1", config: {} }
+           ]
+         }
+       }
+       buildAggregationQuery(badConfig, "")
+       assertEquals_(true, false, "buildAggregationQuery(badConfig) should throw")
+    } catch(err) {}
+  })
+
+  performTest_(testResults, "no reserved bucket names", function() {
+    try {
+      badConfig = {
+         "aggregation_table": {
+           "buckets": [
+             { "name": "buckets", config: {} }
+           ],
+           "metrics": [
+             { "name": "dup1", config: {} }
+           ]
+         }
+       }
+       buildAggregationQuery(badConfig, "")
+       assertEquals_(true, false, "buildAggregationQuery(badConfig) should throw")
+    } catch(err) {}
+  })
+
   performTest_(testResults, "normal_usage", function() {
      var postBody = buildAggregationQuery(baseConfig, "\"*\"")
 
@@ -501,5 +535,181 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
     }
     assertEquals_(expectedBody, postBody)
   })
+}
 
+/** (PRIVATE) ElasticsearchService.buildFilterFieldRegex_ */
+function TESTbuildFilterFieldRegex_(testSheet, testResults) {
+  performTest_(testResults, "various_usages", function() {
+     var filterFieldTests = {
+       "-": [],
+       "+": [],
+       "   ": [],
+       "  test1  ": [ "+test1" ],
+       " +test2,": [ "+test2" ],
+       "-test2  ": [ "-test2" ],
+       "-test.2  ": [ "-test\\.2" ],
+       "t.est*test , test**tes.t": [ "+t\\.est[^.]*test", "+test.*tes\\.t" ],
+       " /reg.ex*/": [ "+reg.ex*" ],
+       "-/regex**/": [ "-regex**" ]
+     }
+     Object.keys(filterFieldTests).forEach(function(testIn) {
+       var expectedOut = filterFieldTests[testIn]
+       assertEquals_(expectedOut, buildFilterFieldRegex_(testIn), testIn)
+     })
+  })
+}
+
+/** (PRIVATE) ElasticsearchService.buildRowColsFromAggregationResponse_ */
+function TESTbuildRowColsFromAggregationResponse_(testSheet, testResults) {
+
+  var configBuilder = function(config) {
+    var bad = { "name": "bad_branch" }
+    if (!config.bad_enabled) {
+       bad.filter_fields = "-"
+    }
+    var mr1 = { "name": "mr1" }
+    if (!config.mr_enabled) {
+      mr1.filter_fields = "-**"
+    }
+    return {
+      "aggregation_table": {
+        "buckets": [
+          { "name": "b1" }, { "name": "b2" }, bad
+        ],
+        "metrics": [
+          { "name": "m1" }, mr1
+        ],
+        "pipelines": [
+          { "name": "m2", "filter_fields": "-stat2.filter_out" }
+        ]
+      }
+    }
+  }
+
+  var mr = []
+  var cols1 = //TODO
+  [
+     [ "", "", "", ].concat(mr).concat([])
+  ]
+  var mrCols
+  var cols2 = //TODO
+  [
+  ]
+
+  var resultsBuilder = function(config) {
+    var mrBuilder = function(prefix) {
+      if (config.mr_atomic && config.mr_array) {
+        return [ prefix + 5, prefix + 6 ]
+      } else if (config.mr_array){
+        return [ { val: prefix + 5 }, { val: prefix + 6 } ]
+      } else {
+        return { val: prefix + 5 }
+      }
+    }
+    return { "response": { "aggregations": {
+      "b1": { "buckets": [
+      {
+        "key": {
+          "k1_f1": "k1_b1_f1",
+          "k1_f2": "k1_b1_f2"
+        },
+        "m1": {
+          "value": "1"
+        },
+        "b2": { "buckets": {
+          "k1_b2": {
+            "m2": {
+              "stat2": {
+                "f1": 12,
+                "f2": "yes",
+                "filter_out": 0
+              }
+            },
+            "stat1": 10,
+            "mr1": mrBuilder(10)
+          },
+          "k2_b2": {
+            "stat1": 11,
+            "m2": {
+              "stat2": {
+                "f1": 13,
+                "filter_out": 0
+              }
+            }
+          }
+        }},
+        "bad_branch": { "buckets": [
+          {
+            "key": "bad",
+            "bad_metric": 4
+          }
+        ]}
+      },
+      {
+        "b2": { "buckets": {
+          "k3_b2": {
+            "m2": {
+              "stat2": {
+                "f1": 22,
+                "f2": "yes",
+                "filter_out": 0
+              }
+            },
+            "stat1": 20,
+            "mr1": mrBuilder(10)
+          },
+          "k4_b2": {
+            "stat1": 21,
+            "m2": {
+              "stat2": {
+                "f1": 23,
+                "f2": "no",
+                "filter_out": 0
+              }
+            }
+          }
+        }},
+        "m1": {
+          "value": 3
+        },
+        "key": {
+          "k1_f1": "k2_b1_f1",
+          "k1_f2": "k2_b1_f2"
+        }
+      }
+    ]}
+  }}}
+  }
+
+  performTest_(testResults, "bad_branch", function() {
+    var config = configBuilder({ bad_enabled: true, mr_enabled: true })
+    var mockResults = resultsBuilder({mr_atomic: false, mr_array: false})
+    try {
+      var retVal = buildRowColsFromAggregationResponse_("bad_branch", config, {}, mockResults, {})
+      assertEquals_({}, retVal, "buildRowColsFromAggregationResponse_(...) should throw, not return a result")
+    } catch (err) {
+      assertEquals_(true, err.message.indexOf("[.b1.bad_branch]") > 0, "Error [" + err.message + "] should include right conflict path")
+      assertEquals_(true, err.message.indexOf("[.b1.b2]") > 0, "Error [" + err.message + "] should include right conflict path")
+    }
+  })
+
+  performTest_(testResults, "map_reduce", function() {
+    var config = configBuilder({ bad_enabled: false, mr_enabled: true })
+    var testCases = [
+      { mr_atomic: false, mr_array: false},
+      { mr_atomic: false, mr_array: true},
+      { mr_atomic: true, mr_array: false},
+      { mr_atomic: true, mr_array: true}
+    ]
+    testCases.forEach(function(caseJson) {
+      var mockResults = resultsBuilder(caseJson)
+      var testOutput =
+        buildRowColsFromAggregationResponse_("bad_branch", config, {}, mockResults, {})
+
+      assertEquals_({}, testOutput, JSON.stringify(caseJson, null, 3))
+    })
+  })
+
+  //TODO degenerate case with no buckets at all
+  //TODO non-MR case, include some different filter field cases - empty, +X, -X, +X-Y
 }

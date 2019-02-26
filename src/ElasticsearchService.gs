@@ -2,8 +2,6 @@
  * Handles all the integration between the client application and the ES configuration
  */
 
-//TODO: in test mode don't write anything to spreadsheet, just return info
-
 // 1] Service interface with client
 
 /** Handles the user (re-)configuring Elasticsearch */
@@ -54,7 +52,7 @@ function getElasticsearchMetadata(tableName, tableConfig, testMode) {
    return retVal
 }
 
-/** Populates the data table range with the given response (context comes from "getElasticsearchMetadata") */
+/** Populates the data table range with the given SQL response (context comes from "getElasticsearchMetadata") */
 function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
 
    var cols = []
@@ -66,7 +64,7 @@ function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
    handleRowColResponse_(tableName, tableConfig, context, json, sqlQuery, rows, cols, /*supportsSize*/false)
 }
 
-/** Populates the data table range with the given response (context comes from "getElasticsearchMetadata") */
+/** Populates the data table range with the given "_cat" response (context comes from "getElasticsearchMetadata") */
 function handleCatResponse(tableName, tableConfig, context, json, catQuery) {
 
    if (null != json.response) {
@@ -79,9 +77,270 @@ function handleCatResponse(tableName, tableConfig, context, json, catQuery) {
    handleRowColResponse_(tableName, tableConfig, context, json, catQuery, rows, cols, /*supportsSize*/true)
 }
 
+/** Populates the data table range with the given aggregation response (context comes from "getElasticsearchMetadata") */
+function handleAggregationResponse(tableName, tableConfig, context, json, aggQueryJson) {
+  var rowsCols = { rows: [], cols: [] }
+  try {
+     if (null != json.response) {
+        rowsCols = buildRowColsFromAggregationResponse_(tableName, tableConfig, context, json, aggQueryJson)
+    }
+  } catch (err) {
+    json.response = null
+    json.err = { 'message': err.message }
+  }
+  var aggQuery = JSON.stringify(aggQueryJson, null, 3)
+  handleRowColResponse_(tableName, tableConfig, context, json, aggQuery, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+}
+
 // 2] Internals
 
-/** Generic row/col handler for ES responses - rows can be eother [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
+/** Utility function to build filter fields (standalone for testability) */
+function buildFilterFieldRegex_(filterFields) {
+  var escapeRegExpNotStar = function(string) {
+    return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  }
+  var filterFieldsStr = (filterFields || "").trim()
+  var filterFields = filterFieldsStr.split(",")
+    .map(function(el) { return el.trim() })
+    .filter(function(el) { return el && ('+' != el) && ('-' != el) })
+    .map(function(el) {
+      var firstEl = ('-' == el[0]) ? '-' : '+'
+      if (('+' == el[0]) || ('-' == el[0])) {
+        el = el.substring(1)
+      }
+      if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
+        el = el.substring(1, el.length - 1)
+      } else {
+        el = escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
+                .replace(/[*]/g, "[^.]*")
+                .replace(/[.][.][.]/g, ".*")
+      }
+      return firstEl + el
+    })
+  return filterFields
+}
+
+/** Transforms a complex aggregation response into rows/cols */
+function buildRowColsFromAggregationResponse_(tableName, tableConfig, context, json, aggQueryJson) {
+
+   var fieldIsWanted = function(field, filterFieldArray) { //(see buildFilterFieldRegex_)
+     var negativeOnly = true
+     if (0 == filterFieldArray.length) {
+        return true
+     }
+     for (var ii in filterFieldArray) {
+       var plusOrMinusRegex = filterFieldArray[ii]
+       var plusOrMinus = plusOrMinusRegex[0]
+       var regex = plusOrMinusRegex.substring(1)
+       if ('+' == plusOrMinus) {
+         negativeOnly = false
+       }
+       var found = new RegExp(regex).test(field)
+       if (found && ('-' == plusOrMinus)) {
+         return false
+       } else {
+         return true
+       }
+     }
+     return negativeOnly
+   }
+
+   var isObject = function(possibleObj) {
+     return (possibleObj === Object(possibleObj)) && !Array.isArray(possibleObj)
+   }
+
+   var state = { headers: {}, filtered_out_fields: {}, curr: {}, saved: [], bottom_path: null }
+
+   // Prepare some utility structures to help us navigate this mess:
+   var tableColsMap = {} //(add the filter fields as the value, for convenience)
+   var colsToIgnoreMap = {}
+   var bucketColsMap = {}
+   var tableTypes = [ 'buckets', 'metrics', 'pipelines' ]
+   tableTypes.forEach(function(tableType) {
+      var tableEls = tableConfig.aggregation_table[tableType] || []
+      tableEls.filter(function(el) { return el.name }).forEach(function(tableEl) {
+        var filterFieldsStr = tableEl.filter_fields || ""
+        tableColsMap[tableEl.name] = buildFilterFieldRegex_(filterFieldsStr)
+        if (('-' == filterFieldsStr) || ('-**' == filterFieldsStr)) {
+          colsToIgnoreMap[tableEl.name] = true
+        }
+        if ('buckets' == tableType) {
+          bucketColsMap[tableEl.name] = true
+        }
+        state.headers[tableEl.name] = {}
+        state.filtered_out_fields[tableEl.name] = {}
+      })
+   })
+
+/**/
+var debug = []
+debug.push({type: "INIT", tableColsMap:tableColsMap, colsToIgnoreMap:colsToIgnoreMap, bucketColsMap:bucketColsMap})
+
+   // (arrayFieldChain is the chain of table elements that include arrays, subFieldChain nests below the last table col - aka parentField)
+   var recursiveRowColumnBuilder = function(mutableState, objCursor, parentField, arrayFieldChain, subFieldChain, candidateBottom) { if (isObject(objCursor)) {
+
+/**/
+debug.push({type: "obj", mutableState:JSON.stringify(mutableState), objCursor:Object.keys(objCursor), parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain, candidateBottom: candidateBottom})
+
+      var thereAreArraysLowerDown = false
+      var colsAtThisLevel = []
+      Object.keys(objCursor).forEach(function(field)
+      {
+         var isArray = Array.isArray(objCursor[field])
+
+/**/
+debug.push("field " + field + " array?=" + isArray + " obj?=" + isObject(objCursor[field]))
+
+         if ('buckets' == field) {
+/**/
+debug.push("buckets!")
+           // A new intermediate field to recurse down into
+           // Buckets can either be an array or an object, we'll switch to an array with a 'key' field to make life easy
+           var arrayToUse = objCursor[field] || []
+           if (isObject(objCursor[field])) {
+              arrayToUse = []
+              Object.keys(objCursor[field] || {}).forEach(function(el) {
+                 var elObj = objCursor[field][el] || {}
+                 elObj.key = el
+                 arrayToUse.push(elObj)
+              })
+           }
+           thereAreArraysLowerDown = true
+           recursiveRowColumnBuilder(mutableState, arrayToUse, parentField, arrayFieldChain + "." + parentField, subFieldChain, false)
+         } else if (colsToIgnoreMap.hasOwnProperty(field)) {
+           // do nothing, it's a column set we're ignoring
+         } else if (
+            tableColsMap.hasOwnProperty(field) && // it's a table column
+            (!parentField || bucketColsMap.hasOwnProperty(parentField)) && // it is nested under a column that is allowed "children"
+            (isArray || isObject(objCursor[field]))) // it's an object/array (so primitives don't collide with fields)
+         {
+/**/
+debug.push("col!")
+            // We've hit an aggregation
+            colsAtThisLevel.push(field)
+            if (!mutableState.curr.hasOwnProperty(field)) {
+              mutableState.curr[field] = {} //(makes life slightly easier below)
+            }
+            thereAreArraysLowerDown |= recursiveRowColumnBuilder(mutableState, objCursor[field] || {}, field, arrayFieldChain, "", false)
+
+         } else if (parentField) {
+/**/
+debug.push("metric!")
+            var newSubFieldChain = subFieldChain ? (subFieldChain + "." + field) : field
+            if (isArray || isObject(objCursor[field])) {
+               var arrayKey = isArray ? ("." + field) : ""
+               thereAreArraysLowerDown |=
+                  recursiveRowColumnBuilder(mutableState, objCursor[field] || {}, parentField, arrayFieldChain + arrayKey, newSubFieldChain, false)
+            } else { // atomic value
+              // Metrics to insert under the current parent field
+              // First check if it's a new field
+              var metricInHeaders =
+                mutableState.headers[parentField].hasOwnProperty(newSubFieldChain)
+              var metricIsAlreadyFilteredOut = !metricInHeaders &&
+                mutableState.filtered_out_fields[parentField].hasOwnProperty(newSubFieldChain)
+              var metricNotFilteredOut = metricInHeaders ||
+                (!metricIsAlreadyFilteredOut &&
+                  fieldIsWanted(newSubFieldChain, tableColsMap[parentField])
+                )
+              if (!metricInHeaders && metricNotFilteredOut) {
+                 mutableState.headers[parentField][newSubFieldChain] = true
+              }
+              if (metricInHeaders || metricNotFilteredOut) {
+                 mutableState.curr[parentField][newSubFieldChain] = objCursor[field] || ""
+              }
+              if (!metricNotFilteredOut && !metricIsAlreadyFilteredOut) {
+                //(quick optimization so only have to call fieldIsWanted once)
+                mutableState.filtered_out_fields[parentField][newSubFieldChain] = true
+              }
+            }
+         } //(otherwise ignore this field)
+      })//(end loop over keys)
+      if (candidateBottom && !thereAreArraysLowerDown) {
+         if (mutableState.bottom_path && (mutableState.bottom_path != arrayFieldChain)) {
+
+/**/
+//if (true) debug.push("ERROR: [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], "); else
+            throw new Error(
+                  "By policy, only allowed a single chain of nested aggregations - [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], " +
+                  "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-**'"
+            )
+         } else {
+            mutableState.bottom_path = arrayFieldChain
+         }
+         var copyOfCurr = JSON.parse(JSON.stringify(mutableState.curr))
+         //TODO: so one problem here is that if you hit the bottom before getting all the higher up keys then curr will be incomplete
+         mutableState.saved.push(copyOfCurr)
+      }
+      // Remove all bucket sub-fields
+/**/
+debug.push("Remove: " + colsAtThisLevel)
+      colsAtThisLevel.forEach(function(el) {
+             mutableState.curr[el] = {}
+      })
+      return thereAreArraysLowerDown
+
+     } else if (Array.isArray(objCursor)) {
+/**/
+debug.push({type: "array", mutableState:JSON.stringify(mutableState), objCursor:objCursor[0], parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain})
+         objCursor.forEach(function(el) {
+            recursiveRowColumnBuilder(mutableState, el, parentField, arrayFieldChain, subFieldChain, /*candidateBottom*/true)
+
+            // After each array element, we'll remove any values from curr:
+            mutableState.curr[parentField] = {}
+         })
+         return true //(in an array)
+      } else { // primitive - translate into a trivial object so we can re-use the code above
+/**/
+debug.push({type: "primitive", mutableState:JSON.stringify(mutableState), objCursor:objCursor, parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain})
+         recursiveRowColumnBuilder(mutableState, { value: objCursor }, parentField, arrayFieldChain, subFieldChain)
+         return false //(value can't include an array)
+      }
+   }//end recursive function
+
+   var startingObjCursor = json.response.aggregations || {}
+   recursiveRowColumnBuilder(state, startingObjCursor, "", "", "", false)
+
+   //TODO: handle the no-aggregations case by looking for saved==[] and curr has stuff in it
+
+/**/
+return debug;
+
+   // Sample format:
+   // aggregations:
+   //   field1:
+   //     buckets:
+   //       key: field1_val
+   //       buckets:
+   //         field2:
+   //           key: field2_val
+   //           <either same again for field3, AND/OR other fields
+   //           metric_field1: { misc_fields, usually "value" .. "value" can be array or obj in MR case }
+   // (under some cases buckets can be an object indexed by key)
+
+   retVal = { rows: [], cols: [] }
+   var headerIterator = function(fn) {
+     Object.keys(state.headers).forEach(function(tableEl) {
+       var subFields = state.headers[tableEl] || {}
+       Object.keys(subFields).forEach(function(subField) {
+         fn(tableEl, subField)
+       })
+     })
+   }
+   headerIterator(function(tableEl, subField) {
+     retVal.cols.push(tableEl + "." + subField)
+   })
+   state.saved.forEach(function(row) {
+     var rowArray = []
+     headerIterator(function(tableEl, subField) {
+       rowArray.push((row[tableEl] || {})[subField] || "")
+     })
+     retVal.rows.push(rowArray)
+   })
+   return retVal
+}
+
+
+/** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
 function handleRowColResponse_(tableName, tableConfig, context, json, queryString, rows, cols, supportsSize) {
 
    var ss = SpreadsheetApp.getActive()
@@ -503,13 +762,20 @@ function buildAggregationQuery(config, querySubstitution) {
    postBody.size = 0 //(never have any interest in returning docs)
    var aggregationsLocation = getOrPutJsonField(postBody, 'aggregations')
 
-   var insertElementsFrom = function(listName, nestEveryTime) {
+   var insertElementsFrom = function(listName, nestEveryTime, noDupCheck) {
       var configArray = aggTable[listName] || []
       configArray
          .filter(function(el) {
             return el.name && el.agg_type && ("disabled" || el.location)
          })
          .forEach(function(el) {
+            // (do some quick validation)
+            if ('buckets' == el) {
+               throw new Exception("Not allowed to call any of the table elements [buckets]")
+            } else if (noDupCheck.hasOwnProperty(el)) {
+              throw new Exception("Duplicate table element [" + el + "]")
+            }
+
             var configEl = transformConfig_(config, el)
             elementsByName[el.name] = configEl
             if (!el.location || ("automatic" == el.location)) {
@@ -529,9 +795,10 @@ function buildAggregationQuery(config, querySubstitution) {
          })
    }
    //(state aggregationsLocation preserved between these calls)
-   insertElementsFrom('buckets', true)
-   insertElementsFrom('metrics', false)
-   insertElementsFrom('pipelines', false)
+   var noDupCheck = {}
+   insertElementsFrom('buckets', true, noDupCheck)
+   insertElementsFrom('metrics', false, noDupCheck)
+   insertElementsFrom('pipelines', false, noDupCheck)
 
    // Now inject any elements with a custom position
    for (var k in elsByCustomPosition) {
