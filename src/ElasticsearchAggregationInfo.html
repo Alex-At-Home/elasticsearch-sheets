@@ -1,5 +1,17 @@
 <script>
  var aggFormSuggestionMap = { "bucket": {
+//Special one I built for convenenience
+  "easy_composite": {
+      "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html",
+      "default_filter__": "-after_key*",
+      "info": "Nests the following 'children' elements (-1 for all) into a 'composite' aggregation. Use the 'extra_params' map to add composite fields like 'order' to the children. Child 'field_filter' are ignored.",
+      "size": 100,
+      "children": -1,
+      "extra_params": {
+         "CHILD_AGG": { "order": "dec" }
+      }
+  },
+//ES
    "adjacency_matrix": {
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-adjacency-matrix-aggregation.html",
       "filters" : {
@@ -24,6 +36,7 @@
    },
    "composite": {
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html",
+      "default_filter__": "-after_key*",
       "size": 100,
       "sources": [
       {
@@ -72,6 +85,7 @@
 //TODO...
    "terms": {
       "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html",
+      "default_filter__": "-doc_count_error_upper_bound,-sum_other_doc_count",
       "field": "FIELDNAME",
       "size": 100
    }

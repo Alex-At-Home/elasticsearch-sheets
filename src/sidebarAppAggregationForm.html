@@ -110,7 +110,7 @@
                          <div class="input-group-addon for-shorter-text">
                             <span class="input-group-text">Fields</span>
                          </div>
-                         <input type="text" class="form-control" placeholder="[+-]glob (** crosses .s)" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
+                         <input type="text" class="form-control" placeholder="[+-]glob (** crosses .s) or /regex/" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
                       </div>
 
                       <div class="input-group">
@@ -159,7 +159,8 @@
 
                   var selected = newValue
                   var newJson = shallowCopy(aggFormSuggestionMap[aggregationType][selected])
-                  var url = newJson['url__']
+                  var url = newJson['url__'] //TODO: URL isn't working properly
+                  var defaultFieldFilter = newJson['default_filter__']
                   if (url) { // set href for "? and show
                      $(`#help_agg_type_${elementIdSuffix} a`).attr("href", url)
                      $(`#help_agg_type_${elementIdSuffix}`).removeClass('hidden')
@@ -167,7 +168,9 @@
                      $(`#help_agg_type_${elementIdSuffix} a`).removeAttr("href")
                      $(`#help_agg_type_${elementIdSuffix}`).addClass('hidden')
                   }
+                  //TODO: also insert/append default field filters
                   delete newJson['url__']
+                  delete newJson['default_filter__']
                   var newJsonStr = JSON.stringify(newJson, null, 3)
 
                   // Need to check if we're going to mess up existing content:
@@ -250,7 +253,7 @@
          // Field filter
          $(`#field_filter_${elementIdSuffix}`).on("input", function(e) {
             var thisValue = this.value
-            updateRawJson(curr_editor, function(currJson) {
+            updateRawJson(globalEditor, function(currJson) {
                var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
                currJsonForm.field_filter = thisValue
             })

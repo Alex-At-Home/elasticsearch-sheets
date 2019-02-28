@@ -2,6 +2,38 @@
  * Handles all the integration between the client application and the ES configuration
  */
 
+//TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
+//TODO: serialize errors nicely, else it's impossible to read
+//TODO: sometimes missing stuff? Eg show
+//ERROR: status = [503], msg = [[search_phase_execution_exception] ],
+//for
+/*{
+  "error": {
+    "root_cause": [],
+    "type": "search_phase_execution_exception",
+    "reason": "",
+    "phase": "fetch",
+    "grouped": true,
+    "failed_shards": [],
+    "caused_by": {
+      "type": "script_exception",
+      "reason": "compile error",
+      "script_stack": [
+        "doc_count > 20",
+        "^---- HERE"
+      ],
+      "script": "doc_count > 20",
+      "lang": "painless",
+      "caused_by": {
+        "type": "illegal_argument_exception",
+        "reason": "Variable [doc_count] is not defined."
+      }
+    }
+  },
+  "status": 503
+}
+*/
+
 // 1] Service interface with client
 
 /** Handles the user (re-)configuring Elasticsearch */
@@ -88,7 +120,7 @@ function handleAggregationResponse(tableName, tableConfig, context, json, aggQue
     json.response = null
     json.err = { 'message': err.message }
   }
-  var aggQuery = JSON.stringify(aggQueryJson, null, 3)
+  var aggQuery = JSON.stringify(aggQueryJson)
   handleRowColResponse_(tableName, tableConfig, context, json, aggQuery, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
 }
 
@@ -138,7 +170,7 @@ function buildRowColsFromAggregationResponse_(tableName, tableConfig, context, j
        var found = new RegExp(regex).test(field)
        if (found && ('-' == plusOrMinus)) {
          return false
-       } else {
+       } else if (found) {
          return true
        }
      }
@@ -159,7 +191,7 @@ function buildRowColsFromAggregationResponse_(tableName, tableConfig, context, j
    tableTypes.forEach(function(tableType) {
       var tableEls = tableConfig.aggregation_table[tableType] || []
       tableEls.filter(function(el) { return el.name }).forEach(function(tableEl) {
-        var filterFieldsStr = tableEl.filter_fields || ""
+        var filterFieldsStr = tableEl.field_filter || ""
         tableColsMap[tableEl.name] = buildFilterFieldRegex_(filterFieldsStr)
         if (('-' == filterFieldsStr) || ('-**' == filterFieldsStr)) {
           colsToIgnoreMap[tableEl.name] = true
@@ -172,28 +204,53 @@ function buildRowColsFromAggregationResponse_(tableName, tableConfig, context, j
       })
    })
 
-/**/
-var debug = []
-debug.push({type: "INIT", tableColsMap:tableColsMap, colsToIgnoreMap:colsToIgnoreMap, bucketColsMap:bucketColsMap})
+  // Initialize debug state, since this routine is quite fiddly:
+  var debugMode = false
+  var debugModeSwallowException = false //(leave this false unless debugging why a split chain is detected)
+  var debugModeResetWhenBottomFound = true //(leave this true unless debugging why the wrong bottom is found)
+  var debug = []
+  var debugReplacer = function(key, val) { if ("saved" == key) return val.length; else return val }
+
+if (debugMode) debug.push({aa_type: "initialize", tableColsMap:tableColsMap, colsToIgnoreMap:colsToIgnoreMap, bucketColsMap:bucketColsMap})
+
+   function FoundBottomOfAggregation() {} //(used as a hacky way of short-circuting the recursion as part of the control loop)
 
    // (arrayFieldChain is the chain of table elements that include arrays, subFieldChain nests below the last table col - aka parentField)
    var recursiveRowColumnBuilder = function(mutableState, objCursor, parentField, arrayFieldChain, subFieldChain, candidateBottom) { if (isObject(objCursor)) {
 
-/**/
-debug.push({type: "obj", mutableState:JSON.stringify(mutableState), objCursor:Object.keys(objCursor), parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain, candidateBottom: candidateBottom})
+if (debugMode) debug.push({aa_type: "obj", mutableState:JSON.stringify(mutableState, debugReplacer), objCursor:Object.keys(objCursor), parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain, candidateBottom: candidateBottom})
 
       var thereAreArraysLowerDown = false
       var colsAtThisLevel = []
-      Object.keys(objCursor).forEach(function(field)
+      var objectKeys = Object.keys(objCursor)
+      if (mutableState.bottom_path && (objectKeys.length > 1)) {
+        if (objCursor.hasOwnProperty("buckets")) {
+           objectKeys = objectKeys.filter(function(el) { return "buckets" != el }).concat([ "buckets" ])
+
+if (debugMode) debug.push("rearrange-bucket: " + objectKeys)
+
+        } else {
+           var positionInArray = mutableState.bottom_path.indexOf(arrayFieldChain)
+           if (0 == positionInArray) {
+              var candidateField = mutableState.bottom_path.substring(arrayFieldChain.length + 1).split(".", 1)[0] //(+1 for the leading ".")
+              if (candidateField && objCursor.hasOwnProperty(candidateField)) {
+                 objectKeys = objectKeys.filter(function(el) { return candidateField != el }).concat([ candidateField ])
+
+if (debugMode) debug.push("rearrange: " + candidateField + ": " + objectKeys)
+              }
+           }
+        }
+      }
+      objectKeys.forEach(function(field)
       {
          var isArray = Array.isArray(objCursor[field])
 
-/**/
-debug.push("field " + field + " array?=" + isArray + " obj?=" + isObject(objCursor[field]))
+if (debugMode) debug.push("field " + field + " array?=" + isArray + " obj?=" + isObject(objCursor[field]))
 
          if ('buckets' == field) {
-/**/
-debug.push("buckets!")
+
+if (debugMode) debug[debug.length - 1] = "buckets: " + debug[debug.length - 1]
+
            // A new intermediate field to recurse down into
            // Buckets can either be an array or an object, we'll switch to an array with a 'key' field to make life easy
            var arrayToUse = objCursor[field] || []
@@ -214,18 +271,21 @@ debug.push("buckets!")
             (!parentField || bucketColsMap.hasOwnProperty(parentField)) && // it is nested under a column that is allowed "children"
             (isArray || isObject(objCursor[field]))) // it's an object/array (so primitives don't collide with fields)
          {
-/**/
-debug.push("col!")
+
+if (debugMode) debug[debug.length - 1] = "table-col: " + debug[debug.length - 1]
+
             // We've hit an aggregation
             colsAtThisLevel.push(field)
             if (!mutableState.curr.hasOwnProperty(field)) {
               mutableState.curr[field] = {} //(makes life slightly easier below)
             }
-            thereAreArraysLowerDown |= recursiveRowColumnBuilder(mutableState, objCursor[field] || {}, field, arrayFieldChain, "", false)
+            var newArrayChain = isArray ? (arrayFieldChain + "." + field) : arrayFieldChain
+            thereAreArraysLowerDown |= recursiveRowColumnBuilder(mutableState, objCursor[field] || {}, field, newArrayChain, "", false)
 
          } else if (parentField) {
-/**/
-debug.push("metric!")
+
+if (debugMode) debug[debug.length - 1] = "metric: " + debug[debug.length - 1]
+
             var newSubFieldChain = subFieldChain ? (subFieldChain + "." + field) : field
             if (isArray || isObject(objCursor[field])) {
                var arrayKey = isArray ? ("." + field) : ""
@@ -258,52 +318,82 @@ debug.push("metric!")
       if (candidateBottom && !thereAreArraysLowerDown) {
          if (mutableState.bottom_path && (mutableState.bottom_path != arrayFieldChain)) {
 
-/**/
-//if (true) debug.push("ERROR: [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], "); else
+if (debugMode && debugModeSwallowException) debug.push("ERROR: [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], "); else
             throw new Error(
                   "By policy, only allowed a single chain of nested aggregations - [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], " +
                   "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-**'"
             )
-         } else {
+         } else if (!mutableState.bottom_path) {
             mutableState.bottom_path = arrayFieldChain
+            // OK so we now know where the bottom path is. So now we need to re-run from the start but with bottom path set
+            // horrible though it is, the quickest way to short-circuit the recursion is to throw
+
+if (debugMode) debug.push("restart: " + arrayFieldChain)
+
+            throw new FoundBottomOfAggregation()
          }
          var copyOfCurr = JSON.parse(JSON.stringify(mutableState.curr))
-         //TODO: so one problem here is that if you hit the bottom before getting all the higher up keys then curr will be incomplete
          mutableState.saved.push(copyOfCurr)
       }
       // Remove all bucket sub-fields
-/**/
-debug.push("Remove: " + colsAtThisLevel)
+
+if (debugMode) if (colsAtThisLevel.length > 0) debug.push("clear-vals: " + colsAtThisLevel)
+
       colsAtThisLevel.forEach(function(el) {
-             mutableState.curr[el] = {}
+          mutableState.curr[el] = {} //TODO: this causes issues with stats pertaining to the bucket, but really we don't want them anyway...
       })
       return thereAreArraysLowerDown
 
      } else if (Array.isArray(objCursor)) {
-/**/
-debug.push({type: "array", mutableState:JSON.stringify(mutableState), objCursor:objCursor[0], parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain})
+
+if (debugMode) debug.push({aa_type: "array", mutableState:JSON.stringify(mutableState, debugReplacer), objCursor:objCursor.length, parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain})
+
          objCursor.forEach(function(el) {
             recursiveRowColumnBuilder(mutableState, el, parentField, arrayFieldChain, subFieldChain, /*candidateBottom*/true)
 
             // After each array element, we'll remove any values from curr:
             mutableState.curr[parentField] = {}
+            //TODO: ugh this is a slight problem since if we're sibling to buckets we'll get deleted here
          })
          return true //(in an array)
       } else { // primitive - translate into a trivial object so we can re-use the code above
-/**/
-debug.push({type: "primitive", mutableState:JSON.stringify(mutableState), objCursor:objCursor, parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain})
-         recursiveRowColumnBuilder(mutableState, { value: objCursor }, parentField, arrayFieldChain, subFieldChain)
+
+if (debugMode) debug.push({aa_type: "primitive", mutableState:JSON.stringify(mutableState, debugReplacer), objCursor:objCursor, parentField:parentField, arrayFieldChain:arrayFieldChain, subFieldChain:subFieldChain, candidateBottom:candidateBottom})
+
+         recursiveRowColumnBuilder(mutableState, { value: objCursor }, parentField, arrayFieldChain, subFieldChain, candidateBottom)
          return false //(value can't include an array)
       }
    }//end recursive function
 
    var startingObjCursor = json.response.aggregations || {}
-   recursiveRowColumnBuilder(state, startingObjCursor, "", "", "", false)
+   try {
+      recursiveRowColumnBuilder(state, startingObjCursor, "", "", "", false)
+   } catch (e) {
+      if (e instanceof FoundBottomOfAggregation) {
+        state.saved = [] //(reset some state)
+        state.curr = {}
 
-   //TODO: handle the no-aggregations case by looking for saved==[] and curr has stuff in it
+if (debugMode && debugModeResetWhenBottomFound) debug = []
 
-/**/
-return debug;
+        recursiveRowColumnBuilder(state, startingObjCursor, "", "", "", false)
+      } else {
+         throw e
+      }
+   }
+
+   //Special case: no buckets, just have a single row with all the metrics in them:
+   if (0 == state.saved.length) {
+      var workaroundObj = [ startingObjCursor ]
+      // (rerun with bottom path set)
+      state.bottom_path = "-"
+      recursiveRowColumnBuilder(state, workaroundObj, "", "-", "", true)
+   }
+
+  if (debugMode) {
+    var debugSliceStart = 0
+    var debugSliceEnd = 100
+    return debug.slice(debugSliceStart, debugSliceEnd)
+  }
 
    // Sample format:
    // aggregations:
@@ -321,21 +411,28 @@ return debug;
    var headerIterator = function(fn) {
      Object.keys(state.headers).forEach(function(tableEl) {
        var subFields = state.headers[tableEl] || {}
-       Object.keys(subFields).forEach(function(subField) {
+       var headers = Object.keys(subFields) // (move keys to the start)
+       var headersWithKeys = headers.filter(function(el) { return el.indexOf("key") == 0 })
+       headers = headers.filter(function(el) { return el.indexOf("key") != 0 })
+       headersWithKeys.concat(headers).forEach(function(subField) {
          fn(tableEl, subField)
        })
      })
    }
+   var foundHeaders = false
    headerIterator(function(tableEl, subField) {
-     retVal.cols.push(tableEl + "." + subField)
+     retVal.cols.push({ name: tableEl + "." + subField })
+     foundHeaders = true
    })
-   state.saved.forEach(function(row) {
-     var rowArray = []
-     headerIterator(function(tableEl, subField) {
-       rowArray.push((row[tableEl] || {})[subField] || "")
+   if (foundHeaders) {
+     state.saved.forEach(function(row) {
+       var rowArray = []
+       headerIterator(function(tableEl, subField) {
+         rowArray.push((row[tableEl] || {})[subField] || "")
+       })
+       retVal.rows.push(rowArray)
      })
-     retVal.rows.push(rowArray)
-   })
+   }
    return retVal
 }
 
@@ -427,9 +524,9 @@ function handleRowColResponse_(tableName, tableConfig, context, json, queryStrin
          }
       } else {
         // Clear remaining data rows:
-        var rowsLeft = numTableRows - (currRow + 1)
+        var rowsLeft = numTableRows - (currRow - 1) //(-1 because we're moving from co-ords starting at (1,1) to offset starting at (0,0))
         if (rowsLeft > 0) {
-           range.offset(currRow, 0, rowsLeft).clearContent()
+           range.offset(currRow - 1, 0, rowsLeft).clearContent()
         }
         // Update pagination
         if (paginationSetup) {
@@ -823,17 +920,17 @@ function transformConfig_(globalConfig, configEl) {
      var lib = (mapReduce.lib || "") + "\n\n"
      // Combine the 2 params
      var combinedParams = configEl.config || {}
-     combinedParams['__name__'] = configEl.name //(can use the same script boxes for different jobs)
+     combinedParams['_name_'] = configEl.name //(can use the same script boxes for different jobs)
      var params = mapReduce.params || {}
      for (var k in params) {
         combinedParams[k] = params[k]
      }
      retVal.scripted_metric = {
         params: combinedParams,
-        init: lib + (mapReduce.init || ""),
-        map: lib + (mapReduce.map || ""),
-        combine: lib + (mapReduce.combine || ""),
-        reduce: lib + (mapReduce.reduce || "")
+        init_script: lib + (mapReduce.init || ""),
+        map_script: lib + (mapReduce.map || ""),
+        combine_script: lib + (mapReduce.combine || ""),
+        reduce_script: lib + (mapReduce.reduce || "")
      }
   } else {
      retVal[configEl.agg_type] = configEl.config || {}

@@ -73,13 +73,31 @@
       var tableMeta = esAndTableMeta.table_meta
       google.script.run.withSuccessHandler(function(obj) {
 
-         //TODO
-         var endpoint = (getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
+        var endpoint = (getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
 
-         //TODO: add ES option
-         google.script.run.launchQueryViewer('View Aggregation: ' + tableName,
-            'POST', endpoint, JSON.stringify(obj, null, 3)
-         )
+        //TODO: if can recognize certain simple case (single aggregation/composite/sort) then can do "proper" "fake" pagination
+
+        if (testMode) {
+           google.script.run.launchQueryViewer('View Aggregation: ' + tableName,
+              'POST', endpoint, JSON.stringify(obj, null, 3)
+           )
+           return
+        }
+        esClient.transport.request({
+           method: "POST",
+           path: endpoint,
+           body: obj,
+           headers: esAndTableMeta.es_meta.headers
+        }, function(err, response, status) {
+           var result = {}
+           // Error or response
+           if (err) { result.err = err.message }
+           else { result.response = response }
+           // (always get status)
+           if (status) { result.status = status }
+
+           google.script.run.handleAggregationResponse(tableName, tableConfig, esAndTableMeta, result, obj)
+        })
 
       }).withFailureHandler(function(obj) {
          showStatus("Failed to build aggregation query: [" + JSON.stringify(obj) + "]")
