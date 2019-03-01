@@ -10,7 +10,7 @@ var TableService_ = (function(){
   /** Returns the current table range */
   function getCurrentTableRange(tableName) {
     var ss = SpreadsheetApp.getActive()
-    var tableRange = findTableRange_(ss, tableName)
+    var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
     var obj = {}
     if (null != tableRange) {
        obj.sheet = tableRange.getRange().getSheet().getName()
@@ -22,7 +22,7 @@ var TableService_ = (function(){
   /** Activates the current table range (bug in sheets code, messes up keybaord focus so use with care */
   function activateTableRange(tableName) {
     var ss = SpreadsheetApp.getActive()
-    var tableRange = findTableRange_(ss, tableName)
+    var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
     if (null != tableRange) {
        tableRange.getRange().activate() //(problem .. this leaves the focus in the sidebar but typing goes into the spreadsheet)
        return true
@@ -35,7 +35,7 @@ var TableService_ = (function(){
   /** Moves the range for the specified table */
   function setCurrentTableRange(tableName, newRange) {
     var ss = SpreadsheetApp.getActive()
-    return moveTableRange_(ss, tableName, newRange)
+    return TableRangeUtils_.moveTableRange(ss, tableName, newRange)
   }
 
   /** Gets the current selection */
@@ -88,7 +88,7 @@ var TableService_ = (function(){
   function deleteTable(name) { //TODO: this also deletes all the existing data
     // Named range:
     var ss = SpreadsheetApp.getActive()
-    deleteTableRange_(ss, name)
+    TableRangeUtils_.deleteTableRange(ss, name)
 
     // Update mangement service
     var mgmtService = getManagementService_()
@@ -109,7 +109,7 @@ var TableService_ = (function(){
     if (oldName != newName) { // can use existing primitives
        if (createTable_(newName, newTableConfigJson, /*ignoreNamedRange=*/true)) {
           // Rename named range (can't fail except in catastrophic cases):
-          renameTableRange_(ss, oldName, newName)
+          TableRangeUtils_.renameTableRange(ss, oldName, newName)
 
           // Delete saved old object in management service
           // (if this fails, it most likely didn't exist due to some inconsistent internal state)
@@ -132,10 +132,10 @@ var TableService_ = (function(){
      var mgmtService = getManagementService_()
      var tableMap = listSavedObjects_(mgmtService, /*discardRange=*/false)
      for (var tableName in tableMap) {
-        var tableRange = findTableRange_(ss, tableName) //TODO: need a batch version of this to avoid N^2
+        var tableRange = TableRangeUtils_.findTableRange(ss, tableName) //TODO: need a batch version of this to avoid N^2
         var configJson = tableMap[tableName]
         if ((null == tableRange) && configJson.sheet && configJson.range) { // Somehow lost the named data range, but have it stored so rebuild
-           rebuildTableRange_(ss, tableName, configJson)
+           TableRangeUtils_.rebuildTableRange(ss, tableName, configJson)
         } else if (null != tableRange) { // if table range exists, we treat it as authoritative
            var sheet = tableRange.getRange().getSheet().getName()
            var range = tableRange.getRange().getA1Notation()
@@ -157,7 +157,7 @@ var TableService_ = (function(){
     var mgmtService = getManagementService_()
     var ss = SpreadsheetApp.getActive()
 
-    var matchesExistingRange = findTableRange_(ss, name)
+    var matchesExistingRange = TableRangeUtils_.findTableRange(ss, name)
     if (null != matchesExistingRange) {
        showStatus("All names have to be unique when converted to named ranges, conflict with: [" + matchesExistingRange.getName() + "]", 'Server Error')
        return false
@@ -166,7 +166,7 @@ var TableService_ = (function(){
     var rangeValid = true
     if (!ignoreNamedRange) {
        //(buildTableRange mutates tableConfigJson adding range and sheet)
-       rangeValid = buildTableRange_(ss, name, tableConfigJson)
+       rangeValid = TableRangeUtils_.buildTableRange(ss, name, tableConfigJson)
     }
     if (rangeValid) {
       var retVal = addSavedObject_(mgmtService, name, tableConfigJson)

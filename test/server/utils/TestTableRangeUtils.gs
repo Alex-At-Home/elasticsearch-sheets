@@ -1,15 +1,15 @@
 /*
  * Sort-of-Unit/Sort-of-Integration tests for TableRangeUtils.gs
  */
+
  /** Run only the tests for this service */
 function testTableRangeUtilsRunner() {
   TestService_.testRunner("TableRangeUtils_", /*deleteTestSheets*/true)
 }
-
 var TestTableRangeUtils_ = (function(){
 
-  /** (PRIVATE) TableRangeUtils.buildSpecialRowInfo_ */
-  function TESTbuildSpecialRowInfo_(testSheet, testResults) {
+  /** (PRIVATE) TableRangeUtils.buildSpecialRowInfo */
+  function buildSpecialRowInfo_(testSheet, testResults) {
      //TODO: handle skip rows/cols
      var baseUiInput = { "common": {
         "query": { // Qq
@@ -94,18 +94,18 @@ var TestTableRangeUtils_ = (function(){
      }
      // First off, check defaults quickly
      TestService_.Utils.performTest(testResults, "check_defaults", function() {
-        TestService_.Utils.assertEquals(inputVsOutputNoMerge[""], buildSpecialRowInfo_({}), "{}")
+        TestService_.Utils.assertEquals(inputVsOutputNoMerge[""], TableRangeUtils_.buildSpecialRowInfo({}), "{}")
         var pqNoSource = TestService_.Utils.deepCopyJson(buildInput("PQ", /*merge*/false))
         // Check ignores pagination and queries if source not set
         delete pqNoSource.common.query.source
         delete pqNoSource.common.pagination.source
-        TestService_.Utils.assertEquals(inputVsOutputNoMerge[""], buildSpecialRowInfo_(pqNoSource), "{}")
+        TestService_.Utils.assertEquals(inputVsOutputNoMerge[""], TableRangeUtils_.buildSpecialRowInfo(pqNoSource), "{}")
      })
      // Now check all combos:
      TestService_.Utils.performTest(testResults, "combo_test_nomerge", function() {
         for (var subTest in inputVsOutputNoMerge) {
            var input = buildInput(subTest, /*merge*/false)
-           TestService_.Utils.assertEquals(inputVsOutputNoMerge[subTest], buildSpecialRowInfo_(input), subTest + "[" + JSON.stringify(input) + "]")
+           TestService_.Utils.assertEquals(inputVsOutputNoMerge[subTest], TableRangeUtils_.buildSpecialRowInfo(input), subTest + "[" + JSON.stringify(input) + "]")
         }
      })
      TestService_.Utils.performTest(testResults, "combo_test_merge", function() {
@@ -133,14 +133,14 @@ var TestTableRangeUtils_ = (function(){
         adjustForMerge(inputVsOutputMerge["qshP"], { status: -1, headers: -2 })
         for (var subTest in inputVsOutputMerge) {
            var input = buildInput(subTest, /*merge*/true)
-           TestService_.Utils.assertEquals(inputVsOutputMerge[subTest], buildSpecialRowInfo_(input), subTest + "[" + JSON.stringify(input) + "]")
+           TestService_.Utils.assertEquals(inputVsOutputMerge[subTest], TableRangeUtils_.buildSpecialRowInfo(input), subTest + "[" + JSON.stringify(input) + "]")
         }
      })
   }
   ////////////////////////////////////////////////////////
 
   return {
-    TESTbuildSpecialRowInfo_: TESTbuildSpecialRowInfo_
+    buildSpecialRowInfo_: buildSpecialRowInfo_
   }
 
 }())

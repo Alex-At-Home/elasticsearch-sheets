@@ -58,7 +58,7 @@ function getElasticsearchMetadata(tableName, tableConfig, testMode) {
    // Table metadata/validation
 
    // Revalidate range:
-   var tableRange = findTableRange_(ss, tableName)
+   var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
    var range = null
    if (null == tableRange) { //(use current selection, test mode)
       range = ss.getActiveRange()
@@ -70,7 +70,7 @@ function getElasticsearchMetadata(tableName, tableConfig, testMode) {
    }
    tableConfig.sheet = range.getSheet().getName()
    tableConfig.range = range.getA1Notation()
-   if (!validateNewRange_(ss, tableConfig)) {
+   if (!TableRangeUtils_.validateNewRange(ss, tableConfig)) {
      return null
    }
 
@@ -441,7 +441,7 @@ if (debugMode && debugModeResetWhenBottomFound) debug = []
 function handleRowColResponse_(tableName, tableConfig, context, json, queryString, rows, cols, supportsSize) {
 
    var ss = SpreadsheetApp.getActive()
-   var tableRange = findTableRange_(ss, tableName)
+   var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
    var range = null
    if (null == tableRange) { //(use current selection, test mode
       range = ss.getActiveRange()
@@ -459,7 +459,7 @@ function handleRowColResponse_(tableName, tableConfig, context, json, queryStrin
       var numTableCols = range.getNumColumns()
 
       // Get special row info:
-      var specialRows = buildSpecialRowInfo_(tableConfig)
+      var specialRows = TableRangeUtils_.buildSpecialRowInfo(tableConfig)
 
       //TODO: handle skipping specified rows and cols
 
@@ -644,7 +644,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo, tes
    var rangeCols = activeRange.getNumColumns()
 
    var dataSize = rangeRows
-   var formatTheme = getJson_(tableConfig, [ "common", "formatting", "theme" ]) || "none"
+   var formatTheme = TableRangeUtils_.getJson(tableConfig, [ "common", "formatting", "theme" ]) || "none"
 
    var getRow = function(n) {
       if (n >= 0) {
@@ -654,7 +654,7 @@ function buildTableOutline_(tableName, tableConfig, activeRange, statusInfo, tes
       }
    }
 
-   var specialRows = buildSpecialRowInfo_(tableConfig)
+   var specialRows = TableRangeUtils_.buildSpecialRowInfo(tableConfig)
    convertSpecialRows_(specialRows, rangeRows)
 
    // How we handle formatting:
@@ -847,7 +847,7 @@ function buildAggregationQuery(config, querySubstitution) {
      return json[field] || (json[field] = {})
    }
 
-   var aggTable = getJson_(config || {}, [ "aggregation_table" ]) || {}
+   var aggTable = TableRangeUtils_.getJson(config || {}, [ "aggregation_table" ]) || {}
 
    var queryString = JSON.stringify(aggTable.query || { "query": { "match_all": {} } })
    var jsonEscapedStr = function(str) {

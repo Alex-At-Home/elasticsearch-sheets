@@ -185,7 +185,7 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
       var expectedMessage = "Need at least a 2x1 grid to build this table: [A1] is too small"
       TestService_.Utils.assertEquals(
         [{ event: "toast", metadata: { message: expectedMessage, title: "Server Error" }}],
-        TestService_.getTestUiEvents(), 
+        TestService_.getTestUiEvents(),
         "check launches"
       )
    })
@@ -196,8 +196,8 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
    var buildNamedRange = function(name, a1Notation) {
       var ss = SpreadsheetApp.getActive()
       testSheet.setActiveSelection(a1Notation)
-      buildTableRange_(ss, name, {})
-      return findTableRange_(ss, name).getRange()
+      TableRangeUtils_.buildTableRange(ss, name, {})
+      return TableRangeUtils_.findTableRange(ss, name).getRange()
    }
 
    var buildTestCases = function(testArray) {

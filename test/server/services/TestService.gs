@@ -63,7 +63,7 @@ var TestService_ = (function(){
          }
          if (deleteTestSheets) {
             //(named ranges become un-deletable if the sheet is deleted first, so hack this in here:)
-            clearTableRanges_(ss)
+            TableRangeUtils_.clearTableRanges(ss)
             ss.deleteSheet(newSheet)
          }
 
