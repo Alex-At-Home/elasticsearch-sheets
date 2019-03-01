@@ -134,19 +134,19 @@ function validateNewRange_(ss, configJson) {
    }
    if (!newSheetName || !newRangeNotation) {
       // If specifying one, have to specify the other
-      showStatus("If manually specifying range, need to specify both 'range' and 'sheet'", "Server Error")
+      UiService_.showStatus("If manually specifying range, need to specify both 'range' and 'sheet'", "Server Error")
       return false
    }
    // Both are specified, let's check they are valid
    var newSheet = ss.getSheetByName(newSheetName)
    if (managementSheetName_() == newSheetName) {
-      showStatus("Cannot build data table on management sheet", "Server Error")
+      UiService_.showStatus("Cannot build data table on management sheet", "Server Error")
       return false
    } else if (null == newSheet) {
-      showStatus("No sheet named: [" + newSheetName + "]", "Server Error")
+      UiService_.showStatus("No sheet named: [" + newSheetName + "]", "Server Error")
       return false
    } else if (null == newSheet.getRange(newRangeNotation)) {
-      showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
+      UiService_.showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
       return false
    } else {
       // Format skip rows/cols (error if wrong)
@@ -159,7 +159,7 @@ function validateNewRange_(ss, configJson) {
       //TODO: skip should also add to width/height
       var newRange = newSheet.getRange(newRangeNotation)
       if ((newRange.getHeight() < minHeight) || (newRange.getWidth() < minWidth)) {
-         showStatus("Need at least a "+minHeight+"x"+minWidth+" grid to build this table: [" + newRangeNotation + "] is too small", "Server Error")
+         UiService_.showStatus("Need at least a "+minHeight+"x"+minWidth+" grid to build this table: [" + newRangeNotation + "] is too small", "Server Error")
          return false
       }
    }
@@ -171,7 +171,7 @@ function buildTableRange_(ss, tableName, mutableConfigJson) {
 
   // Fill in $.range and $.sheet
   if (mutableConfigJson.range || mutableConfigJson.sheet) {
-     showStatus("Cannot specify range or sheet when creating a table - build a range in the desired sheet first", "Server Error")
+     UiService_.showStatus("Cannot specify range or sheet when creating a table - build a range in the desired sheet first", "Server Error")
      return false
   }
   var currActive = ss.getActiveSheet()

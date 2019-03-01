@@ -1,12 +1,31 @@
 /*
  * ManagementService.gs - controls persistence of table configurations
  */
+var ManagementService_ = (function(){
+
+  ////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////
+
+  /** The key name used internally by both service and client to store the default table object described below */
+  var defaultTableConfigKey_ = "d_e_f_a_u_l_t"
+
+  ////////////////////////////////////////////////////////
+
+  return {
+    getDefaultKeyName: function() { return defaultTableConfigKey_ },
+
+    TESTONLY: {
+
+    }
+  }
+
+}())
 
 // 1] Globals
 
 /** Using a sheet to store all the meta - the sheet name */
 function managementSheetName_() {
-   if (testMode_) {
+   if (TestService_.inTestMode()) {
       return '__ES_TEST_MODE_ADDON_INTERNALS__'
    } else {
       return '__ES_ADDON_INTERNALS__'
@@ -277,7 +296,7 @@ function listSavedObjects_(mgmtService, discardRange) {
       var savedObjName = savedObjRow.getCell(1, 1).getValue()
       var savedObjStr = savedObjRow.getCell(1, 2).getValue()
       var tempObjStr = savedObjRow.getCell(1, 3).getValue()
-      if ((savedObjName == defaultTableConfigKey_) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
+      if ((savedObjName == ManagementService_.getDefaultKeyName()) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
          var savedObj = defaultTableConfig_
       } else {
          var savedObj = JSON.parse(savedObjStr)

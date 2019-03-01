@@ -2,12 +2,11 @@
  * Sort-of-Unit/Sort-of-Integration tests for ElasticsearchService.gs
  */
 
-/** Just run the tests in this module */
-function testElasticsearchService() {
-   testRunner_("ElasticsearchService_", /*deleteTestSheets*/true)
-//sub-tests:
-//   testRunner_("ElasticsearchService_build", /*deleteTestSheets*/true)
-}
+ function testElasticsearchService() {
+    TestService_.testRunner("ElasticsearchService_", /*deleteTestSheets*/true)
+ //sub-tests:
+ //   TestService_.testRunner("ElasticsearchService_build", /*deleteTestSheets*/true)
+ }
 
 /** A handy base ES config for use in testing */
 var baseEsConfig_ =  {
@@ -39,7 +38,7 @@ var baseUiEsConfig_ =  {
 
 /** (utility function) */
 function overrideDefaultEsConfig_(overrides) {
-   var tmpDefault = deepCopyJson_(esMetaModel_)
+   var tmpDefault = TestService_.Utils.deepCopyJson(esMetaModel_)
    for (var key in overrides) {
       tmpDefault[key] = overrides[key]
    }
@@ -50,21 +49,21 @@ function overrideDefaultEsConfig_(overrides) {
 function TESTconfigureElasticsearch_(testSheet, testResults) {
 
   // Check that we create the management service first time
-  performTest_(testResults, "mgmt_sheet_created_if_null", function() {
+  TestService_.Utils.performTest(testResults, "mgmt_sheet_created_if_null", function() {
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseUiEsConfig_)
+     var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig_)
      configureElasticsearch(testConfig)
 
-     assertEquals_(true, (getManagementService_() != null))
+     TestService_.Utils.assertEquals(true, (getManagementService_() != null))
   })
 
   // anonymous:
-  performTest_(testResults, "anonymous", function() {
+  TestService_.Utils.performTest(testResults, "anonymous", function() {
 
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseUiEsConfig_)
+     var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig_)
      testConfig.auth_type = "anonymous"
      testConfig.username = ""
      testConfig.password = ""
@@ -72,48 +71,48 @@ function TESTconfigureElasticsearch_(testSheet, testResults) {
 
      var newConfig = getEsMeta_(getManagementService_())
      var expectedConfig = overrideDefaultEsConfig_(testConfig)
-     assertEquals_(expectedConfig, newConfig)
+     TestService_.Utils.assertEquals(expectedConfig, newConfig)
   })
 
   // Local user/password:
-  performTest_(testResults, "local_user_pass", function() {
+  TestService_.Utils.performTest(testResults, "local_user_pass", function() {
 
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseUiEsConfig_)
+     var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig_)
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
      var expectedConfig = overrideDefaultEsConfig_(testConfig)
-     assertEquals_(expectedConfig, newConfig)
+     TestService_.Utils.assertEquals(expectedConfig, newConfig)
   })
 
   // Global user/password:
-  performTest_(testResults, "global_user_pass", function() {
+  TestService_.Utils.performTest(testResults, "global_user_pass", function() {
 
-     var testConfig = deepCopyJson_(baseUiEsConfig_)
+     var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig_)
      testConfig.password_global = true
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
      var expectedConfig = overrideDefaultEsConfig_(testConfig)
-     assertEquals_(expectedConfig, newConfig)
+     TestService_.Utils.assertEquals(expectedConfig, newConfig)
   })
 
   // Safe defaults
-  performTest_(testResults, "full_config_minus_password", function() {
+  TestService_.Utils.performTest(testResults, "full_config_minus_password", function() {
 
      deleteManagementService_()
 
-     var testConfig = deepCopyJson_(baseEsConfig_)
+     var testConfig = TestService_.Utils.deepCopyJson(baseEsConfig_)
      configureElasticsearch(testConfig)
 
      var newConfig = getEsMeta_(getManagementService_())
-     assertEquals_(testConfig, newConfig)
+     TestService_.Utils.assertEquals(testConfig, newConfig)
 
      // Check can update and not include username/password/auth-type
 
-     var testConfig2 = deepCopyJson_(baseEsConfig_)
+     var testConfig2 = TestService_.Utils.deepCopyJson(baseEsConfig_)
      testConfig2.url = "new-url"
      delete testConfig2.username
      testConfig2.password = ""
@@ -123,7 +122,7 @@ function TESTconfigureElasticsearch_(testSheet, testResults) {
 
      var newConfig2 = getEsMeta_(getManagementService_())
      testConfig.url = testConfig2.url
-     assertEquals_(testConfig, newConfig2)
+     TestService_.Utils.assertEquals(testConfig, newConfig2)
   })
 }
 
@@ -157,10 +156,10 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
 
    var defaultA1Notation = "A1:E10"
 
-   performTest_(testResults, "no_special_rows_plus_check_es_meta", function() {
-      var tableConfig = deepCopyJson_(baseTableConfig)
+   TestService_.Utils.performTest(testResults, "no_special_rows_plus_check_es_meta", function() {
+      var tableConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
       // (also test es_meta is filled in correct in this test)
-      var testEsConfig = deepCopyJson_(baseEsConfig_)
+      var testEsConfig = TestService_.Utils.deepCopyJson(baseEsConfig_)
       configureElasticsearch(testEsConfig)
       // (use active selection)
       testSheet.setActiveSelection(defaultA1Notation)
@@ -169,22 +168,26 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
 
       var expectedEsMeta = overrideDefaultEsConfig_(testEsConfig)
       var expectedTableConfig = { data_size: 10 }
-      assertEquals_(expectedEsMeta, retVal.es_meta, "es_meta")
-      assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta")
+      TestService_.Utils.assertEquals(expectedEsMeta, retVal.es_meta, "es_meta")
+      TestService_.Utils.assertEquals(expectedTableConfig, retVal.table_meta, "table_meta")
    })
 
-   performTest_(testResults, "validation_failure", function() {
-      var tableConfig = deepCopyJson_(baseTableConfig)
+   TestService_.Utils.performTest(testResults, "validation_failure", function() {
+      var tableConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
       tableConfig.common.headers.position = "top" //(ensure needs >1 cell)
 
       // Single cell:
       testSheet.setActiveSelection("A1:A1")
 
       var retVal = getElasticsearchMetadata("use_single_cell", tableConfig)
-      assertEquals_(true, null == retVal, "validation_failed: " + JSON.stringify(retVal || {empty: true}))
+      TestService_.Utils.assertEquals(true, null == retVal, "validation_failed: " + JSON.stringify(retVal || {empty: true}))
 
       var expectedMessage = "Need at least a 2x1 grid to build this table: [A1] is too small"
-      assertEquals_([{ event: "toast", metadata: { message: expectedMessage, title: "Server Error" }}], testUiEvents_, "check launches")
+      TestService_.Utils.assertEquals(
+        [{ event: "toast", metadata: { message: expectedMessage, title: "Server Error" }}],
+        TestService_.getTestUiEvents(), 
+        "check launches"
+      )
    })
 
    // Now a bunch of similar tests:
@@ -240,8 +243,8 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
      "query_status_pagination_nomerge": { status: "bottom", merge: false }
    }
 
-   var testRunner = function(testName, testConfig) { performTest_(testResults, testName, function() {
-      var tableConfig = deepCopyJson_(baseTableConfig)
+   var testRunner = function(testName, testConfig) { TestService_.Utils.performTest(testResults, testName, function() {
+      var tableConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
 
       // (use named range)
       var range = buildNamedRange(testName, defaultA1Notation)
@@ -293,7 +296,7 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
 
       var testCases = buildTestCases(testCaseInfoArray)
       var testCaseNames = Object.keys(testCases)
-      assertEquals_(numTestCases, testCaseNames.length, "num_test_cases: " + testCaseNames) // (check we built the expected number of test cases)
+      TestService_.Utils.assertEquals(numTestCases, testCaseNames.length, "num_test_cases: " + testCaseNames) // (check we built the expected number of test cases)
 
       for (var testCaseKey in testCases) {
         var testCaseConfig = testCases[testCaseKey]
@@ -330,7 +333,7 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
            expectedTableConfig.status_offset = statusPosition
         }
         var extraTestCaseConfig = " / " + testCaseKey + ": " + JSON.stringify(testCaseConfig)
-        assertEquals_(expectedTableConfig, retVal.table_meta, "table_meta" + extraTestCaseConfig)
+        TestService_.Utils.assertEquals(expectedTableConfig, retVal.table_meta, "table_meta" + extraTestCaseConfig)
 
         var cellFontWeight = "bold"
         if (!testCaseConfig.format) {
@@ -340,9 +343,9 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
         // Check the table contents:
         var expectedMerges = []
         if (includeQueryBar) {
-           assertEquals_("Query:", range.getCell(1, 1).getValue(), "query text" + extraTestCaseConfig)
-           assertEquals_(cellFontWeight, range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
-           assertEquals_(expectedQuery, range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals("Query:", range.getCell(1, 1).getValue(), "query text" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(cellFontWeight, range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(expectedQuery, range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
            if (("top" == testConfig.status) && testConfig.merge) {
               expectedMerges.push("B1:C1")
            } else {
@@ -350,15 +353,15 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
            }
         }
         if (includePagination) {
-           assertEquals_("Page (of ???):", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
-           assertEquals_(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
-           assertEquals_(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals("Page (of ???):", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
         }
         if (includeStatus) {
-           assertEquals_("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
-           assertEquals_(cellFontWeight, range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
+           TestService_.Utils.assertEquals("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(cellFontWeight, range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
            var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
-           assertEquals_(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
            if (!testConfig.merge) {
               expectedMerges.push("B9:E9")
            } else if ("bottom" == testConfig.status) {
@@ -369,9 +372,9 @@ function TESTgetElasticsearchMetadata_(testSheet, testResults) {
         //TODO: check header formats
         var mergedRanges = range.getMergedRanges()
         if (testCaseConfig.format) {
-           assertEquals_(expectedMerges, mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals(expectedMerges, mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
         } else {
-           assertEquals_([], mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
+           TestService_.Utils.assertEquals([], mergedRanges.map(function(x){ return x.getA1Notation() }), "merge range span" + extraTestCaseConfig)
         }
       }
    })}
@@ -433,7 +436,7 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
      }
   }
 
-  performTest_(testResults, "no duplicates", function() {
+  TestService_.Utils.performTest(testResults, "no duplicates", function() {
     try {
       badConfig = {
          "aggregation_table": {
@@ -446,11 +449,11 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
          }
        }
        buildAggregationQuery(badConfig, "")
-       assertEquals_(true, false, "buildAggregationQuery(badConfig) should throw")
+       TestService_.Utils.assertEquals(true, false, "buildAggregationQuery(badConfig) should throw")
     } catch(err) {}
   })
 
-  performTest_(testResults, "no reserved bucket names", function() {
+  TestService_.Utils.performTest(testResults, "no reserved bucket names", function() {
     try {
       badConfig = {
          "aggregation_table": {
@@ -463,11 +466,11 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
          }
        }
        buildAggregationQuery(badConfig, "")
-       assertEquals_(true, false, "buildAggregationQuery(badConfig) should throw")
+       TestService_.Utils.assertEquals(true, false, "buildAggregationQuery(badConfig) should throw")
     } catch(err) {}
   })
 
-  performTest_(testResults, "normal_usage", function() {
+  TestService_.Utils.performTest(testResults, "normal_usage", function() {
      var postBody = buildAggregationQuery(baseConfig, "\"*\"")
 
      var expectedBody = {
@@ -480,15 +483,15 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
                          "aggregations": {
                             "n5": {
                                "scripted_metric": {
-                                  "combine": "l\n\nc",
-                                  "init": "l\n\ni",
-                                  "map": "l\n\nm",
+                                  "combine_script": "l\n\nc",
+                                  "init_script": "l\n\ni",
+                                  "map_script": "l\n\nm",
                                   "params": {
                                      "_name_": "n5",
                                      "ck5": "cv5",
                                      "k1": "v1"
                                   },
-                                  "reduce": "l\n\nr"
+                                  "reduce_script": "l\n\nr"
                                }
                             }
                          },
@@ -501,15 +504,15 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
                       },
                       "n6": {
                          "scripted_metric": {
-                            "combine": "l\n\nc",
-                            "init": "l\n\ni",
-                            "map": "l\n\nm",
+                            "combine_script": "l\n\nc",
+                            "init_script": "l\n\ni",
+                            "map_script": "l\n\nm",
                             "params": {
                                "_name_": "n6",
                                "ck6": "cv6",
                                "k1": "v1"
                             },
-                            "reduce": "l\n\nr"
+                            "reduce_script": "l\n\nr"
                          }
                       }
                    },
@@ -533,13 +536,13 @@ function TESTbuildAggregationQuery_(testSheet, testResults) {
        },
        "size": 0
     }
-    assertEquals_(expectedBody, postBody)
+    TestService_.Utils.assertEquals(expectedBody, postBody)
   })
 }
 
 /** (PRIVATE) ElasticsearchService.buildFilterFieldRegex_ */
 function TESTbuildFilterFieldRegex_(testSheet, testResults) {
-  performTest_(testResults, "various_usages", function() {
+  TestService_.Utils.performTest(testResults, "various_usages", function() {
      var filterFieldTests = {
        "-": [],
        "+": [],
@@ -554,7 +557,7 @@ function TESTbuildFilterFieldRegex_(testSheet, testResults) {
      }
      Object.keys(filterFieldTests).forEach(function(testIn) {
        var expectedOut = filterFieldTests[testIn]
-       assertEquals_(expectedOut, buildFilterFieldRegex_(testIn), testIn)
+       TestService_.Utils.assertEquals(expectedOut, buildFilterFieldRegex_(testIn), testIn)
      })
   })
 }
@@ -716,19 +719,19 @@ function TESTbuildRowColsFromAggregationResponse_(testSheet, testResults) {
     return { "cols": headers, "rows": rows }
   }
 
-  performTest_(testResults, "no_buckets", function() {
+  TestService_.Utils.performTest(testResults, "no_buckets", function() {
     var requestConfig = { bad_enabled: false, mr_enabled: false, alt_filter: false }
     var tableConfig = configBuilder(requestConfig)
     var mockResults = { response: { aggregations: { "m1": { "v1": 1, "v2": 2 } } } }
     var expectedOutput = { cols: [ { name: "m1.v1" }, { name: "m1.v2" } ], rows: [ [ 1, 2 ]  ]}
     var testOutput = buildRowColsFromAggregationResponse_("no_buckets", tableConfig, {}, mockResults, {})
-    assertEquals_(expectedOutput, testOutput, "simple_input")
+    TestService_.Utils.assertEquals(expectedOutput, testOutput, "simple_input")
 
     var testOutput = buildRowColsFromAggregationResponse_("no_buckets", tableConfig, {}, { response: { aggregations: {} } }, {})
-    assertEquals_({ rows: [], cols: [] }, testOutput, "empty_input")
+    TestService_.Utils.assertEquals({ rows: [], cols: [] }, testOutput, "empty_input")
   })
 
-  performTest_(testResults, "bad_branch", function() {
+  TestService_.Utils.performTest(testResults, "bad_branch", function() {
     [ true, false ].forEach(function(mrEnabled) {
       var requestConfig = { bad_enabled: true, mr_enabled: mrEnabled, alt_filter: false }
       var tableConfig = configBuilder(requestConfig)
@@ -736,24 +739,24 @@ function TESTbuildRowColsFromAggregationResponse_(testSheet, testResults) {
       var expectedPath = mrEnabled ? "[.b1.b2.mr1]" : "[.b1.b2]"
       try {
         var retVal = buildRowColsFromAggregationResponse_("bad_branch", tableConfig, {}, mockResults, {})
-        assertEquals_({}, retVal, "buildRowColsFromAggregationResponse_(...) should throw, not return a result")
+        TestService_.Utils.assertEquals({}, retVal, "buildRowColsFromAggregationResponse_(...) should throw, not return a result")
       } catch (err) {
-        assertEquals_(true, err.message.indexOf("[.b1.bad_branch]") > 0, "Error [" + err.message + "] should include right conflict path (mr=[" + mrEnabled + "])")
-        assertEquals_(true, err.message.indexOf(expectedPath) > 0, "Error [" + err.message + "] should include right conflict path (mr=[" + mrEnabled + "])")
+        TestService_.Utils.assertEquals(true, err.message.indexOf("[.b1.bad_branch]") > 0, "Error [" + err.message + "] should include right conflict path (mr=[" + mrEnabled + "])")
+        TestService_.Utils.assertEquals(true, err.message.indexOf(expectedPath) > 0, "Error [" + err.message + "] should include right conflict path (mr=[" + mrEnabled + "])")
       }
     })
   })
 
-  performTest_(testResults, "buckets", function() {
+  TestService_.Utils.performTest(testResults, "buckets", function() {
     var requestConfig = { bad_enabled: false, mr_enabled: false, alt_filter: true }
     var tableConfig = configBuilder(requestConfig)
     var mockResults = responseBuilder(requestConfig, {})
     var expectedOutput = resultsBuilder(requestConfig, {})
     var testOutput = buildRowColsFromAggregationResponse_("buckets", tableConfig, {}, mockResults, {})
-    assertEquals_(expectedOutput, testOutput)
+    TestService_.Utils.assertEquals(expectedOutput, testOutput)
   })
 
-  performTest_(testResults, "map_reduce", function() {
+  TestService_.Utils.performTest(testResults, "map_reduce", function() {
     var requestConfig = { bad_enabled: false, mr_enabled: true, alt_filter: false }
     var tableConfig = configBuilder({ bad_enabled: false, mr_enabled: true })
     var testCases = [
@@ -766,7 +769,7 @@ function TESTbuildRowColsFromAggregationResponse_(testSheet, testResults) {
       var mockResults = responseBuilder(requestConfig, caseJson)
       var expectedOutput = resultsBuilder(requestConfig, caseJson)
       var testOutput = buildRowColsFromAggregationResponse_("map_reduce", tableConfig, {}, mockResults, {})
-      assertEquals_(expectedOutput, testOutput, JSON.stringify(caseJson, null, 3))
+      TestService_.Utils.assertEquals(expectedOutput, testOutput, JSON.stringify(caseJson, null, 3))
     })
   })
 
