@@ -164,8 +164,8 @@
    /** Handles elements that need custom redraw logic if the underlying fields were changed */
    function onSelectAggregationEditor(index, selected, curr_editor) {
       // Update top-level JSON since we're switching mode
-      updateRawJsonNow(curr_editor, function(currJson) {
-           var aggregationTable = getOrPutJsonObj(currJson, [ "aggregation_table" ])
+      Util.updateRawJsonNow(curr_editor, function(currJson) {
+           var aggregationTable = Util.getOrPutJsonObj(currJson, [ "aggregation_table" ])
            aggregationTable.enabled = selected
       })
       // Display redraw:
@@ -186,7 +186,7 @@
        populateGeneralEditor(index, name, json, 'agg')
 
        // Index:
-       var indexPattern = getJson(json, [ "aggregation_table", "index_pattern" ]) || ""
+       var indexPattern = Util.getJson(json, [ "aggregation_table", "index_pattern" ]) || ""
        $(`#index_agg_${index}`).val(indexPattern)
 
        // Buckets and metrics
@@ -196,21 +196,21 @@
        $(`#metrics_agg_${index}`).empty()
        $(`#buckets_agg_${index}`).empty()
 
-       var buckets = getJson(json, [ "aggregation_table", "buckets" ]) || []
+       var buckets = Util.getJson(json, [ "aggregation_table", "buckets" ]) || []
        buckets.forEach(function(bucket) {
-          buildAggregationForm(index, 'bucket', globalEditor, `buckets_agg_${index}`, bucket)
+          AggregationForm.build(index, 'bucket', globalEditor, `buckets_agg_${index}`, bucket)
        })
-       var metrics = getJson(json, [ "aggregation_table", "metrics" ]) || []
+       var metrics = Util.getJson(json, [ "aggregation_table", "metrics" ]) || []
        metrics.forEach(function(metric) {
           var aggType = 'metric'
           if (metric.map_reduce) {
-             aggType = 'mapr'
+             aggType = 'map_reduce'
           }
-          buildAggregationForm(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
+          AggregationForm.build(index, 'metric', globalEditor, `metrics_agg_${index}`, metric)
        })
-       var pipelines = getJson(json, [ "aggregation_table", "pipelines" ]) || []
+       var pipelines = Util.getJson(json, [ "aggregation_table", "pipelines" ]) || []
        pipelines.forEach(function(pipeline) {
-          buildAggregationForm(index, 'pipeline', globalEditor, `pipelines_agg_${index}`, pipeline)
+          AggregationForm.build(index, 'pipeline', globalEditor, `pipelines_agg_${index}`, pipeline)
        })
 
        // MR
@@ -219,7 +219,7 @@
           if ("query" == field) {
             fieldPath = [ "aggregation_table", field ]
           }
-          var mrCode = getJson(json, fieldPath) || "" //TODO: move query off this
+          var mrCode = Util.getJson(json, fieldPath) || "" //TODO: move query off this
            if (("query" == field) || ("params" == field)) { //(these are JSON)
              mrCode = JSON.stringify(mrCode, null, 3)
            }
@@ -252,23 +252,23 @@
 
       $(`#index_agg_${index}`).on("input", function(e) {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
-            var aggTable = getOrPutJsonObj(currJson, [ "aggregation_table" ])
+         Util.updateRawJson(curr_editor, function(currJson) {
+            var aggTable = Util.getOrPutJsonObj(currJson, [ "aggregation_table" ])
             aggTable.index_pattern = thisValue
          })
       })
 
       $(`#add_bucket_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'bucket', curr_editor, `buckets_agg_${index}`)
+         AggregationForm.build(index, 'bucket', curr_editor, `buckets_agg_${index}`)
       })
       $(`#add_metric_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'metric', curr_editor, `metrics_agg_${index}`)
+         AggregationForm.build(index, 'metric', curr_editor, `metrics_agg_${index}`)
       })
       $(`#add_mapr_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'mapr', curr_editor, `metrics_agg_${index}`)
+         AggregationForm.build(index, 'map_reduce', curr_editor, `metrics_agg_${index}`)
       })
       $(`#add_pipeline_agg_${index}`).click(function(){
-         buildAggregationForm(index, 'pipeline', curr_editor, `pipelines_agg_${index}`)
+         AggregationForm.build(index, 'pipeline', curr_editor, `pipelines_agg_${index}`)
       })
 
       // Change triggers for all the MR code
@@ -276,12 +276,12 @@
          var editorId = `${field}_agg_${index}`
          var curr_mr_editor = ace.edit(editorId)
          curr_mr_editor.session.on('change', function(delta) {
-            updateRawJson(curr_editor, function(currJson) {
+            Util.updateRawJson(curr_editor, function(currJson) {
                var codePath = [ "aggregation_table", "map_reduce" ]
                if ("query" == field) {
                   codePath = [ "aggregation_table" ]
                }
-               var code = getOrPutJsonObj(currJson, codePath)
+               var code = Util.getOrPutJsonObj(currJson, codePath)
                if (("query" == field) || ("params" == field)) {
                   try {
                      code[field] = JSON.parse(curr_mr_editor.session.getValue())

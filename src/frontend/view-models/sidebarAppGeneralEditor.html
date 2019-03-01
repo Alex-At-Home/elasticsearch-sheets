@@ -100,42 +100,42 @@
       // Query bar
 
       if (hasQueryBar(table_type)) {
-         var querySource = getJson(json, ["common", "query", "source"]) || "none"
+         var querySource = Util.getJson(json, ["common", "query", "source"]) || "none"
          if (querySource == "none") {
             $(`#querybar_${table_type}_${index}`).val("none")
          } else {
-            var localQueryPos = getJson(json, ["common", "query", "local", "position"]) || "none"
+            var localQueryPos = Util.getJson(json, ["common", "query", "local", "position"]) || "none"
             $(`#querybar_${table_type}_${index}`).val(localQueryPos)
          }
       }
 
       // Headers
-      var headersPos = getJson(json, ["common", "headers", "position"]) || "none"
+      var headersPos = Util.getJson(json, ["common", "headers", "position"]) || "none"
       $(`#headers_${table_type}_${index}`).val(headersPos)
 
       // Pagination
-      var paginationSource = getJson(json, ["common", "pagination", "source"]) || "none"
+      var paginationSource = Util.getJson(json, ["common", "pagination", "source"]) || "none"
       if (paginationSource == "none") {
          $(`#pagination_${table_type}_${index}`).val("none")
       } else {
-         var localPaginationPos = getJson(json, ["common", "pagination", "local", "position"]) || "none"
+         var localPaginationPos = Util.getJson(json, ["common", "pagination", "local", "position"]) || "none"
          $(`#pagination_${table_type}_${index}`).val(localPaginationPos)
       }
 
       // Status
-      var statusPos = getJson(json, ["common", "status", "position"]) || "none"
+      var statusPos = Util.getJson(json, ["common", "status", "position"]) || "none"
       $(`#status_${table_type}_${index}`).val(statusPos)
-      var statusMerge = getJson(json, ["common", "status", "merge"]) || true
+      var statusMerge = Util.getJson(json, ["common", "status", "merge"]) || true
       $(`#status_merge_${table_type}_${index}`).prop('checked', statusMerge)
 
       // Formatting
-      var formatTheme = getJson(json, ["common", "formatting", "theme"]) || "none"
+      var formatTheme = Util.getJson(json, ["common", "formatting", "theme"]) || "none"
       $(`#formatting_${table_type}_${index}`).val(formatTheme)
 
       // Skip rows/cols
-      var skipRows = getJson(json, ["common", "skip", "rows"]) || ""
+      var skipRows = Util.getJson(json, ["common", "skip", "rows"]) || ""
       $(`#skip_rows_${table_type}_${index}`).val(skipRows)
-      var skipCols = getJson(json, ["common", "skip", "cols"]) || ""
+      var skipCols = Util.getJson(json, ["common", "skip", "cols"]) || ""
       $(`#skip_cols_${table_type}_${index}`).val(skipCols)
   }
 
@@ -144,7 +144,7 @@
       // Globally enabled:
       $(`#enabled_${table_type}_${index}`).change(function() {
          var thisChecked = this.checked
-         updateRawJsonNow(curr_editor, function(currJson) {
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
             currJson.enabled = thisChecked
          })
       })
@@ -152,10 +152,10 @@
       if (hasQueryBar(table_type)) {
          $(`#querybar_${table_type}_${index}`).change(function() {
             var thisValue = this.value
-            updateRawJsonNow(curr_editor, function(currJson) {
-               var query = getOrPutJsonObj(currJson, [ "common", "query" ])
+            Util.updateRawJsonNow(curr_editor, function(currJson) {
+               var query = Util.getOrPutJsonObj(currJson, [ "common", "query" ])
                query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
-               var localQuery = getOrPutJsonObj(currJson, [ "common", "query", "local" ])
+               var localQuery = Util.getOrPutJsonObj(currJson, [ "common", "query", "local" ])
                localQuery.position = thisValue
             })
          })
@@ -163,41 +163,41 @@
       // Headers
       $(`#headers_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJsonNow(curr_editor, function(currJson) {
-            var headers = getOrPutJsonObj(currJson, [ "common", "headers" ])
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
+            var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
             headers.position = thisValue
          })
       })
       // Pagination
       $(`#pagination_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJsonNow(curr_editor, function(currJson) {
-            var pagination = getOrPutJsonObj(currJson, [ "common", "pagination" ])
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
+            var pagination = Util.getOrPutJsonObj(currJson, [ "common", "pagination" ])
             pagination.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
-            var localPagination = getOrPutJsonObj(currJson, [ "common", "pagination", "local" ])
+            var localPagination = Util.getOrPutJsonObj(currJson, [ "common", "pagination", "local" ])
             localPagination.position = thisValue
          })
       })
       // Status
       $(`#status_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJsonNow(curr_editor, function(currJson) {
-            var status = getOrPutJsonObj(currJson, [ "common", "status" ])
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
+            var status = Util.getOrPutJsonObj(currJson, [ "common", "status" ])
             status.position = thisValue
          })
       })
       $(`#status_merge_${table_type}_${index}`).change(function() {
          var thisChecked = this.checked
-         updateRawJsonNow(curr_editor, function(currJson) {
-            var status = getOrPutJsonObj(currJson, [ "common", "status" ])
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
+            var status = Util.getOrPutJsonObj(currJson, [ "common", "status" ])
             status.merge = thisChecked
          })
       })
       // Formatting
       $(`#formatting_${table_type}_${index}`).change(function() {
          var thisValue = this.value
-         updateRawJsonNow(curr_editor, function(currJson) {
-            var formatTheme = getOrPutJsonObj(currJson, [ "common", "formatting" ])
+         Util.updateRawJsonNow(curr_editor, function(currJson) {
+            var formatTheme = Util.getOrPutJsonObj(currJson, [ "common", "formatting" ])
             formatTheme.theme = thisValue
          })
       })
@@ -206,15 +206,15 @@
       /*
       $(`#skip_rows_${table_type}_${index}`).on("input", function(e) {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
-            var skip = getOrPutJsonObj(currJson, [ "common", "skip" ])
+         Util.updateRawJson(curr_editor, function(currJson) {
+            var skip = Util.getOrPutJsonObj(currJson, [ "common", "skip" ])
             skip.rows = thisValue
          })
       })
       $(`#skip_cols_${table_type}_${index}`).on("input", function(e) {
          var thisValue = this.value
-         updateRawJson(curr_editor, function(currJson) {
-            var skip = getOrPutJsonObj(currJson, [ "common", "skip" ])
+         Util.updateRawJson(curr_editor, function(currJson) {
+            var skip = Util.getOrPutJsonObj(currJson, [ "common", "skip" ])
             skip.cols = thisValue
          })
       })

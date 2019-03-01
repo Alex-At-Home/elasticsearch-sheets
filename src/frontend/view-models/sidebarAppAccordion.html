@@ -65,7 +65,7 @@
             function(msg) {
                enableInput()
                console.log("createTable: error: [" + JSON.stringify(msg) + "]")
-               showStatus(JSON.stringify(msg, 3), 'Client Error')
+               Util.showStatus(JSON.stringify(msg, 3), 'Client Error')
             }
          ).createTable(name, json)
       }
@@ -87,7 +87,7 @@
             function(msg) {
                enableInput()
                console.log("updateTable: error: [" + JSON.stringify(msg) + "]")
-               showStatus(JSON.stringify(msg, 3), 'Client Error')
+               Util.showStatus(JSON.stringify(msg, 3), 'Client Error')
             }
          ).updateTable(oldName, newName, json)
       }
@@ -103,7 +103,7 @@
             function(msg) {
                enableInput()
                console.log("deleteTable: error: [" + JSON.stringify(msg) + "]")
-               showStatus(JSON.stringify(msg, 3), 'Client Error')
+               Util.showStatus(JSON.stringify(msg, 3), 'Client Error')
             }
          ).deleteTable(name)
       }
@@ -118,7 +118,7 @@
          ).withFailureHandler(
              function(msg) {
                 console.log("listTableConfigs: error: [" + JSON.stringify(msg) + "]")
-                showStatus(JSON.stringify(msg, 3), 'Client Error')
+                Util.showStatus(JSON.stringify(msg, 3), 'Client Error')
              }
          ).listTableConfigs()
       }

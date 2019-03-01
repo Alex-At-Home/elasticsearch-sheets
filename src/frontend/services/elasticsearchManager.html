@@ -8,12 +8,12 @@
     /** Populate a data table from a query */
     function populateTable(tableName, tableConfig, testMode) {
        for (var key in tableToQueryMapping) {
-          var enabled = getJson(tableConfig, [ key, "enabled" ]) || false
+          var enabled = Util.getJson(tableConfig, [ key, "enabled" ]) || false
           if (enabled) {
              // Check that the common section doesn't include any incompatible visual elements
              var queryType = tableToQueryMapping[key]
              if (!queryType.hasQueryBar) {
-                getOrPutJsonObj(tableConfig, [ "common", "query" ]).source = "none"
+                Util.getOrPutJsonObj(tableConfig, [ "common", "query" ]).source = "none"
              }
              performGenericOperation(tableName, tableConfig, queryType.fn, testMode)
              break
@@ -63,7 +63,7 @@
             }
          }
       }).withFailureHandler(function(obj) {
-         showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+         Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
       }).getElasticsearchMetadata(tableName, tableConfig, testMode)
    }
 
@@ -73,7 +73,7 @@
       var tableMeta = esAndTableMeta.table_meta
       google.script.run.withSuccessHandler(function(obj) {
 
-        var endpoint = (getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
+        var endpoint = (Util.getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
 
         //TODO: if can recognize certain simple case (single aggregation/composite/sort) then can do "proper" "fake" pagination
 
@@ -100,7 +100,7 @@
         })
 
       }).withFailureHandler(function(obj) {
-         showStatus("Failed to build aggregation query: [" + JSON.stringify(obj) + "]")
+         Util.showStatus("Failed to build aggregation query: [" + JSON.stringify(obj) + "]")
       }).buildAggregationQuery(tableConfig, tableMeta.query || "")
    }
 
@@ -149,8 +149,8 @@
    /** Launches a _cat query */
    function performCatQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
 
-      var endpoint = getJson(tableConfig , [ "cat_table", "endpoint" ]) || ""
-      var options = (getJson(tableConfig , [ "cat_table", "options" ]) || [])
+      var endpoint = Util.getJson(tableConfig , [ "cat_table", "endpoint" ]) || ""
+      var options = (Util.getJson(tableConfig , [ "cat_table", "options" ]) || [])
       options = options.filter(function(o) { return o.trim().indexOf('#') != 0 })
       var catQuery = `/_cat/${endpoint}?format=json` + (options.length > 0 ? '&' : '') + options.join("&")
 

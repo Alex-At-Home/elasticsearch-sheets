@@ -36,8 +36,8 @@
    /** Handles elements that need custom redraw logic if the underlying fields were changed */
    function onSelectSqlEditor(index, selected, curr_editor) {
       // Update top-level JSON since we're switching mode
-      updateRawJsonNow(curr_editor, function(currJson) {
-           var sql = getOrPutJsonObj(currJson, [ "sql_table" ])
+      Util.updateRawJsonNow(curr_editor, function(currJson) {
+           var sql = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
            sql.enabled = selected
       })
       // Display redraw:
@@ -50,7 +50,7 @@
    function populateSqlEditor(index, name, json, curr_sql_editor) {
        var sqlEditor = curr_sql_editor || ace.edit(`editor_sql_${index}`)
        populateGeneralEditor(index, name, json, 'sql')
-       var sql = getJson(json, [ "sql_table", "query" ]) || ""
+       var sql = Util.getJson(json, [ "sql_table", "query" ]) || ""
        sqlEditor.session.setValue(sql)
    }
 
@@ -76,8 +76,8 @@
      })
 
      curr_sql_editor.session.on('change', function(delta) {
-         updateRawJson(curr_editor, function(currJson) {
-           var sql = getOrPutJsonObj(currJson, [ "sql_table" ])
+         Util.updateRawJson(curr_editor, function(currJson) {
+           var sql = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
            sql.query = curr_sql_editor.session.getValue()
         })
     });

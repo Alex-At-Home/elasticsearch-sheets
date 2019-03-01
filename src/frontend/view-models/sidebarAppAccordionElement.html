@@ -2,7 +2,7 @@
       /** Builds the UI element that manages data tables*/
       function buildAccordionElement(index, name, json, isFirstElement, standaloneEdit) {
          if (!isFirstElement && !validateName(name)) {
-            showStatus("Bad name: [" + name + "], can't contain [<>'\"]", "Client Error")
+            Util.showStatus("Bad name: [" + name + "], can't contain [<>'\"]", "Client Error")
             return
          }
 
@@ -221,7 +221,7 @@
            var selectTableType = function() {
               var typeToActivate = ""
               for (var typeKey in tableToTypeMap) {
-                 var isThisType = getJson(json, [ typeKey, "enabled" ])
+                 var isThisType = Util.getJson(json, [ typeKey, "enabled" ])
                   if (isThisType) {
                      typeToActivate = tableToTypeMap[typeKey] || ""
                   }
@@ -252,25 +252,13 @@
 
            // Register event handler on raw JSON
            curr_editor.session.on('change', function(delta) {
-             if (!tempDisableJsonChange) { //(if true this is being called because of an eg SQL change)
-               try {
-                  var newJson = JSON.parse(curr_editor.session.getValue()) //(do nothing until valid)
-               } catch {
-                  return
-               }
-               tempDisableJsonChange = true
-               try {
-                  //TODO + others
-                  populateAggregationEditor(index, name, newJson, curr_editor)
-                  populateSqlEditor(index, name, newJson, null)
-                  populateManagementEditor(index, name, newJson, null)
-               } catch (err) {
-                  tempDisableJsonChange = false
-                  throw err
-               }
-               tempDisableJsonChange = false
-             }
-          });
+             Util.safeChangeGlobalJson(curr_editor, function(newJson) {
+               //TODO + others
+               populateAggregationEditor(index, name, newJson, curr_editor)
+               populateSqlEditor(index, name, newJson, null)
+               populateManagementEditor(index, name, newJson, null)
+             })
+          })
 
            // Add button handlers
 
@@ -298,7 +286,7 @@
                 $(`#create_${index}`).click(function(){
                    var newName = $(`#name_${index}`).val()
                    if (!validateName(newName)) {
-                      showStatus("New table name must be non-empty and valid", 'Client Error')
+                      Util.showStatus("New table name must be non-empty and valid", 'Client Error')
                    } else {
                       try {
                          var jsonStr = curr_editor.session.getValue()
@@ -308,7 +296,7 @@
                          createNewAccordionElement(newName, jsonBody)
                       } catch (err) {
                          enableInput() //(just in case createNewAccordionElement throws)
-                         showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                         Util.showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
                       }
                       //TODO: and apply the query one creation is complete
                    }
@@ -362,7 +350,7 @@
                             deleteAccordionElement(name)
                          } catch (err) {
                             enableInput() //(just in case createNewAccordionElement throws)
-                            showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
+                            Util.showStatus("Unexpected error deleting table entry: [" + err.message + "]", 'Client Error')
                          }
                       }
                    }).launchYesNoPrompt("Delete table", "Are you sure you want to delete the table contents and metadata?")
@@ -375,7 +363,7 @@
                 $(`#update_${index}`).click(function(){
                    var newName = $(`#name_${index}`).val()
                    if (!validateName(name)) {
-                      showStatus("Updated table name must be non-empty and valid", 'Client Error')
+                      Util.showStatus("Updated table name must be non-empty and valid", 'Client Error')
                    } else {
                       try {
                          var jsonStr = curr_editor.session.getValue()
@@ -385,7 +373,7 @@
                          updateAccordionElement(index, name, newName, jsonBody)
                       } catch (err) {
                          enableInput() //(just in case createNewAccordionElement throws)
-                         showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
+                         Util.showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
                       }
                    }
                    //TODO: I think we want to refresh the query here (after the update is complete)?
