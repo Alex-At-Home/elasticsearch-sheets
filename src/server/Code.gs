@@ -2,6 +2,9 @@
  * Code.gs - The interface between the Server App and the Spreadsheet UI
  */
 
+//TODO: build a method that uses XmlService or XML to convert pure scripts to text so can re-use the same files
+// https://stackoverflow.com/questions/53587951/decode-html-escape-character-in-app-script
+
 // 1] Interface with main UI
 
 /** Allows the UI to launch a full-screen-aligned YES/NO prompt, returns true iff YES */
@@ -68,8 +71,6 @@ function getCurrentTableRangeSelection() {
   return TableService_.getCurrentTableRangeSelection()
 }
 
-// 2.3] Table management
-
 /** Lists the current data tables (including the default one used to populate the "create new table" entry */
 function listTableConfigs() {
   return TableService_.listTableConfigs()
@@ -99,6 +100,34 @@ function updateTable(oldName, newName, newTableConfigJson) {
   return TableService_.updateTable(oldName, newName, newTableConfigJson)
 }
 
-// 3] Interface with Elasticsearch
+// 4] Interface with Elasticsearch
 
-//TODO
+/** Handles the user (re-)configuring Elasticsearch */
+function configureElasticsearch(esConfig) {
+  return ElasticsearchService_.configureElasticsearch(esConfig)
+}
+
+/** Retrieves the ES info from the mangement service so the _client_ can perform the call. Also table info */
+function getElasticsearchMetadata(tableName, tableConfig, testMode) {
+  return ElasticsearchService_.getElasticsearchMetadata(tableName, tableConfig, testMode)
+}
+
+/** Builds an aggregation query from the UI focused config model */
+function buildAggregationQuery(config, querySubstitution) {
+  return ElasticsearchService_.buildAggregationQuery(config, querySubstitution)
+}
+
+/** Populates the data table range with the given SQL response (context comes from "getElasticsearchMetadata") */
+function handleSqlResponse(tableName, tableConfig, context, json, sqlQuery) {
+  return ElasticsearchService_.handleSqlResponse(tableName, tableConfig, context, json, sqlQuery)
+}
+
+/** Populates the data table range with the given "_cat" response (context comes from "getElasticsearchMetadata") */
+function handleCatResponse(tableName, tableConfig, context, json, catQuery) {
+  return ElasticsearchService_.handleCatResponse(tableName, tableConfig, context, json, catQuery)
+}
+
+/** Populates the data table range with the given aggregation response (context comes from "getElasticsearchMetadata") */
+function handleAggregationResponse(tableName, tableConfig, context, json, aggQueryJson) {
+  return ElasticsearchService_.handleAggregationResponse(tableName, tableConfig, context, json, aggQueryJson)
+}

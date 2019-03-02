@@ -187,12 +187,6 @@ var TestService_ = (function(){
 
    /** A list of test methods, each of which should take a sheet and an array and append { name: string } before starting, then { name: string, success: booolean, message: optional_string } when complete */
    var testMethods_ = {
-      // Elasticsearch.gs:
-      "ElasticsearchService_configureElasticsearch": TESTconfigureElasticsearch_,
-      "ElasticsearchService_getElasticsearchMetadata": TESTgetElasticsearchMetadata_,
-      "ElasticsearchService_buildAggregationQuery": TESTbuildAggregationQuery_,
-      "ElasticsearchService_buildFilterFieldRegex_": TESTbuildFilterFieldRegex_,
-      "ElasticsearchService_buildRowColsFromAggregationResponse_": TESTbuildRowColsFromAggregationResponse_,
    }
 
    // Each test can add triggers for no-arg functions that are called when the "event" (cf testUiEvents_) is seen
