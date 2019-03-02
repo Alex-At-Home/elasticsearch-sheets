@@ -21,18 +21,18 @@
 
      // Check that we create the management service first time
      TestService_.Utils.performTest(testResults, "mgmt_sheet_created_if_null", function() {
-        deleteManagementService_()
+        ManagementService_.deleteManagementService()
 
         var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig)
         ElasticsearchService_.configureElasticsearch(testConfig)
 
-        TestService_.Utils.assertEquals(true, (getManagementService_() != null))
+        TestService_.Utils.assertEquals(true, ManagementService_.isManagementServiceCreated())
      })
 
      // anonymous:
      TestService_.Utils.performTest(testResults, "anonymous", function() {
 
-        deleteManagementService_()
+        ManagementService_.deleteManagementService()
 
         var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig)
         testConfig.auth_type = "anonymous"
@@ -40,7 +40,7 @@
         testConfig.password = ""
         ElasticsearchService_.configureElasticsearch(testConfig)
 
-        var newConfig = getEsMeta_(getManagementService_())
+        var newConfig = ManagementService_.getEsMeta()
         var expectedConfig = overrideDefaultEsConfig_(testConfig)
         TestService_.Utils.assertEquals(expectedConfig, newConfig)
      })
@@ -48,12 +48,12 @@
      // Local user/password:
      TestService_.Utils.performTest(testResults, "local_user_pass", function() {
 
-        deleteManagementService_()
+        ManagementService_.deleteManagementService()
 
         var testConfig = TestService_.Utils.deepCopyJson(baseUiEsConfig)
         ElasticsearchService_.configureElasticsearch(testConfig)
 
-        var newConfig = getEsMeta_(getManagementService_())
+        var newConfig = ManagementService_.getEsMeta()
         var expectedConfig = overrideDefaultEsConfig_(testConfig)
         TestService_.Utils.assertEquals(expectedConfig, newConfig)
      })
@@ -65,7 +65,7 @@
         testConfig.password_global = true
         ElasticsearchService_.configureElasticsearch(testConfig)
 
-        var newConfig = getEsMeta_(getManagementService_())
+        var newConfig = ManagementService_.getEsMeta()
         var expectedConfig = overrideDefaultEsConfig_(testConfig)
         TestService_.Utils.assertEquals(expectedConfig, newConfig)
      })
@@ -73,12 +73,12 @@
      // Safe defaults
      TestService_.Utils.performTest(testResults, "full_config_minus_password", function() {
 
-        deleteManagementService_()
+        ManagementService_.deleteManagementService()
 
         var testConfig = TestService_.Utils.deepCopyJson(baseEsConfig_)
         ElasticsearchService_.configureElasticsearch(testConfig)
 
-        var newConfig = getEsMeta_(getManagementService_())
+        var newConfig = ManagementService_.getEsMeta()
         TestService_.Utils.assertEquals(testConfig, newConfig)
 
         // Check can update and not include username/password/auth-type
@@ -91,7 +91,7 @@
         delete testConfig2.password_global
         ElasticsearchService_.configureElasticsearch(testConfig2)
 
-        var newConfig2 = getEsMeta_(getManagementService_())
+        var newConfig2 = ManagementService_.getEsMeta()
         testConfig.url = testConfig2.url
         TestService_.Utils.assertEquals(testConfig, newConfig2)
      })

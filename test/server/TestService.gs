@@ -88,7 +88,7 @@ var TestService_ = (function(){
 
       // Delete managment sheet
       if (deleteTestSheets) {
-         deleteManagementService_()
+         ManagementService_.deleteManagementService()
       }
    }
 
@@ -137,8 +137,8 @@ var TestService_ = (function(){
    /** Run each test and handle results, testFn can return a custom message (or nothing) */
    function performTest(testResults, testCaseName, testFn) {
       // Create test-specific management service (repeat check for each test)
-      if (null == getManagementService_()) {
-        createManagementService_({})
+      if (!ManagementService_.isManagementServiceCreated()) {
+        ManagementService_.createManagementService({})
       }
       try {
         var customMessage = testFn() || ""

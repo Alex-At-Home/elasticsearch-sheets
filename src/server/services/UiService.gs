@@ -12,7 +12,7 @@ var UiService_ = (function(){
       {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'}
     ]
   //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
-  //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder_')
+  //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
   //  parentMenu.addItem(''Configure Elasticsearch...', 'launchElasticsearchConfig')
     SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
   }
@@ -20,13 +20,11 @@ var UiService_ = (function(){
   /** Creates any required internal state (first time) and launches the ES sidebar */
   function launchElasticsearchTableBuilder(tableNameToSelect) {
     // If necessary, initialize the management service
-    var mgmtService = getManagementService_()
-    if (null == mgmtService) {
+    if (!ManagementService_.isManagementServiceCreated()) {
       launchElasticsearchConfig()
     }
     // We get to here when the modal gets stopped, so the management service should now be populated
-    mgmtService = getManagementService_()
-    if (null == mgmtService) {
+    if (!ManagementService_.isManagementServiceCreated()) {
        return
     }
 
@@ -49,24 +47,23 @@ var UiService_ = (function(){
 
   /** Launches the ES configuration dialog */
   function launchElasticsearchConfig() {
-    var mgmtService = getManagementService_()
     var html = HtmlService.createTemplateFromFile('elasticsearchConfigDialog')
-    if (null == mgmtService) {
+    if (!ManagementService_.isManagementServiceCreated()) {
        html.currentUrl = ""
        html.currentUsername = ""
        html.currentAuthType = "anonymous"
     } else {
-       var es_meta = getEsMeta_(mgmtService)
-       html.currentUrl = es_meta.url
-       html.currentUsername = es_meta.username
-       if (es_meta.auth_type == "password") {
-          if (es_meta.password_global) {
+       var esMeta = ManagementService_.getEsMeta()
+       html.currentUrl = esMeta.url
+       html.currentUsername = esMeta.username
+       if (esMeta.auth_type == "password") {
+          if (esMeta.password_global) {
              html.currentAuthType = "password_global"
           } else {
              html.currentAuthType = "password_local"
           }
        } else {
-          html.currentAuthType = es_meta.auth_type
+          html.currentAuthType = esMeta.auth_type
        }
     }
     if (TestService_.inTestMode()) {
@@ -126,8 +123,7 @@ var UiService_ = (function(){
 
   /** Allows for UI to launch a full screen dialog showing the query that would be launched */
   function launchJsonEditor(tableName, currName, jsonConfig) {
-    var mgmtService = getManagementService_()
-    updateTempSavedObject_(mgmtService, tableName, currName, jsonConfig) //(save current contents)
+    ManagementService_.updateTempSavedObject(tableName, currName, jsonConfig) //(save current contents)
     if (TestService_.inTestMode()) {
        TestService_.triggerUiEvent("launchJsonEditor", {
           table_name: tableName, config: jsonConfig
@@ -146,9 +142,8 @@ var UiService_ = (function(){
   /** Handles the result of a JSON table edit - doesn't store anywhere */
   function stashJsonFromEditor(tableName, currName, jsonConfig) {
     //TODO: need to clear the temp saved object (inc default) on create/(update - done)/reset/clear
-    var mgmtService = getManagementService_()
-    updateTempSavedObject_(mgmtService, tableName, currName, jsonConfig) //(save updated contents from editor)
-    launchElasticsearchTableBuilder_(tableName)
+    ManagementService_.updateTempSavedObject(tableName, currName, jsonConfig) //(save updated contents from editor)
+    launchElasticsearchTableBuilder(tableName)
   }
 
   // 3] Table range management

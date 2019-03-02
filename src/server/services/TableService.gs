@@ -56,12 +56,10 @@ var TableService_ = (function(){
 
   /** Lists the current data tables (including the default one used to populate the "create new table" entry */
   function listTableConfigs() {
-    var mgmtService = getManagementService_()
-
-    var tableConfigs = listSavedObjects_(mgmtService, /*discardRange=*/true)
+    var tableConfigs = ManagementService_.listSavedObjects(/*discardRange=*/true)
     if (!tableConfigs.hasOwnProperty(ManagementService_.getDefaultKeyName())) {
-      addSavedObject_(mgmtService, ManagementService_.getDefaultKeyName(), {})
-      return listSavedObjects_(mgmtService, /*discardRange=*/true)
+      ManagementService_.addSavedObject(ManagementService_.getDefaultKeyName(), {})
+      return ManagementService_.listSavedObjects(/*discardRange=*/true)
     } else {
       return tableConfigs
     }
@@ -69,14 +67,12 @@ var TableService_ = (function(){
 
   /** Stores the temp config */
   function stashTempConfig(tableName, currName, tempConfig) {
-     var mgmtService = getManagementService_()
-     updateTempSavedObject_(mgmtService, tableName, currName, tempConfig)
+     ManagementService_.updateTempSavedObject(tableName, currName, tempConfig)
   }
 
   /** Clears the temp config */
   function clearTempConfig(tableName) {
-     var mgmtService = getManagementService_()
-     updateTempSavedObject_(mgmtService, tableName, null, null)
+     ManagementService_.updateTempSavedObject(tableName, null, null)
   }
 
   /** Adds a new table to the management service */
@@ -91,17 +87,15 @@ var TableService_ = (function(){
     TableRangeUtils_.deleteTableRange(ss, name)
 
     // Update mangement service
-    var mgmtService = getManagementService_()
-    return deleteSavedObject_(mgmtService, name)
+    return ManagementService_.deleteSavedObject(name)
   }
 
   /** Updates a table in the management service - can't update the range, that will be a separate endpoint */
   function updateTable(oldName, newName, newTableConfigJson) {
     var ss = SpreadsheetApp.getActive()
-    var mgmtService = getManagementService_()
 
     // Marge in existing sheet/range (if it exists)
-    var tableConfigs = listSavedObjects_(mgmtService, /*discardRange=*/false)
+    var tableConfigs = ManagementService_.listSavedObjects(/*discardRange=*/false)
     var existingJson = tableConfigs[oldName] || {}
     newTableConfigJson.sheet = existingJson.sheet
     newTableConfigJson.range = existingJson.range
@@ -113,14 +107,14 @@ var TableService_ = (function(){
 
           // Delete saved old object in management service
           // (if this fails, it most likely didn't exist due to some inconsistent internal state)
-          deleteSavedObject_(mgmtService, oldName)
+          ManagementService_.deleteSavedObject(oldName)
           return true
        } else {
           return false // failed to insert new
        }
     } else {
        // Update in management service
-       return updateSavedObject_(mgmtService, oldName, newTableConfigJson)
+       return ManagementService_.updateSavedObject(oldName, newTableConfigJson)
     }
   }
 
@@ -129,8 +123,7 @@ var TableService_ = (function(){
   /** Check that the entries in the management service have named ranges (and vice versa) */
   function checkTableRangesAgainstDataRanges() {
      var ss = SpreadsheetApp.getActive()
-     var mgmtService = getManagementService_()
-     var tableMap = listSavedObjects_(mgmtService, /*discardRange=*/false)
+     var tableMap = ManagementService_.listSavedObjects(/*discardRange=*/false)
      for (var tableName in tableMap) {
         var tableRange = TableRangeUtils_.findTableRange(ss, tableName) //TODO: need a batch version of this to avoid N^2
         var configJson = tableMap[tableName]
@@ -142,7 +135,7 @@ var TableService_ = (function(){
            if ((sheet != configJson.sheet) || (range != configJson.range)) {
               configJson.sheet = sheet
               configJson.range = range
-              updateSavedObject_(mgmtService, tableName, configJson)
+              ManagementService_.updateSavedObject(tableName, configJson)
            }
         }
      }
@@ -154,7 +147,6 @@ var TableService_ = (function(){
 
   /** Adds a new table to the management service (internal implementation) */
   function createTable_(name, tableConfigJson, ignoreNamedRange) {
-    var mgmtService = getManagementService_()
     var ss = SpreadsheetApp.getActive()
 
     var matchesExistingRange = TableRangeUtils_.findTableRange(ss, name)
@@ -169,9 +161,9 @@ var TableService_ = (function(){
        rangeValid = TableRangeUtils_.buildTableRange(ss, name, tableConfigJson)
     }
     if (rangeValid) {
-      var retVal = addSavedObject_(mgmtService, name, tableConfigJson)
+      var retVal = ManagementService_.addSavedObject(name, tableConfigJson)
       if (retVal) { // clear temp
-         updateTempSavedObject_(mgmtService, ManagementService_.getDefaultKeyName(), null, null)
+         ManagementService_.updateTempSavedObject(ManagementService_.getDefaultKeyName(), null, null)
       }
       return retVal
     } else {

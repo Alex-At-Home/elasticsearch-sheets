@@ -35,8 +35,6 @@
 */
 //TODO: if there's no data at all (SQL at least) then blank lines overwrite status bar at top
 
-
-
 var ElasticsearchService_ = (function() {
 
   ////////////////////////////////////////////////////////
@@ -45,11 +43,10 @@ var ElasticsearchService_ = (function() {
 
   /** Handles the user (re-)configuring Elasticsearch */
   function configureElasticsearch(esConfig) {
-     var mgmtService = getManagementService_()
-     if (null == mgmtService) {
-       createManagementService_(esConfig)
+     if (!ManagementService_.isManagementServiceCreated()) {
+       ManagementService_.createManagementService(esConfig)
      } else {
-        setEsMeta_(mgmtService, esConfig)
+        ManagementService_.setEsMeta(esConfig)
      }
   }
 
@@ -57,12 +54,11 @@ var ElasticsearchService_ = (function() {
 
   /** Retrieves the ES info from the mangement service so the _client_ can perform the call. Also table info */
   function getElasticsearchMetadata(tableName, tableConfig, testMode) {
-     var mgmtService = getManagementService_()
      var ss = SpreadsheetApp.getActive()
 
      // ES metadata/validation
 
-     var esInfo = getEsMeta_(mgmtService)
+     var esInfo = ManagementService_.getEsMeta()
 
      // Table metadata/validation
 

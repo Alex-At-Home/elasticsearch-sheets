@@ -8,21 +8,21 @@ function testUiServiceRunner() {
 
 var TestUiService_ = (function(){
 
-  /** UiService_.TESTONLY.launchElasticsearchTableBuilder_ */
+  /** UiService_.launchElasticsearchTableBuilder */
   function launchElasticsearchTableBuilder_(testSheet, testResults) {
 
     // Check if management service not created, the sidebar app is not brought up
     TestService_.Utils.performTest(testResults, "no_mgmt_service_no_sidebar", function() {
 
-       deleteManagementService_()
+       ManagementService_.deleteManagementService()
 
        TestService_.registerUiHandler("elasticsearchConfigDialog", function(metadata) {
           //(don't do anything to simulate user clicking cancel)
        })
 
-       UiService_.TESTONLY.launchElasticsearchTableBuilder_()
+       UiService_.launchElasticsearchTableBuilder()
 
-       TestService_.Utils.assertEquals(true, (getManagementService_() == null), "check no management service")
+       TestService_.Utils.assertEquals(false, ManagementService_.isManagementServiceCreated(), "check no management service")
 
        var expectedUiTriggerQueue = [{
           event: "elasticsearchConfigDialog", metadata: {
@@ -36,16 +36,16 @@ var TestUiService_ = (function(){
     // Check if management service is created, the sidebar app is brought up
     TestService_.Utils.performTest(testResults, "mgmt_service_creation", function() {
 
-       deleteManagementService_()
+       ManagementService_.deleteManagementService()
 
        TestService_.registerUiHandler("elasticsearchConfigDialog", function(metadata) {
           //user clicks submit, check that it launches the dialog
           configureElasticsearch(baseEsConfig_)
        })
 
-       UiService_.TESTONLY.launchElasticsearchTableBuilder_()
+       UiService_.launchElasticsearchTableBuilder()
 
-       TestService_.Utils.assertEquals(true, (getManagementService_() != null), "check management created")
+       TestService_.Utils.assertEquals(true, ManagementService_.isManagementServiceCreated(), "check management created")
 
        var expectedUiTriggerQueue = [{
           event: "elasticsearchConfigDialog", metadata: {
@@ -64,7 +64,7 @@ var TestUiService_ = (function(){
     // Check if management service is created, the sidebar app is brought up
     TestService_.Utils.performTest(testResults, "sidebar_app_reload", function() {
 
-       UiService_.TESTONLY.launchElasticsearchTableBuilder_()
+       UiService_.launchElasticsearchTableBuilder()
 
        var expectedUiTriggerQueue = [{
           event: "sidebarApp", metadata: {
@@ -103,7 +103,7 @@ var TestUiService_ = (function(){
       TestService_.Utils.performTest(testResults, "populate_dialog_" + subtest, function() {
          var testConfig = TestService_.Utils.deepCopyJson(baseEsConfig_)
          testMatrix[subtest](testConfig)
-         setEsMeta_(getManagementService_(), testConfig)
+         ManagementService_.setEsMeta(testConfig)
 
          var expectedUiTriggerQueue = [{
             event: "elasticsearchConfigDialog", metadata: {
@@ -120,6 +120,27 @@ var TestUiService_ = (function(){
 
   ////////////////////////////////////////////////////////
 
+  /** A handy base ES config for use in testing */
+  var baseEsConfig_ =  {
+     "url": "test-url",
+     "version": "6.0",
+     "username": "user",
+     "password": "pass", //(will not normally be populated)
+     "auth_type": "password", //"anonymous", "password", in the future: "token", "saml", "oauth" etc
+     "password_global": false, // false if stored locally (ie only accessible for given user)
+     "header_json": {
+        "test_key_header": "test_value_header"
+     }, //key, value map
+     "client_options_json": {
+        "test_key_client": "test_value_client"
+     }, //(passed directly to ES client)
+     "enabled": true,
+     "query_trigger": "test-trigger", //"none", "timed", "popup", "timed_or_popup"
+     "query_trigger_interval_s": 10
+  }
+
+  ////////////////////////////////////////////////////////
+  
   return {
     launchElasticsearchTableBuilder_: launchElasticsearchTableBuilder_,
     launchElasticsearchConfig: launchElasticsearchConfig

@@ -22,7 +22,7 @@
       }
       // Both are specified, let's check they are valid
       var newSheet = ss.getSheetByName(newSheetName)
-      if (managementSheetName_() == newSheetName) {
+      if (ManagementService_.managementSheetName() == newSheetName) {
          UiService_.showStatus("Cannot build data table on management sheet", "Server Error")
          return false
       } else if (null == newSheet) {
@@ -279,14 +279,14 @@
 
    /** Converts the table name into a pure alphanum string not starting with a digit */
    function buildTableRangeName_(tableName) {
-      return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + managementSheetName_()
+      return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + ManagementService_.managementSheetName()
    }
 
    /** Returns a map of table ranges with name as key
     * TODO note getNamedRanges does not return #ref ranges
     */
    function listTableRanges(ss) {
-      var sheetPrefix = managementSheetName_()
+      var sheetPrefix = ManagementService_.managementSheetName()
       var retVal = {}
       var ranges = ss.getNamedRanges()
       for (var i in ranges) {
