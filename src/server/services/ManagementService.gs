@@ -2,8 +2,6 @@
  * ManagementService.gs - controls persistence of table configurations
  */
 
-//TODO: keep adding more and more defaults to the table!
-
 var ManagementService_ = (function(){
 
   // 1] Methods for manipulating the management service itself
@@ -216,9 +214,12 @@ var ManagementService_ = (function(){
         var savedObjName = savedObjRow.getCell(1, 1).getValue()
         var savedObjStr = savedObjRow.getCell(1, 2).getValue()
         var tempObjStr = savedObjRow.getCell(1, 3).getValue()
+        if (!savedObjName && !savedObjStr) {
+          continue //(if only one then log error since something weird has happened)
+        }
         if ((savedObjName == ManagementService_.getDefaultKeyName()) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
            var savedObj = defaultTableConfig_
-        } else {
+         } else {
            var savedObj = JSON.parse(savedObjStr)
         }
         if (tempObjStr) {
