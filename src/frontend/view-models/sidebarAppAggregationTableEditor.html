@@ -21,7 +21,7 @@
         </div>
         <div id="accordion_general_agg_${index}" class="panel-collapse collapse out">
             <div class="panel-body form-horizontal">
-               ${buildGeneralEditor(index, 'agg')}
+               ${GeneralEditor.buildHtmlStr(index, 'agg')}
             </div>
         </div>
 
@@ -183,7 +183,7 @@
 
        // General
 
-       populateGeneralEditor(index, name, json, 'agg')
+       GeneralEditor.populate(index, name, json, 'agg')
 
        // Index:
        var indexPattern = Util.getJson(json, [ "aggregation_table", "index_pattern" ]) || ""
@@ -230,7 +230,7 @@
    /** Called once all the HTML elements for this SQL table exist, populates the data and registers event handlers */
    function registerAggregationEditor(index, name, json, curr_editor) {
 
-     registerGeneralEditor(index, name, json, curr_editor, 'agg')
+     GeneralEditor.register(index, name, json, curr_editor, 'agg')
 
       mapReduceFields_.forEach(function(field) {
            var editorId = `${field}_agg_${index}`
