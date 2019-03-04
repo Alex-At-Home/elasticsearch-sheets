@@ -24,7 +24,7 @@ var Fixtures = (function(){
     withDiv_(
       `<div id='${name}'><div id='${globalEditorName}'></div>${extraHtml}</div>`,
       function() {
-        var globalEditor = ace.edit(globalEditor)
+        var globalEditor = ace.edit(globalEditorName)
         globalEditor.session.setValue(JSON.stringify(json))
         testFn(globalEditor)
       }, keepDiv

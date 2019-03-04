@@ -75,10 +75,78 @@ var TestSidebarAppAggregationForm = (function(){
     })
   })
 
+  /** Add a existing metric form to an empty list */
+  QUnit.test(`[${testSuiteRoot}] Check changing aggregation types also changes config/filter_fields`, function(assert) {
+    var done = assert.async();
+    var testRoot = testSuiteRoot + "_changeAggregationElement"
+    Fixtures.withParentDivAndGlobalEditor(testRoot, "", {}, function(globalEditor) {
+      var jsonForms = [{
+        name: "1",
+        agg_type: "test",
+        field_filter: "filter_test", //so won't overwrite
+        config: {},
+        location: "automatic"
+      }, {
+        name: "2",
+        config: { "k": "v" }, //so won't overwrite
+        location: "automatic"
+      }]
+      var defaultFilterField = AggregationInfo.bucket.composite.default_filter__
+      var expectedJsonForms = [{ //ie post test
+        name: "1",
+        agg_type: "composite",
+        field_filter: "filter_test",
+        config: { "size": 100, "sources": [{ "AGGNAME": { "AGGTYPE": {"order": "desc"}}}]},
+        location: "automatic"
+      }, {
+        name: "2",
+        config: { "k": "v" },
+        location: "automatic",
+        agg_type: "composite",
+        field_filter: defaultFilterField,
+      }]
+      var globalJson = { aggregation_table: { buckets: jsonForms }}
+      globalEditor.session.setValue(JSON.stringify(globalJson, null, 3))
+      jsonForms.forEach(function(form) {
+        AggregationForm.build(0, "bucket", globalEditor, testRoot, form)
+      })
+      var formElements = $(`#${testRoot} .aggregation_form_element`)
+      assert.equal(formElements.length, 2, "Added aggregation forms")
+
+      // Now set both forms to composite:
+
+      formElements
+        .map(function(i, el) { return el.id; })
+        .get()
+        .forEach(function(formId, testNum) {
+          // Now set both forms to composite, which has a default URL:
+          var aggTypeId = formId.replace("form_", "agg_type_")
+          var aggTypeEl = $(`#${testRoot} #${aggTypeId}`)
+          aggTypeEl.val("composite")
+          aggTypeEl.autocomplete('option','change').call(aggTypeEl);
+
+          // Field filter field
+          var fieldFilterId = formId.replace("form_", "field_filter_")
+          var expectedFilterField = (0 == testNum) ? "filter_test" : defaultFilterField
+          assert.equal($(`#${testRoot} #${fieldFilterId}`).val(), expectedFilterField, `Filter Field correctly uses default if present [${testNum}]`)
+
+          // JSON config:
+          var formEditorId = formId.replace("form_", "editor_")
+          var formEditor = ace.edit(formEditorId)
+          var expectedFormJsonStr =
+            JSON.stringify(expectedJsonForms[testNum].config, null, 3)
+          assert.equal(formEditor.session.getValue(), expectedFormJsonStr, `Local JSON updated`)
+        })
+      var expectedGlobalJsonStr =
+        JSON.stringify({ aggregation_table: { buckets: expectedJsonForms }}, null, 3)
+      assert.equal(globalEditor.session.getValue(), expectedGlobalJsonStr, `Global JSON updated`)
+      done()
+    })
+  })
+
   //TODO mapreduce populated element
   //TODO delete form element
   //TODO move form element
   //TODO check each value updates global editor
   //TODO updating name
-  //TODO updating aggregation type
 }())

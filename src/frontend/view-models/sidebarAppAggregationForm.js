@@ -144,7 +144,7 @@ var AggregationForm = (function(){
           arrayToAppend.push({})
         })
       }
-      
+
       // Build JSON editor
       var formEditor = ace.edit(`editor_${elementIdSuffix}`)
       formEditor.session.setMode("ace/mode/json")
@@ -181,12 +181,21 @@ var AggregationForm = (function(){
           )
           var currContents = JSON.stringify(currJsonForm.config || {})
 
+          // We will always overwrite the agg_type
+          currJsonForm.agg_type = newValue
+
+          // But the contents we'll leave alone if it's non-default
           if (("{}" == currContents) || (currContents == currDefaultForType)) {
             formEditor.session.setValue(newJsonStr)
-            currJsonForm.agg_type = newValue
             currJsonForm.config = newJson
           }
-          //(else do nothing, user has already entered data)
+          // And save for filter field override:
+          var currFilter = currJsonForm.field_filter
+          if (!currFilter && defaultFieldFilter) { // not overwriting anything)
+            currJsonForm.field_filter = defaultFieldFilter
+            $(`#field_filter_${elementIdSuffix}`).val(defaultFieldFilter)
+          }
+          //(in both cases - else do nothing, user has already entered data)
         })
       }
       $(`#agg_type_${elementIdSuffix}`).autocomplete({
