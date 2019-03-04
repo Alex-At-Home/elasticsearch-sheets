@@ -140,15 +140,14 @@ var TableForm = (function() {
     <div class="tab-content" id="tabs_${index}">
     <div class="tab-pane form-group" id="tabs_unknown_${index}">
     </div>
-    <div class="tab-pane form-group" id="tabs_agg_${index}">
-    ${buildAggregationEditor(index, standaloneEdit)}
-    </div>
-    <div class="tab-pane form-group" id="tabs_sql_${index}">
-    ${buildSqlEditor(index)}
-    </div>
-    <div class="tab-pane form-group" id="tabs_mgmt_${index}">
-    ${buildManagementEditor(index)}
-    </div>
+    ${
+      Object.entries(serviceMap_).map(function(kv) {
+        return `
+          <div class="tab-pane form-group" id="${kv[0]}${index}">
+          ${kv[1].buildHtmlStr(index, standaloneEdit)}
+          </div>`
+      }).join("\n")
+    }
     <div class="tab-pane form-group" id="tabs_json_${index}">
     <div id="editor_${index}"></div>
     </div>
@@ -191,10 +190,9 @@ var TableForm = (function() {
           }
 
           // Update which table we're using and perform any required redraw logic:
-          //TODO - refactor to be a single call
-          onSelectSqlEditor(index, tab == `tabs_sql_${index}`, globalEditor)
-          onSelectManagementEditor(index, tab == `tabs_mgmt_${index}`, globalEditor)
-          onSelectAggregationEditor(index, tab == `tabs_agg_${index}`, globalEditor)
+          Object.entries(serviceMap_).forEach(function(kv) {
+            kv[1].onSelect(index, 0 == tab.indexOf(kv[0]), globalEditor)
+          })
         }
       }
 
@@ -203,10 +201,9 @@ var TableForm = (function() {
         onTableSelection(tab)
       })
 
-      //TODO - refactor to be a single call
-      registerAggregationEditor(index, name, json, globalEditor)
-      registerSqlEditor(index, name, json, globalEditor)
-      registerManagementEditor(index, name, json, globalEditor)
+      Object.entries(serviceMap_).forEach(function(kv) {
+        kv[1].register(index, name, json, globalEditor)
+      })
 
       // Add collapse toggle handler and/or initialize the table's starting value:
 
@@ -252,10 +249,9 @@ var TableForm = (function() {
       // Register event handler on raw JSON
       globalEditor.session.on('change', function(delta) {
         Util.safeChangeGlobalJson(globalEditor, function(newJson) {
-          //TODO - refactor to be a single call
-          populateAggregationEditor(index, name, newJson, globalEditor)
-          populateSqlEditor(index, name, newJson, null)
-          populateManagementEditor(index, name, newJson, null)
+          Object.entries(serviceMap_).forEach(function(kv) {
+            kv[1].populate(index, name, newJson, globalEditor)
+          })
         })
       })
 
@@ -347,6 +343,13 @@ var TableForm = (function() {
         }
       }
     })
+  }
+
+  /** The different services supported by the table editor */
+  var serviceMap_ = {
+    "tabs_agg_": AggregationEditor,
+    "tabs_sql_": SqlEditor,
+    "tabs_mgmt_": ManagementEditor
   }
 
   return {
