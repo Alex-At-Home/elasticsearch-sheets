@@ -85,11 +85,12 @@
    <!-- HTML and jquery code for the Management (_cat) editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppManagementTableEditor').getContent(); ?>
 
-   <!-- HTML and jquery code for the top level accordion -->
-   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAccordion').getContent(); ?>
+   <!-- HTML and jquery code for the top level list of tables -->
+   <?!= HtmlService.createHtmlOutputFromFile('tableListManager').getContent(); ?>
 
-   <!-- HTML and jquery code for the accordion element's entries -->
-   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAccordionElement').getContent(); ?>
+   <!-- HTML and jquery code for each table's entries -->
+   <?!= HtmlService.createHtmlOutputFromFile('tableManager').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppTableForm').getContent(); ?>
 
    <script>
 
@@ -99,18 +100,17 @@
 
       var configJson = JSON.parse(configJsonStr)
 
-      _state.accordianOneUp = 1
-      buildAccordionElement(_state.accordianOneUp, tableName, configJson, /*isFirstElement=*/false, /*standaloneEdit=*/true)
+      TableForm.buildAccordionElement(0, tableName, configJson, /*isFirstElement=*/false, /*standaloneEdit=*/true)
 
       $("#stash_close").click(function(){
-         var curr_editor = ace.edit(`editor_1`)
+         var globalEditor = ace.edit(`editor_0`)
          google.script.run.withSuccessHandler(function(obj) {
             google.script.host.close()
-         }).stashJsonFromEditor(tableName, currName, JSON.parse(curr_editor.session.getValue()))
+         }).stashJsonFromEditor(tableName, currName, JSON.parse(globalEditor.session.getValue()))
       })
       $("#reset").click(function(){
-         var curr_editor = ace.edit(`editor_1`)
-         curr_editor.session.setValue(configJsonStr)
+         var globalEditor = ace.edit(`editor_0`)
+         globalEditor.session.setValue(configJsonStr)
       })
       $("#reset_close").click(function(){
          google.script.host.close()

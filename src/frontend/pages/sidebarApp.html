@@ -47,6 +47,7 @@
    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/elasticsearch/15.3.1/elasticsearch.min.js"></script>
 
    <!-- Post-dependency initialization -->
 
@@ -56,6 +57,7 @@
 
       /** On launch, can elect to open one of the tables */
       var selectedTable = "<?= selectedTable ?>"
+      //TODO: get rid of this horrible piece of global state!
    </script>
 
    <!-- Misc utils -->
@@ -75,16 +77,17 @@
    <!-- HTML and jquery code for the Management (_cat) editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppManagementTableEditor').getContent(); ?>
 
-   <!-- HTML and jquery code for the top level accordion -->
-   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAccordion').getContent(); ?>
+   <!-- HTML and jquery code for the top level list of tables -->
+   <?!= HtmlService.createHtmlOutputFromFile('tableListManager').getContent(); ?>
 
-   <!-- HTML and jquery code for the accordion element's entries -->
-   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAccordionElement').getContent(); ?>
+   <!-- HTML and jquery code for each table's entries -->
+   <?!= HtmlService.createHtmlOutputFromFile('tableManager').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('sidebarAppTableForm').getContent(); ?>
 
    <script>
 
       // Create the tables UI elements on load
-      buildAccordionTableFromSource()
+      TableListManager.buildAccordionTableFromSource()
 
    </script>
 
