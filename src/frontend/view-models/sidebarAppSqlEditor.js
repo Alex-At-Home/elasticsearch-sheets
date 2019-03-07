@@ -62,6 +62,14 @@ var SqlEditor = (function(){
     sqlEditor.session.setTabSize(3)
     sqlEditor.session.setUseWrapMode(true)
 
+    // Autocompletion
+    sqlEditor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: true
+    })
+    sqlEditor.completers = [ AutocompletionManager.sqlCompleter ]
+
     populate(index, name, json, sqlEditor) //(before we register the handlers - note calls GeneralEditor.populate)
 
     // General handlers
@@ -85,6 +93,7 @@ var SqlEditor = (function(){
   return {
     buildHtmlStr: buildHtmlStr,
     populate: populate,
+    onSelect: onSelect,
     register: register
   }
 
