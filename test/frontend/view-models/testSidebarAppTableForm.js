@@ -3,7 +3,7 @@ var TestSidebarTableForm = (function() {
 
   /** Add new table forms to an empty list */
   QUnit.test(`[${testSuiteRoot}] Add new forms of each type`, function(assert) {
-    var done = assert.async();
+    var done = assert.async()
     var testRoot = testSuiteRoot + "_addNewForms"
     var parentContainer = "<div id='accordion'></div>"
     Fixtures.withParentDiv(testRoot, parentContainer, function() {
@@ -50,7 +50,7 @@ var TestSidebarTableForm = (function() {
         //TODO: check re-populates all the child types when the JSON is edited
       }
       done()
-    })
+    }, /*keepDiv*/false)
   })
 
   //TODO test "temp" construct

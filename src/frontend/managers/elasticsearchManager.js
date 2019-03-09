@@ -19,6 +19,34 @@ var ElasticsearchManager = (function(){
      }
   }
 
+  /** Launches a SQL query to retrieve the fields of a table */
+  function retrieveIndexPatternFields(indexPattern, callbackFn) {
+    google.script.run.withSuccessHandler(function(obj) {
+      try {
+        var esMeta = obj.es_meta
+        var esClient = ClientState_.getOrBuildClient(esMeta)
+
+        //TODO write a non-SQL version
+        var endpoint = "/_xpack/sql?format=json"
+        var body = { "query": `DESCRIBE ${indexPattern}` }
+        esClient.transport.request({
+           method: "POST",
+           path: endpoint,
+           body: body,
+           headers: esMeta.headers
+        }, function(err, response, status) {
+            if (!err) {
+              callbackFn(response)
+            }
+        })
+      } catch (err) {
+        //(do nothing, fail harmlessly)
+      }
+    }).withFailureHandler(function(obj) {
+       Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+    }).getElasticsearchMetadata()
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internals
@@ -113,11 +141,11 @@ var ElasticsearchManager = (function(){
      }).buildAggregationQuery(tableConfig, tableMeta.query || "")
   }
 
-
   /** Launches a SQL query */
   function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
      var tableMeta = esAndTableMeta.table_meta
      var userQuery = tableMeta.query || "True"
+     var indices = Util.getJson(tableConfig, [ "sql_table", "index_pattern" ]) || ""
      var pagination = ""
      if (tableMeta.page_info_offset) {
         var rowsToPull = tableMeta.page*tableMeta.data_size + 1 // ES SQL currently doesn't support full pagination so have to grovel
@@ -125,8 +153,9 @@ var ElasticsearchManager = (function(){
         pagination = "LIMIT " + rowsToPull
      }
      var fullSqlQuery = tableConfig.sql_table.query
-        .replace("$$query", userQuery)
+        .replace(/[$][$]query/g, userQuery)
         .replace("$$pagination", pagination)
+        .replace(/[$][$]index/g, indices)
 
      var endpoint = "/_xpack/sql?format=json"
      var body = { "query": fullSqlQuery }
@@ -189,7 +218,8 @@ var ElasticsearchManager = (function(){
   ////////////////////////////////////////////////////////
 
   return {
-    populateTable: populateTable
+    populateTable: populateTable,
+    retrieveIndexPatternFields: retrieveIndexPatternFields
   }
 
 }())

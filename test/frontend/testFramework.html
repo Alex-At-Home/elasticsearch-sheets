@@ -11,7 +11,9 @@
 
   <script src="../../src/frontend/utils/sidebarAppUtils.js"></script>
   <script src="../../src/frontend/models/ElasticsearchAggregationInfo.js"></script>
+  <script src="../../src/frontend/managers/elasticsearchManager.js"></script>
   <script src="../../src/frontend/managers/tableListManager.js"></script>
+  <script src="../../src/frontend/managers/autocompletionManager.js"></script>
   <script src="../../src/frontend/managers/tableManager.js"></script>
   <script src="../../src/frontend/view-models/sidebarAppGeneralEditor.js"></script>
   <script src="../../src/frontend/view-models/sidebarAppAggregationForm.js"></script>
@@ -37,7 +39,15 @@
 
   <!-- All the visual elements get inserted into here -->
   <script src="testFrameworkFixtures.js"></script>
+  <script>
+    QUnit.module( "elasticsearch-sheets", {
+      afterEach: Fixtures.afterEach
+    })
+  </script>
   <div id="test-pages" style="display:none;"></div>
+
+  <!-- Autocompletion Manager Tests -->
+  <script src="managers/testAutocompletionManager.js"></script>
 
   <!-- Table Form Tests -->
   <script src="view-models/testSidebarAppTableForm.js"></script>

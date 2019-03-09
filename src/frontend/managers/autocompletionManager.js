@@ -47,12 +47,18 @@ var AutocompletionManager = (function() {
     "UCASE", "CAST", "CONVERT", "DATABASE", "USER", "SCORE"
   ].map(function(el) { return { caption: el + "(", value: el + "(", meta: "function (scalar)"} })
 
+  var sqlSubVariables_ = [ //TODO (may become dynamic later? with named ranges for query)
+    "$$query", "$$index", "$$pagination"
+  ].map(function(el) { return { caption: el, value: el, meta: "substitution variable"} })
+
   var allSql_ = [].concat(sqlMainKeywords_).concat(sqlAuxKeywords_)
     .concat(sqlFunctionsAggregate_)
     .concat(sqlFunctionsGrouping_)
     .concat(sqlFunctionsConditional_)
     .concat(sqlFunctionsScalar_)
+    .concat(sqlSubVariables_)
 
+  /** ACE code editor completion handler for SQL tables */
   var sqlCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
       callback(null, allSql_)
@@ -69,11 +75,60 @@ var AutocompletionManager = (function() {
 
   // 4] Dyanmic data from ES
 
-  //TODO data completer
+  var idToIndexPatternLookup_ = {}
+  var indexPatternToFields_ = {}
+  var indexIdToFields_ = {}
 
-  //TODO index completer
+  /** Any time the index pattern might have changed, refill it with data */
+  function registerIndexPattern(indexPatternId) {
+    var prevIndexPatternVal =
+      idToIndexPatternLookup_.hasOwnProperty(indexPatternId) ?
+      idToIndexPatternLookup_[indexPatternId] : ""
+
+    var currIndexPatternVal = $(`#${indexPatternId}`).val()
+
+    if (prevIndexPatternVal != currIndexPatternVal) {
+      idToIndexPatternLookup_[indexPatternId] = currIndexPatternVal
+    }
+
+    if (!currIndexPatternVal) { //no index
+        delete indexIdToFields_[indexPatternId]
+    } else {
+      //TODO: don't actually need to do all this every time, can have
+      //some sort of cache
+      ElasticsearchManager.retrieveIndexPatternFields(
+        currIndexPatternVal, function(response) {
+          var retVal = {} //painless: [], raw: []
+          var rows = response.rows || []
+          retVal.raw = rows.map(function(row) {
+            return { caption: row[0], value: row[0], meta: `data field (${row[2]})`}
+          })
+          retVal.painless = retVal.raw.concat(rows.map(function(row) {
+            var docField = `doc["${row[0]}"].value`
+            return { caption: docField, value: docField, meta: `document field (${row[2]})`}
+          }))
+          indexIdToFields_[indexPatternId] = retVal
+          indexPatternToFields_[currIndexPatternVal] = retVal
+        }
+      )
+    }
+  }
+
+  /** ACE code editor completion handler for almost all tables */
+  var dataFieldCompleter = function(indexPatternId, dataFieldType) { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      var fieldsObj = indexIdToFields_[indexPatternId] || {}
+      var wordList = fieldsObj.hasOwnProperty(dataFieldType) ? fieldsObj[dataFieldType] : []
+      callback(null,  wordList)
+    }
+  }}
+
+  //TODO index completer?
 
   return {
-    sqlCompleter: sqlCompleter
+    sqlCompleter: sqlCompleter,
+
+    registerIndexPattern: registerIndexPattern,
+    dataFieldCompleter: dataFieldCompleter
   }
 }())

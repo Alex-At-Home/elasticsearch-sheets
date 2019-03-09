@@ -3,7 +3,7 @@ var TestSidebarAppAggregationForm = (function(){
 
   /** Add new aggregation forms to an empty list */
   QUnit.test(`[${testSuiteRoot}] Add new forms of each type`, function(assert) {
-    var done = assert.async();
+    var done = assert.async()
     var testRoot = testSuiteRoot + "_addNewForms"
     var extraDivs =
     `
@@ -31,12 +31,12 @@ var TestSidebarAppAggregationForm = (function(){
       assert.equal(globalEditor.session.getValue(), expectedJsonStr, "Global editor updated")
 
       done()
-    })
+    }, /*keepDiv*/false)
   })
 
   /** Add a existing metric form to an empty list */
   QUnit.test(`[${testSuiteRoot}] Add existing metric form`, function(assert) {
-    var done = assert.async();
+    var done = assert.async()
     var testRoot = testSuiteRoot + "_addExistingMetricForm"
     Fixtures.withParentDivAndGlobalEditor(testRoot, "", {}, function(globalEditor) {
       var jsonForm = {
@@ -72,12 +72,12 @@ var TestSidebarAppAggregationForm = (function(){
       assert.equal(formEditor.session.getValue(), expectedJson, "JSON form editor correctly populated")
 
       done()
-    })
+    }, /*keepDiv*/false)
   })
 
   /** Add a existing metric form to an empty list */
   QUnit.test(`[${testSuiteRoot}] Check changing aggregation types also changes config/filter_fields`, function(assert) {
-    var done = assert.async();
+    var done = assert.async()
     var testRoot = testSuiteRoot + "_changeAggregationElement"
     Fixtures.withParentDivAndGlobalEditor(testRoot, "", {}, function(globalEditor) {
       var jsonForms = [{
@@ -141,7 +141,7 @@ var TestSidebarAppAggregationForm = (function(){
         JSON.stringify({ aggregation_table: { buckets: expectedJsonForms }}, null, 3)
       assert.equal(globalEditor.session.getValue(), expectedGlobalJsonStr, `Global JSON updated`)
       done()
-    })
+    }, /*keepDiv*/false)
   })
 
   //TODO mapreduce populated element

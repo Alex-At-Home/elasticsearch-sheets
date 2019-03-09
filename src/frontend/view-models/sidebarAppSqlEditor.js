@@ -23,6 +23,12 @@ var SqlEditor = (function(){
     </div>
     <div id="accordion_edit_sql_${index}" class="panel-collapse collapse in">
     <div class="panel-body">
+    <div class="input-group">
+    <div class="input-group-addon for-shorter-text">
+    <span class="input-group-text">Indices</span>
+    </div>
+    <input type="text" class="form-control" placeholder="Index Pattern" value="" id="index_sql_${index}">
+    </div>
     <div id="editor_sql_${index}"></div>
     </div>
     </div>
@@ -48,7 +54,13 @@ var SqlEditor = (function(){
   /** Populate the data for this form */
   function populate(index, name, json, sqlEditor) {
     var sqlEditor = sqlEditor || ace.edit(`editor_sql_${index}`)
+
     GeneralEditor.populate(index, name, json, 'sql')
+
+    // Index:
+    var indexPattern = Util.getJson(json, [ "sql_table", "index_pattern" ]) || ""
+    $(`#index_sql_${index}`).val(indexPattern)
+
     var sql = Util.getJson(json, [ "sql_table", "query" ]) || ""
     sqlEditor.session.setValue(sql)
   }
@@ -68,7 +80,10 @@ var SqlEditor = (function(){
         enableSnippets: true,
         enableLiveAutocompletion: true
     })
-    sqlEditor.completers = [ AutocompletionManager.sqlCompleter ]
+    sqlEditor.completers = [
+      AutocompletionManager.dataFieldCompleter(`index_sql_${index}`, "raw"),
+      AutocompletionManager.sqlCompleter
+    ]
 
     populate(index, name, json, sqlEditor) //(before we register the handlers - note calls GeneralEditor.populate)
 
@@ -77,6 +92,19 @@ var SqlEditor = (function(){
     GeneralEditor.register(index, name, json, globalEditor, 'sql')
 
     // SQL specific handlers:
+
+    $(`#index_sql_${index}`).on("input", function(e) {
+      var thisValue = this.value
+      Util.updateRawJson(globalEditor, function(currJson) {
+        var sqlTable = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
+        sqlTable.index_pattern = thisValue
+      })
+    })
+    $(`#index_sql_${index}`).on("focusout", function(e) {
+      AutocompletionManager.registerIndexPattern(`index_sql_${index}`)
+    })
+    //(also initialize this on build)
+    AutocompletionManager.registerIndexPattern(`index_sql_${index}`)
 
     $(`#accordion_edit_sql_${index}`).on('shown.bs.collapse', function () {
       onSelect(index, /*selected*/ true, globalEditor) //(ensures all the elements are redrawn as we change the display settings)

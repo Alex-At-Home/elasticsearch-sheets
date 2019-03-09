@@ -86,15 +86,15 @@
    <?!= HtmlService.createHtmlOutputFromFile('tableManager').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppTableForm').getContent(); ?>
 
+   <!-- All of the ES client related logic (including its interface with the backend server) -->
+   <?!= HtmlService.createHtmlOutputFromFile('elasticsearchManager').getContent(); ?>
+
    <script>
 
       // Create the tables UI elements on load
       TableListManager.buildAccordionTableFromSource()
 
    </script>
-
-   <!-- All of the ES client related logic (including its interface with the backend server) -->
-   <?!= HtmlService.createHtmlOutputFromFile('elasticsearchManager').getContent(); ?>
 
 </body>
 

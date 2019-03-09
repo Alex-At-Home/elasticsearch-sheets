@@ -58,6 +58,7 @@ var defaultTableConfig_ = {
   },
    "aggregation_table": {
       "enabled": false,
+      //"index_pattern": "string"
       "query": {
          "query": {
             "query_string": { "query": "$$query" }
@@ -74,9 +75,10 @@ var defaultTableConfig_ = {
    },
   "sql_table": {
     "enabled": false,
+    //"index_pattern": "string"
     "query": "--SHOW TABLES\n" +
-              "--DESCRIBE <<index>>\n" +
-              "--SELECT * FROM <<index>> WHERE $$query $$pagination"
+              "--DESCRIBE $$index\n" +
+              "--SELECT * FROM $$index WHERE $$query $$pagination"
   },
   "cat_table": {
     "enabled": false,

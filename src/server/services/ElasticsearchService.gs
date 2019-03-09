@@ -59,6 +59,9 @@ var ElasticsearchService_ = (function() {
      // ES metadata/validation
 
      var esInfo = ManagementService_.getEsMeta()
+     if (null == tableConfig) { // All I want is the ES metadata
+        return { "es_meta": esInfo }
+     }
 
      // Table metadata/validation
 
