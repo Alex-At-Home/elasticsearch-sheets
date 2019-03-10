@@ -216,7 +216,7 @@ var AggregationForm = (function(){
     } else { // Map reduce, just set the type
       Util.updateRawJsonNow(globalEditor, function(currJson) {
         var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
-        currJsonForm.agg_type = "__map_reduce__" //TODO: change to _map_reduce_
+        currJsonForm.agg_type = "__map_reduce__" 
       })
     }
 

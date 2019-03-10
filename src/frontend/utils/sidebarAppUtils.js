@@ -7,6 +7,9 @@ var Util = (function(){
   /** How long after we stop typing the JSON will be updated */
   var jsonUpdateTimerInterval_ = 200 //ms
 
+  /** All the handlers called, indexed by editor id */
+  var eventQueues_ = {}
+
   // Misc utils:
 
   /** Status/error display */
@@ -51,33 +54,57 @@ var Util = (function(){
     }
   }
 
+  /** Internal - adds a JSON change to the queue */
+  function addToEventQueue_(editor, updateFn) {
+    clearTimeout(jsonUpdateTimerId_)
+    var list = eventQueues_[editor.id] || []
+    list.push({updateFn: updateFn, editor: editor})
+    eventQueues_[editor.id] = list
+  }
+
   /** Update the raw JSON in the ACE code editor - asynchronously, eg when typing */
   function updateRawJson(editor, updateFn) {
     if (!tempDisableJsonChange_) {
-      clearTimeout(jsonUpdateTimerId_) //TODO: technically this can lose updates if you're jumping between elements fast
-      jsonUpdateTimerId_ = setTimeout(function() { updateRawJsonNow(editor, updateFn) } , jsonUpdateTimerInterval_)
+      addToEventQueue_(editor, updateFn)
+      jsonUpdateTimerId_ = setTimeout(function() { updateRawJsonNow_() } , jsonUpdateTimerInterval_)
     }
   }
   /** Update the raw JSON in the ACE code editor - synchronously, eg on control */
   function updateRawJsonNow(editor, updateFn) {
     if (!tempDisableJsonChange_) {
-      var jsonStr = editor.session.getValue()
-      try {
-        var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-      } catch {
-        return // (just do nothing until JSON is valid)
-      }
+      addToEventQueue_(editor, updateFn)
+      updateRawJsonNow_()
+    }
+  }
 
-      updateFn(jsonBody)
-      var newJsonStr = JSON.stringify(jsonBody, null, 3)
-
-      tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
-      try {
-        editor.session.setValue(newJsonStr)
-      } catch (err) {
-        tempDisableJsonChange_ = false
-        throw err
-      }
+  /** Update the raw JSON in the ACE code editor - handle and empty the aysnc queue */
+  function updateRawJsonNow_() {
+    if (!tempDisableJsonChange_) {
+      Object.entries(eventQueues_).forEach(function(kv) {
+        var list = kv[1]
+        if (list.length > 0) {
+          var editor = list[0].editor
+          var jsonStr = editor.session.getValue()
+          try {
+            var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+          } catch {
+            return // (just do nothing until JSON is valid)
+          }
+          list.forEach(function(el) {
+            var updateFn = el.updateFn
+            updateFn(jsonBody)
+          })
+          var newJsonStr = JSON.stringify(jsonBody, null, 3)
+          tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
+          try {
+            editor.session.setValue(newJsonStr)
+          } catch (err) {
+            tempDisableJsonChange_ = false
+            throw err
+          }
+        }
+      })
+      eventQueues_ = {}
       tempDisableJsonChange_ = false
     }
   }

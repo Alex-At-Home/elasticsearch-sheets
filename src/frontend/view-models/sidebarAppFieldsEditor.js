@@ -33,7 +33,7 @@ var FieldsEditor = (function() {
     var excludeFilteredFields =
       Util.getJson(json, [ "common", "headers", "exclude_filtered_fields_from_autocomplete" ]) || false
 
-      $(`#exclude_${tableType}_${index}`).val(excludeFilteredFields)
+      $(`#exclude_${tableType}_${index}`).prop('checked', excludeFilteredFields)
 
     //TODO register
   }
@@ -72,7 +72,8 @@ var FieldsEditor = (function() {
     currFilterEditor.session.on('change', function(delta) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
-        var fieldFilters = headers.split("\n")
+        var currText = currFilterEditor.session.getValue()
+        var fieldFilters = currText.split("\n")
         headers.field_filters = fieldFilters
         //TODO reregister
       })
@@ -80,7 +81,8 @@ var FieldsEditor = (function() {
     currAliasEditor.session.on('change', function(delta) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
-        var fieldAliases = headers.split("\n")
+        var currText = currAliasEditor.session.getValue()
+        var fieldAliases = currText.split("\n")
         headers.field_aliases = fieldAliases
       })
     })

@@ -52,7 +52,7 @@ var SqlEditor = (function(){
   }
 
   /** Populate the data for this form */
-  function populate(index, name, json, sqlEditor) {
+  function populate(index, name, json, globalEditor) {
     var sqlEditor = sqlEditor || ace.edit(`editor_sql_${index}`)
 
     GeneralEditor.populate(index, name, json, 'sql')

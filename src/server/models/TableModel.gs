@@ -38,7 +38,7 @@ var defaultTableConfig_ = {
         "merge": true //(if false will be its own separate line, else will merge with query/pagination if they exist)
      },
      "headers": {
-        "position": "top" //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
+        "position": "top", //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
         "field_filters": [
           "# eg -x.*.y / +x.**",
           "# [+-]/regex/",
