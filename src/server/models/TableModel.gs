@@ -39,8 +39,15 @@ var defaultTableConfig_ = {
      },
      "headers": {
         "position": "top" //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
-//        "header_overrides": "", //TODO format?
-//        "filter_headers": false //(if true then only select headers specified in the overrides)
+        "field_filters": [
+          "# eg -x.*.y / +x.**",
+          "# [+-]/regex/",
+          "#(note fields are laid out in selection order)"
+        ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
+        "exclude_filtered_fields_from_autocomplete": true,
+        "field_aliases": [
+          "#field.path=Alias To Use"
+        ] //(# to ignore, format is '<field-path>=Alias')
      },
      "formatting": {
         "theme": "minimal" //(or "none", in the future: "default", etc)

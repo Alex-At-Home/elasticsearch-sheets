@@ -230,14 +230,14 @@ var AggregationEditor = (function(){
 
     mapReduceFields_.forEach(function(field) {
       var editorId = `${field}_agg_${index}`
-      var curr_mr_editor = ace.edit(editorId)
+      var currMrEditor = ace.edit(editorId)
       if (("query" == field) || ("params" == field)) {
-        curr_mr_editor.session.setMode("ace/mode/json")
+        currMrEditor.session.setMode("ace/mode/json")
       } else {
-        curr_mr_editor.session.setMode("ace/mode/java")
+        currMrEditor.session.setMode("ace/mode/java")
       }
-      curr_mr_editor.session.setTabSize(3)
-      curr_mr_editor.session.setUseWrapMode(true)
+      currMrEditor.session.setTabSize(3)
+      currMrEditor.session.setUseWrapMode(true)
       //contents set from "populate" below
     })
 
@@ -270,8 +270,8 @@ var AggregationEditor = (function(){
     // Change triggers for all the MR code
     mapReduceFields_.forEach(function(field) {
       var editorId = `${field}_agg_${index}`
-      var curr_mr_editor = ace.edit(editorId)
-      curr_mr_editor.session.on('change', function(delta) {
+      var currMrEditor = ace.edit(editorId)
+      currMrEditor.session.on('change', function(delta) {
         Util.updateRawJson(globalEditor, function(currJson) {
           var codePath = [ "aggregation_table", "map_reduce" ]
           if ("query" == field) {
@@ -280,10 +280,10 @@ var AggregationEditor = (function(){
           var code = Util.getOrPutJsonObj(currJson, codePath)
           if (("query" == field) || ("params" == field)) {
             try {
-              code[field] = JSON.parse(curr_mr_editor.session.getValue())
+              code[field] = JSON.parse(currMrEditor.session.getValue())
             } catch (err) {} //(do nothing if it's not valid JSON)
           } else {
-            code[field] = curr_mr_editor.session.getValue()
+            code[field] = currMrEditor.session.getValue()
           }
         })
       })

@@ -140,11 +140,11 @@ var GeneralEditor = (function(){
   }
 
   /** Called from the table types' "register", Adds event handlers to all the common elements */
-  function register(index, name, json, curr_editor, tableType) {
+  function register(index, name, json, globalEditor, tableType) {
     // Globally enabled:
     $(`#enabled_${tableType}_${index}`).change(function() {
       var thisChecked = this.checked
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         currJson.enabled = thisChecked
       })
     })
@@ -152,7 +152,7 @@ var GeneralEditor = (function(){
     if (hasQueryBar_(tableType)) {
       $(`#querybar_${tableType}_${index}`).change(function() {
         var thisValue = this.value
-        Util.updateRawJsonNow(curr_editor, function(currJson) {
+        Util.updateRawJsonNow(globalEditor, function(currJson) {
           var query = Util.getOrPutJsonObj(currJson, [ "common", "query" ])
           query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
           var localQuery = Util.getOrPutJsonObj(currJson, [ "common", "query", "local" ])
@@ -163,7 +163,7 @@ var GeneralEditor = (function(){
     // Headers
     $(`#headers_${tableType}_${index}`).change(function() {
       var thisValue = this.value
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
         headers.position = thisValue
       })
@@ -171,7 +171,7 @@ var GeneralEditor = (function(){
     // Pagination
     $(`#pagination_${tableType}_${index}`).change(function() {
       var thisValue = this.value
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var pagination = Util.getOrPutJsonObj(currJson, [ "common", "pagination" ])
         pagination.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
         var localPagination = Util.getOrPutJsonObj(currJson, [ "common", "pagination", "local" ])
@@ -181,14 +181,14 @@ var GeneralEditor = (function(){
     // Status
     $(`#status_${tableType}_${index}`).change(function() {
       var thisValue = this.value
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var status = Util.getOrPutJsonObj(currJson, [ "common", "status" ])
         status.position = thisValue
       })
     })
     $(`#status_merge_${tableType}_${index}`).change(function() {
       var thisChecked = this.checked
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var status = Util.getOrPutJsonObj(currJson, [ "common", "status" ])
         status.merge = thisChecked
       })
@@ -196,7 +196,7 @@ var GeneralEditor = (function(){
     // Formatting
     $(`#formatting_${tableType}_${index}`).change(function() {
       var thisValue = this.value
-      Util.updateRawJsonNow(curr_editor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var formatTheme = Util.getOrPutJsonObj(currJson, [ "common", "formatting" ])
         formatTheme.theme = thisValue
       })
@@ -206,14 +206,14 @@ var GeneralEditor = (function(){
     /*
     $(`#skip_rows_${tableType}_${index}`).on("input", function(e) {
       var thisValue = this.value
-      Util.updateRawJson(curr_editor, function(currJson) {
+      Util.updateRawJson(globalEditor, function(currJson) {
         var skip = Util.getOrPutJsonObj(currJson, [ "common", "skip" ])
         skip.rows = thisValue
       })
     })
     $(`#skip_cols_${tableType}_${index}`).on("input", function(e) {
       var thisValue = this.value
-      Util.updateRawJson(curr_editor, function(currJson) {
+      Util.updateRawJson(globalEditor, function(currJson) {
         var skip = Util.getOrPutJsonObj(currJson, [ "common", "skip" ])
         skip.cols = thisValue
       })

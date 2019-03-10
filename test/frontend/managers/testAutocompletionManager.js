@@ -63,7 +63,7 @@ var TestAutocompletionManager = (function() {
               didGetCalled++
             })
 
-          var expected = expectedWordlistFn("test_input")[completionType]
+          var expected = expectedWordlistFn("test_pattern")[completionType]
           AutocompletionManager.dataFieldCompleter("test_input", completionType)
             .getCompletions(null, null, null, null, function(unused, wordList) {
               assert.deepEqual(wordList, expected, `gets right completion list ${completionType}`)
