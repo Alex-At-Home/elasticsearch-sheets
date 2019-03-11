@@ -78,9 +78,46 @@ var AutocompletionManager = (function() {
   var idToIndexPatternLookup_ = {}
   var indexPatternToFields_ = {}
   var indexIdToFields_ = {}
+  var fieldFilters_ = {}
+  var editorIdToIndexId_ = {}
+
+  //TODO: tidy up resources when possible
+
+  /** Internal util to apply the filter to the set of fields */
+  function setFilteredFields_(indexPatternId, unfilteredFields, editorId) {
+    var filteredRetVal = {}
+    Object.keys(unfilteredFields).forEach(function(key) {
+      filteredRetVal[key] = unfilteredFields[key].filter(function(el) {
+        return isFieldWanted_(el.filter_info, fieldFilters_[editorId] || [])
+      })
+    })
+    indexIdToFields_[indexPatternId] = filteredRetVal
+  }
+
+  /** Register a list of filters against the auto-completers */
+  function registerFilterList(editorId, fieldFilters) {
+    fieldFilters_[editorId] = buildFilterFieldRegex_(fieldFilters)
+    var indexIdSet = editorIdToIndexId_[editorId] || {}
+    // Re-apply filters
+
+    var indexPatternsDoneSet = { "": true }
+    Object.keys(indexIdSet).forEach(function(indexPatternId) {
+      var indexPattern = idToIndexPatternLookup_[indexPatternId] || ""
+      if (!indexPatternsDoneSet.hasOwnProperty(indexPattern)) {
+        indexPatternsDoneSet[indexPattern] = true
+        var unfilteredFields = indexPatternToFields_[indexPattern] || {}
+        setFilteredFields_(indexPatternId, unfilteredFields, editorId)
+      }
+    })
+  }
 
   /** Any time the index pattern might have changed, refill it with data */
-  function registerIndexPattern(indexPatternId) {
+  function registerIndexPattern(indexPatternId, editorId) {
+    //(link the index pattern id and the editor id)
+    var indexIdSet = editorIdToIndexId_[editorId] || {}
+    indexIdSet[indexPatternId] = true
+    editorIdToIndexId_[editorId] = indexIdSet
+
     var prevIndexPatternVal =
       idToIndexPatternLookup_.hasOwnProperty(indexPatternId) ?
       idToIndexPatternLookup_[indexPatternId] : ""
@@ -101,14 +138,18 @@ var AutocompletionManager = (function() {
           var retVal = {} //painless: [], raw: []
           var rows = response.rows || []
           retVal.raw = rows.map(function(row) {
-            return { caption: row[0], value: row[0], meta: `data field (${row[2]})`}
+            return {
+              caption: row[0], value: row[0], meta: `data field (${row[2]})`, filter_info: row[0]
+            }
           })
           retVal.painless = retVal.raw.concat(rows.map(function(row) {
             var docField = `doc["${row[0]}"].value`
-            return { caption: docField, value: docField, meta: `document field (${row[2]})`}
+            return {
+              caption: docField, value: docField, meta: `document field (${row[2]})`, filter_info: row[0]
+            }
           }))
-          indexIdToFields_[indexPatternId] = retVal
           indexPatternToFields_[currIndexPatternVal] = retVal
+          setFilteredFields_(indexPatternId, retVal, editorId)
         }
       )
     }
@@ -123,12 +164,71 @@ var AutocompletionManager = (function() {
     }
   }}
 
-  //TODO index completer?
+  //TODO index pattern completer?
+
+  ////////////////////////////////////////////////////
+
+  // Some internal utils, duplicated from ElasticsearchUtils.gs
+
+  function isFieldWanted_(field, filterFieldArray) {
+    var negativeOnly = true
+    if (0 == filterFieldArray.length) {
+       return true
+    }
+    for (var ii in filterFieldArray) {
+      var plusOrMinusRegex = filterFieldArray[ii]
+      var plusOrMinus = plusOrMinusRegex[0]
+      var regex = plusOrMinusRegex.substring(1)
+      if ('+' == plusOrMinus) {
+        negativeOnly = false
+      }
+      var found = new RegExp(regex).test(field)
+      if (found && ('-' == plusOrMinus)) {
+        return false
+      } else if (found) {
+        return true
+      }
+    }
+    return negativeOnly
+  }
+
+  /** Utility function to build filter fields (standalone for testability) */
+  function buildFilterFieldRegex_(filterFieldArray) {
+    var escapeRegExpNotStar = function(string) {
+      return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    }
+    var filterFields = filterFieldArray
+      .map(function(el) { return el.trim() })
+      .filter(function(el) { return el && ('+' != el) && ('-' != el) })
+      .map(function(el) {
+        var firstEl = ('-' == el[0]) ? '-' : '+'
+        if (('+' == el[0]) || ('-' == el[0])) {
+          el = el.substring(1)
+        }
+        if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
+          el = el.substring(1, el.length - 1)
+        } else {
+          el = escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
+                  .replace(/[*]/g, "[^.]*")
+                  .replace(/[.][.][.]/g, ".*")
+        }
+        return firstEl + el
+      })
+    return filterFields
+  }
+
+  ////////////////////////////////////////////////////
 
   return {
     sqlCompleter: sqlCompleter,
 
+    registerFilterList: registerFilterList,
     registerIndexPattern: registerIndexPattern,
-    dataFieldCompleter: dataFieldCompleter
+    dataFieldCompleter: dataFieldCompleter,
+
+    TESTONLY: {
+      isFieldWanted_: isFieldWanted_,
+      buildFilterFieldRegex_: buildFilterFieldRegex_
+    }
   }
 }())

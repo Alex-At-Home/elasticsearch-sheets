@@ -8,13 +8,27 @@ var TestSidebarAppFieldsEditor = (function(){
     var mockServiceEventBus = []
 
     var serviceOverrides = [
-      // {
-      //   service: AutocompletionManager,
-      //   method: "xxx",
-      //   overrideFn: xxx
-      // }
+      {
+        service: AutocompletionManager,
+        method: "registerFilterList",
+        overrideFn: function(id, filters) {
+          mockServiceEventBus.push({
+            "name": "registerFilterList",
+            "id": id,
+            "filters": filters
+          })
+        }
+      }
     ]
-
+    var checkEventBus = function(expectedFilters) {
+      var expected = expectedFilters.map(function(filterEl) {
+        return {
+          "name": "registerFilterList", "id": "field_filter_0", filters: filterEl
+        }
+      })
+      assert.deepEqual(mockServiceEventBus, expected, "Registered field list with autocompletion")
+      mockServiceEventBus = [] //(reset for next test)
+    }
 
     Fixtures.withParentDivAndGlobalEditor(testRoot, extraDivs, {}, function(globalEditor) {
       Fixtures.withMocks(serviceOverrides, function() {
@@ -29,6 +43,11 @@ var TestSidebarAppFieldsEditor = (function(){
         FieldsEditor.register(0, "test_name", testJson, globalEditor, "test_table_type")
 
         setTimeout(function() {
+          // Check registered:
+          checkEventBus([
+            testJson.common.headers.field_filters
+          ])
+
           var fieldFilter = ace.edit("field_filter_test_table_type_0").session
           assert.equal(fieldFilter.getValue(), "test_filter_1\ntest_filter_2", "Field filter set")
 
@@ -37,21 +56,29 @@ var TestSidebarAppFieldsEditor = (function(){
 
           assert.equal($("#exclude_test_table_type_0").prop("checked"), true, "Field exclude checkbox set")
 
-          //TODO: test registration happened
           fieldFilter.setValue("a\nb\nc")
           fieldAlias.setValue("x\ny\nz")
           $("#exclude_test_table_type_0").click()
           setTimeout(function() {
+            var expectedGlobalJson = { common: {
+              headers: {
+                field_filters: [ "a", "b", "c" ],
+                field_aliases: [ "x", "y", "z" ],
+                exclude_filtered_fields_from_autocomplete: false
+              }
+            }}
             var expectedGlobalJsonStr = JSON.stringify(
-              { common: {
-                headers: {
-                  field_filters: [ "a", "b", "c" ],
-                  field_aliases: [ "x", "y", "z" ],
-                  exclude_filtered_fields_from_autocomplete: false
-                }
-              }}, null, 3
+              expectedGlobalJson, null, 3
             )
             assert.equal(globalEditor.session.getValue(), expectedGlobalJsonStr, "Event handlers all registered")
+            // Check registered:
+            checkEventBus([
+              expectedGlobalJson.common.headers.field_filters,
+                //(this extra call comes from the delete+insert events)
+              expectedGlobalJson.common.headers.field_filters,
+              []
+            ])
+
             done()
           }, 400)
         })

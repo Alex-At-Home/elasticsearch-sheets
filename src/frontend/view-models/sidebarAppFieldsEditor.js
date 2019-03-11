@@ -35,7 +35,7 @@ var FieldsEditor = (function() {
 
       $(`#exclude_${tableType}_${index}`).prop('checked', excludeFilteredFields)
 
-    //TODO register
+    AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
   }
 
   /** Handles elements that need custom redraw logic if the underlying fields were changed */
@@ -75,7 +75,7 @@ var FieldsEditor = (function() {
         var currText = currFilterEditor.session.getValue()
         var fieldFilters = currText.split("\n")
         headers.field_filters = fieldFilters
-        //TODO reregister
+        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
       })
     })
     currAliasEditor.session.on('change', function(delta) {
@@ -91,16 +91,26 @@ var FieldsEditor = (function() {
       Util.updateRawJsonNow(globalEditor, function(currJson) {
         var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
         headers.exclude_filtered_fields_from_autocomplete = thisChecked
-        //TODO reregister
+        var fieldFilters = thisChecked ?
+          (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
+          []
+        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
       })
     })
+  }
+
+  /** Used to share a table-uuid with other components */
+  function getFilterId(index) {
+    return "field_filter_" + index
   }
 
   return {
     buildHtmlStr: buildHtmlStr,
     populate: populate,
     onSelect: onSelect,
-    register: register
+    register: register,
+
+    getFilterId: getFilterId
   }
 
 }())
