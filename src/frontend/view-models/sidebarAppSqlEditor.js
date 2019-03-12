@@ -18,6 +18,16 @@ var SqlEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_fields_sql_${index}">Fields</a>
+    </h4>
+    </div>
+    <div id="accordion_fields_sql_${index}" class="panel-collapse collapse out">
+    <div class="panel-body form-horizontal">
+    ${FieldsEditor.buildHtmlStr(index, 'sql')}
+    </div>
+    </div>
+    <div class="panel-heading">
+    <h4 class="panel-title">
     <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_edit_sql_${index}">SQL</a>
     </h4>
     </div>
@@ -45,6 +55,7 @@ var SqlEditor = (function(){
       var sql = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
       sql.enabled = selected
     })
+    FieldsEditor.onSelect(index, selected, globalEditor, 'sql')
     // Display redraw:
     if (selected) {
       ace.edit(`editor_sql_${index}`).resize()
@@ -56,6 +67,7 @@ var SqlEditor = (function(){
     var sqlEditor = sqlEditor || ace.edit(`editor_sql_${index}`)
 
     GeneralEditor.populate(index, name, json, 'sql')
+    FieldsEditor.populate(index, name, json, globalEditor, 'sql')
 
     // Index:
     var indexPattern = Util.getJson(json, [ "sql_table", "index_pattern" ]) || ""
@@ -90,6 +102,7 @@ var SqlEditor = (function(){
     // General handlers
 
     GeneralEditor.register(index, name, json, globalEditor, 'sql')
+    FieldsEditor.register(index, name, json, globalEditor, 'sql')
 
     // SQL specific handlers:
 
@@ -101,10 +114,10 @@ var SqlEditor = (function(){
       })
     })
     $(`#index_sql_${index}`).on("focusout", function(e) {
-      AutocompletionManager.registerIndexPattern(`index_sql_${index}`)
+      AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
     })
     //(also initialize this on build)
-    AutocompletionManager.registerIndexPattern(`index_sql_${index}`)
+    AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
 
     $(`#accordion_edit_sql_${index}`).on('shown.bs.collapse', function () {
       onSelect(index, /*selected*/ true, globalEditor) //(ensures all the elements are redrawn as we change the display settings)

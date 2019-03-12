@@ -16,7 +16,7 @@ var TestAutocompletionManager = (function() {
       "-test.2  ": [ "-test\\.2" ],
       "t.est*test , test**tes.t": [ "+t\\.est[^.]*test", "+test.*tes\\.t" ],
       " /reg.ex*/": [ "+reg.ex*" ],
-      "-/regex**/": [ "-regex**" ]
+      "-/regex**/,  #test_commented": [ "-regex**" ]
     }
     Object.keys(filterFieldTests).forEach(function(testInStr) {
       var testIn = testInStr.split(",")

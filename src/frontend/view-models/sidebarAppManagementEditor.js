@@ -18,6 +18,16 @@ var ManagementEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_fields_mgmt_${index}">Fields</a>
+    </h4>
+    </div>
+    <div id="accordion_fields_mgmt_${index}" class="panel-collapse collapse out">
+    <div class="panel-body form-horizontal">
+    ${FieldsEditor.buildHtmlStr(index, 'mgmt')}
+    </div>
+    </div>
+    <div class="panel-heading">
+    <h4 class="panel-title">
     <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_edit_mgmt_${index}">Management</a>
     </h4>
     </div>
@@ -50,11 +60,14 @@ var ManagementEditor = (function(){
       var cat = Util.getOrPutJsonObj(currJson, [ "cat_table" ])
       cat.enabled = selected
     })
+    FieldsEditor.onSelect(index, selected, globalEditor, 'mgmt')
   }
 
   /** Populate the data for this form */
-  function populate(index, name, json) {
+  function populate(index, name, json, globalEditor) {
     GeneralEditor.populate(index, name, json, 'mgmt')
+    FieldsEditor.populate(index, name, json, globalEditor, 'mgmt')
+
     var cat = Util.getJson(json, [ "cat_table" ]) || {}
     $(`#endpoint_mgmt_${index}`).val(cat.endpoint || "")
     $(`#options_mgmt_${index}`).val((cat.options || []).join("\n"))
@@ -72,6 +85,7 @@ var ManagementEditor = (function(){
     // General handlers
 
     GeneralEditor.register(index, name, json, globalEditor, 'mgmt')
+    FieldsEditor.register(index, name, json, globalEditor, 'mgmt')
 
     // Management specific handlers:
 

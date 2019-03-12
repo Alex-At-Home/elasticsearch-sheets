@@ -20,6 +20,16 @@ var AggregationEditor = (function(){
     ${GeneralEditor.buildHtmlStr(index, 'agg')}
     </div>
     </div>
+    <div class="panel-heading">
+    <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_fields_agg_${index}">Fields</a>
+    </h4>
+    </div>
+    <div id="accordion_fields_agg_${index}" class="panel-collapse collapse out">
+    <div class="panel-body form-horizontal">
+    ${FieldsEditor.buildHtmlStr(index, 'agg')}
+    </div>
+    </div>
 
     <div class="panel-heading">
     <h4 class="panel-title">
@@ -172,6 +182,7 @@ var AggregationEditor = (function(){
         ace.edit(`${field}_agg_${index}`).resize()
       })
     }
+    FieldsEditor.onSelect(index, selected, globalEditor, 'agg')
   }
 
   /** Populate the data for this form */
@@ -180,6 +191,7 @@ var AggregationEditor = (function(){
     // General
 
     GeneralEditor.populate(index, name, json, 'agg')
+    FieldsEditor.populate(index, name, json, globalEditor, 'agg')
 
     // Index:
     var indexPattern = Util.getJson(json, [ "aggregation_table", "index_pattern" ]) || ""
@@ -227,6 +239,7 @@ var AggregationEditor = (function(){
   function register(index, name, json, globalEditor) {
 
     GeneralEditor.register(index, name, json, globalEditor, 'agg')
+    FieldsEditor.register(index, name, json, globalEditor, 'agg')
 
     mapReduceFields_.forEach(function(field) {
       var editorId = `${field}_agg_${index}`
@@ -239,6 +252,35 @@ var AggregationEditor = (function(){
       currMrEditor.session.setTabSize(3)
       currMrEditor.session.setUseWrapMode(true)
       //contents set from "populate" below
+
+      //Autocompletion:
+      switch(field) {
+        case "params":
+          break
+        case "query":
+          currMrEditor.setOptions({
+              enableBasicAutocompletion: true,
+              enableSnippets: true,
+              enableLiveAutocompletion: true
+          })
+          currMrEditor.completers = [
+            AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
+            //AutocompletionManager.queryCompleter //TODO
+          ]
+          break
+        default: //painless
+          currMrEditor.setOptions({
+              enableBasicAutocompletion: true,
+              enableSnippets: true,
+              enableLiveAutocompletion: true
+          })
+          currMrEditor.completers = [
+            AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
+            //AutocompletionManager.aggregationCompleter //TODO (also for fields editor)
+            //AutocompletionManager.painlessCompleter //TODO
+          ]
+          break
+      }
     })
 
     // Populate all the fields:
@@ -253,6 +295,11 @@ var AggregationEditor = (function(){
         aggTable.index_pattern = thisValue
       })
     })
+    $(`#index_sql_${index}`).on("focusout", function(e) {
+      AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
+    })
+    //(also initialize this on build)
+    AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
 
     $(`#add_bucket_agg_${index}`).click(function(){
       AggregationForm.build(index, 'bucket', globalEditor, `buckets_agg_${index}`)

@@ -199,6 +199,7 @@ var AutocompletionManager = (function() {
     }
     var filterFields = filterFieldArray
       .map(function(el) { return el.trim() })
+      .filter(function(el) { return el && ('#' != el[0]) })
       .filter(function(el) { return el && ('+' != el) && ('-' != el) })
       .map(function(el) {
         var firstEl = ('-' == el[0]) ? '-' : '+'

@@ -2,17 +2,23 @@ var FieldsEditor = (function() {
 
   /** Build the HTML for the fields editor for this table */
   function buildHtmlStr(index, tableType) {
+
+    var checkbox = ('mgmt' == tableType) ? "" :
+    `
+    <div class="checkbox">
+      <label><input type="checkbox" id="exclude_${tableType}_${index}">Exclude from autocompletion</label>
+    </div>
+    `
+
     var form =
     `
     <form>
     <div class="form-group">
       <label>Field selection and ordering</label>
-      <div class="checkbox">
-        <label><input type="checkbox" id="exclude_${tableType}_${index}">Exclude from autocompletion</label>
-      </div>
-      <div id="field_filter_${tableType}_${index}"></div>
+      <div class="medium_ace_editor" id="field_filter_${tableType}_${index}"></div>
+      ${checkbox}
       <label>Field aliases</label>
-      <div id="field_aliases_${tableType}_${index}"></div>
+      <div class="medium_ace_editor" id="field_aliases_${tableType}_${index}"></div>
     </div>
     </form>
     `
@@ -30,12 +36,14 @@ var FieldsEditor = (function() {
     var fieldAliases = Util.getJson(json, [ "common", "headers", "field_aliases" ]) || []
     currAliasEditor.session.setValue(fieldAliases.join("\n"))
 
-    var excludeFilteredFields =
-      Util.getJson(json, [ "common", "headers", "exclude_filtered_fields_from_autocomplete" ]) || false
+    if ('mgmt' != tableType) {
+      var excludeFilteredFields =
+        Util.getJson(json, [ "common", "headers", "exclude_filtered_fields_from_autocomplete" ]) || false
 
       $(`#exclude_${tableType}_${index}`).prop('checked', excludeFilteredFields)
 
-    AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+      AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+    }
   }
 
   /** Handles elements that need custom redraw logic if the underlying fields were changed */
@@ -58,11 +66,33 @@ var FieldsEditor = (function() {
     var currFilterEditor = ace.edit(filterEditorId)
     currFilterEditor.session.setTabSize(3)
     currFilterEditor.session.setUseWrapMode(true)
+    currFilterEditor.session.setMode("ace/mode/ini")
+    if ('mgmt' != tableType) {
+      currFilterEditor.setOptions({
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+      })
+      currFilterEditor.completers = [
+        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+      ]
+    }
 
     var aliasEditorId = `field_aliases_${tableType}_${index}`
     var currAliasEditor = ace.edit(aliasEditorId)
     currAliasEditor.session.setTabSize(3)
     currAliasEditor.session.setUseWrapMode(true)
+    currAliasEditor.session.setMode("ace/mode/ini")
+    if ('mgmt' != tableType) {
+      currAliasEditor.setOptions({
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+      })
+      currAliasEditor.completers = [
+        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+      ]
+    }
 
     // Populate all the fields:
     populate(index, name, json, globalEditor, tableType)
@@ -75,7 +105,9 @@ var FieldsEditor = (function() {
         var currText = currFilterEditor.session.getValue()
         var fieldFilters = currText.split("\n")
         headers.field_filters = fieldFilters
-        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+        if ('mgmt' != tableType) {
+          AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+        }
       })
     })
     currAliasEditor.session.on('change', function(delta) {
@@ -86,17 +118,20 @@ var FieldsEditor = (function() {
         headers.field_aliases = fieldAliases
       })
     })
-    $(`#exclude_${tableType}_${index}`).change(function() {
-      var thisChecked = this.checked
-      Util.updateRawJsonNow(globalEditor, function(currJson) {
-        var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
-        headers.exclude_filtered_fields_from_autocomplete = thisChecked
-        var fieldFilters = thisChecked ?
-          (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
-          []
-        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+
+    if ('mgmt' != tableType) {
+      $(`#exclude_${tableType}_${index}`).change(function() {
+        var thisChecked = this.checked
+        Util.updateRawJsonNow(globalEditor, function(currJson) {
+          var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
+          headers.exclude_filtered_fields_from_autocomplete = thisChecked
+          var fieldFilters = thisChecked ?
+            (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
+            []
+          AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+        })
       })
-    })
+    }
   }
 
   /** Used to share a table-uuid with other components */

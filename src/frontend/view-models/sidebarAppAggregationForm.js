@@ -151,6 +151,15 @@ var AggregationForm = (function(){
       formEditor.session.setTabSize(3)
       formEditor.session.setUseWrapMode(true)
       formEditor.session.setValue(JSON.stringify(json.config || {}, null, 3))
+      formEditor.setOptions({
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+      })
+      formEditor.completers = [
+        AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
+        //AutocompletionManager.aggregationCompleter //TODO (also for fields editor)
+      ]
 
       // Set-up autocomplete on type:
       if (!isMapReduce) {
@@ -216,7 +225,7 @@ var AggregationForm = (function(){
     } else { // Map reduce, just set the type
       Util.updateRawJsonNow(globalEditor, function(currJson) {
         var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
-        currJsonForm.agg_type = "__map_reduce__" 
+        currJsonForm.agg_type = "__map_reduce__"
       })
     }
 

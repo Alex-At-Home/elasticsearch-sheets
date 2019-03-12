@@ -191,7 +191,7 @@ var TableForm = (function() {
 
           // Update which table we're using and perform any required redraw logic:
           Object.entries(serviceMap_).forEach(function(kv) {
-            kv[1].onSelect(index, 0 == tab.indexOf(kv[0]), globalEditor)
+            kv[1].onSelect(index, tab && (0 == tab.indexOf(kv[0])), globalEditor)
           })
         }
       }
