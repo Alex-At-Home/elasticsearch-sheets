@@ -26,34 +26,34 @@ var TestAutocompletionManager = (function() {
     })
 
     var fieldFilters = {
-      "-**": { in: ["test"], out: [] },
+      "-**": { inList: ["test"], outList: [] },
       "-stat2.filter_out": {
-        in: ["stat2.filter_out", "stat2.filter_out.in", "test", "stat1.filter_out"],
-        out: ["stat2.filter_out.in", "test", "stat1.filter_out"]
+        inList: ["stat2.filter_out", "stat2.filter_out.in", "test", "stat1.filter_out"],
+        outList: ["stat2.filter_out.in", "test", "stat1.filter_out"]
       },
       "-stat2.filter": {
-        in: ["stat2.filter_out"],
-        out: ["stat2.filter_out"]
+        inList: ["stat2.filter_out"],
+        outList: ["stat2.filter_out"]
       },
       "/stat2[.]f[0-9]/": {
-        in: ["stat.f1", "stat.f2", "state.filter"],
-        out: ["state.filter"]
+        inList: ["stat.f1", "stat.f2", "state.filter"],
+        outList: ["state.filter"]
       },
       "t2,/stat[0-9]/,-nothing": {
-        in: ["stat1", "stat2", "stat1.test", "t2", "stata"],
-        out: ["t2", "stata"]
+        inList: ["stat1", "stat2", "stat1.test", "t2", "stata"],
+        outList: ["t2", "stata"]
       },
-      "-nothing": { in: ["test"], out: ["test"] }
+      "-nothing": { inList: ["test"], outList: ["test"] }
     }
     Object.keys(filterFieldTests).forEach(function(testInStr) {
       var testIn = testInStr.split(",")
       var transformedTestIn = AutocompletionManager.TESTONLY.buildFilterFieldRegex_(testIn)
-      var inOut = fieldFilters[testInStr] || { in: [], out: [] }
-      var out = inOut.in.filter(function(el){
+      var inOut = fieldFilters[testInStr] || { inList: [], outList: [] }
+      var out = inOut.inList.filter(function(el){
         return AutocompletionManager.TESTONLY.isFieldWanted_(el, transformedTestIn)
       })
       assert.deepEqual(
-        out, inOut.out, `Correct filtering for ${testInStr}`
+        out, inOut.outList, `Correct filtering for ${testInStr}`
       )
     })
   })

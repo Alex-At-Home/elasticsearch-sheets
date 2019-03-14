@@ -9,28 +9,6 @@ var ElasticsearchUtils_ = (function() {
   /** Transforms a complex aggregation response into rows/cols */
   function buildRowColsFromAggregationResponse(tableName, tableConfig, context, json, aggQueryJson) {
 
-     var fieldIsWanted = function(field, filterFieldArray) { //(see buildFilterFieldRegex_)
-       var negativeOnly = true
-       if (0 == filterFieldArray.length) {
-          return true
-       }
-       for (var ii in filterFieldArray) {
-         var plusOrMinusRegex = filterFieldArray[ii]
-         var plusOrMinus = plusOrMinusRegex[0]
-         var regex = plusOrMinusRegex.substring(1)
-         if ('+' == plusOrMinus) {
-           negativeOnly = false
-         }
-         var found = new RegExp(regex).test(field)
-         if (found && ('-' == plusOrMinus)) {
-           return false
-         } else if (found) {
-           return true
-         }
-       }
-       return negativeOnly
-     }
-
      var isObject = function(possibleObj) {
        return (possibleObj === Object(possibleObj)) && !Array.isArray(possibleObj)
      }
@@ -154,7 +132,7 @@ var ElasticsearchUtils_ = (function() {
                   mutableState.filtered_out_fields[parentField].hasOwnProperty(newSubFieldChain)
                 var metricNotFilteredOut = metricInHeaders ||
                   (!metricIsAlreadyFilteredOut &&
-                    fieldIsWanted(newSubFieldChain, tableColsMap[parentField])
+                    isFieldWanted_(newSubFieldChain, tableColsMap[parentField])
                   )
                 if (!metricInHeaders && metricNotFilteredOut) {
                    mutableState.headers[parentField][newSubFieldChain] = true
@@ -163,7 +141,7 @@ var ElasticsearchUtils_ = (function() {
                    mutableState.curr[parentField][newSubFieldChain] = objCursor[field] || ""
                 }
                 if (!metricNotFilteredOut && !metricIsAlreadyFilteredOut) {
-                  //(quick optimization so only have to call fieldIsWanted once)
+                  //(quick optimization so only have to call isFieldWanted_ once)
                   mutableState.filtered_out_fields[parentField][newSubFieldChain] = true
                 }
               }
@@ -293,7 +271,13 @@ var ElasticsearchUtils_ = (function() {
   // 2] General response logic
 
   /** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
-  function handleRowColResponse(tableName, tableConfig, context, json, queryString, rows, cols, supportsSize) {
+  function handleRowColResponse(tableName, tableConfig, context, json, queryString, rows, fullCols, supportsSize) {
+
+     /** Apply the global filters to the cols and re-order as desired */
+     var filteredCols = calculateFilteredCols_(
+       fullCols,
+       TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
+     )
 
      var ss = SpreadsheetApp.getActive()
      var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
@@ -306,7 +290,7 @@ var ElasticsearchUtils_ = (function() {
      if (null != json.response) {
         var warnings = []
 
-        var numDataCols = cols.length
+        var numDataCols = filteredCols.length
         var numDataRows = rows.length
 
         var currRow = 1
@@ -327,7 +311,7 @@ var ElasticsearchUtils_ = (function() {
            for (var i = 0; i < numTableCols; ++i) {
               var cell = range.getCell(specialRows.headers, i + 1)
               if (i < numDataCols) {
-                 cell.setValue(cols[i].name)
+                 cell.setValue(fullCols[filteredCols[i]].name)
               } else {
                  cell.clearContent()
               }
@@ -355,7 +339,7 @@ var ElasticsearchUtils_ = (function() {
            for (var i = 0; i < numTableCols; ++i) {
               var cell = range.getCell(currRow, i + 1)
               if (i < numDataCols) {
-                 cell.setValue(rowIsArray ? row[i] : row[cols[i].name])
+                 cell.setValue(rowIsArray ? row[i] : row[fullCols[filteredCols[i]].name])
               } else {
                  cell.clearContent()
               }
@@ -647,6 +631,28 @@ var ElasticsearchUtils_ = (function() {
     return filterFields
   }
 
+  function isFieldWanted_(field, filterFieldArray) { //(see buildFilterFieldRegex_)
+    var negativeOnly = true
+    if (0 == filterFieldArray.length) {
+       return true
+    }
+    for (var ii in filterFieldArray) {
+      var plusOrMinusRegex = filterFieldArray[ii]
+      var plusOrMinus = plusOrMinusRegex[0]
+      var regex = plusOrMinusRegex.substring(1)
+      if ('+' == plusOrMinus) {
+        negativeOnly = false
+      }
+      var found = new RegExp(regex).test(field)
+      if (found && ('-' == plusOrMinus)) {
+        return false
+      } else if (found) {
+        return true
+      }
+    }
+    return negativeOnly
+  }
+
   /** Adds the error info the status, if necessary */
   function setQueryResponseInStatus_(range, statusLocation, errorString) {
      range.getCell(statusLocation.row, statusLocation.col).setValue(errorString)
@@ -709,6 +715,39 @@ var ElasticsearchUtils_ = (function() {
      }
   }
 
+  /** Filters, reorders and renames the columns */
+  function calculateFilteredCols_(mutableCols, headerMeta) {
+    //TODO: rename any cols
+    var renameMap = {}
+    var fieldAliases = headerMeta.field_aliases || []
+    fieldAliases = fieldAliases
+      .map(function(a) { return a.trim() })
+      .filter(function(a) { return (0 == a.length) || ('#' != a[0]) })
+      .map(function(a) {
+        var fromTo = a.split("=", 2)
+        var from = fromTo[0]
+        var to = fromTo[1]
+        if (from && to) {
+          return { from: from, to: to }
+        } else {
+          return null
+        }
+      }).filter(function(a) { return null != a })
+
+    var retVal = []
+    mutableCols.forEach(function(mutableCol, ii) {
+      for (var jj in fieldAliases) {
+        var alias = fieldAliases[jj]
+        if (mutableCol.name == alias.from) {
+          mutableCol.name = alias.to
+          break
+        }
+      }
+      retVal.push(ii) //TODO
+    })
+    return retVal
+  }
+
   ////////////////////////////////////////////////////////
 
   return {
@@ -717,7 +756,10 @@ var ElasticsearchUtils_ = (function() {
     buildTableOutline: buildTableOutline,
 
     TESTONLY: {
-      buildFilterFieldRegex_: buildFilterFieldRegex_
+      buildFilterFieldRegex_: buildFilterFieldRegex_,
+      isFieldWanted_: isFieldWanted_,
+
+      calculateFilteredCols_: calculateFilteredCols_
     }
   }
 }())

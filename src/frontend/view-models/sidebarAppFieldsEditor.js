@@ -1,14 +1,33 @@
 var FieldsEditor = (function() {
 
+  /** Util - should output fields be used in autocomplete */
+  function autocompleteAndFilterMerged_(tableType) {
+    return ('mgmt' != tableType) && ('agg' != tableType)
+  }
+  /** Util - does this table type support autocomplete at all? */
+  function supportsAutocomplete_(tableType) {
+    return ('mgmt' != tableType)
+  }
+
+
   /** Build the HTML for the fields editor for this table */
   function buildHtmlStr(index, tableType) {
 
-    var checkbox = ('mgmt' == tableType) ? "" :
+    var checkbox = autocompleteAndFilterMerged_(tableType) ?
     `
     <div class="checkbox">
       <label><input type="checkbox" id="exclude_${tableType}_${index}">Exclude from autocompletion</label>
     </div>
     `
+    : ""
+
+    var separateAutocompleteForm =
+      supportsAutocomplete_(tableType) && !autocompleteAndFilterMerged_(tableType) ?
+      `
+      <label>Autocomplete filter</label>
+      <div class="medium_ace_editor" id="autocomplete_filter_${tableType}_${index}"></div>
+      `
+      : ""
 
     var form =
     `
@@ -17,8 +36,9 @@ var FieldsEditor = (function() {
       <label>Field selection and ordering</label>
       <div class="medium_ace_editor" id="field_filter_${tableType}_${index}"></div>
       ${checkbox}
-      <label>Field aliases</label>
+      <label>Field aliases and ordering</label>
       <div class="medium_ace_editor" id="field_aliases_${tableType}_${index}"></div>
+      ${separateAutocompleteForm}
     </div>
     </form>
     `
@@ -36,13 +56,27 @@ var FieldsEditor = (function() {
     var fieldAliases = Util.getJson(json, [ "common", "headers", "field_aliases" ]) || []
     currAliasEditor.session.setValue(fieldAliases.join("\n"))
 
-    if ('mgmt' != tableType) {
+    // Conditional formats:
+
+    var separateAutocompleteForm =
+      supportsAutocomplete_(tableType) && !autocompleteAndFilterMerged_(tableType)
+
+    if (separateAutocompleteForm) {
+      var autoFilterEditorId = `autocomplete_filter_${tableType}_${index}`
+      var currAutoFilterEditor = ace.edit(autoFilterEditorId)
+      var autoFieldFilters = Util.getJson(json, [ "common", "headers", "autocomplete_filters" ]) || []
+      currAutoFilterEditor.session.setValue(autoFieldFilters.join("\n"))
+
+      AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+    } else if (supportsAutocomplete_(tableType)) {
+      AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+    }
+
+    if (autocompleteAndFilterMerged_(tableType)) {
       var excludeFilteredFields =
         Util.getJson(json, [ "common", "headers", "exclude_filtered_fields_from_autocomplete" ]) || false
 
       $(`#exclude_${tableType}_${index}`).prop('checked', excludeFilteredFields)
-
-      AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
     }
   }
 
@@ -56,6 +90,15 @@ var FieldsEditor = (function() {
       var aliasEditorId = `field_aliases_${tableType}_${index}`
       var currAliasEditor = ace.edit(aliasEditorId)
       currAliasEditor.resize()
+
+      var separateAutocompleteForm =
+        supportsAutocomplete_(tableType) && !autocompleteAndFilterMerged_(tableType)
+
+      if (separateAutocompleteForm) {
+        var autoFilterEditorId = `autocomplete_filter_${tableType}_${index}`
+        var currAutoFilterEditor = ace.edit(autoFilterEditorId)
+        currAutoFilterEditor.resize()
+      }
     }
   }
 
@@ -67,7 +110,7 @@ var FieldsEditor = (function() {
     currFilterEditor.session.setTabSize(3)
     currFilterEditor.session.setUseWrapMode(true)
     currFilterEditor.session.setMode("ace/mode/ini")
-    if ('mgmt' != tableType) {
+    if (autocompleteAndFilterMerged_(tableType)) {
       currFilterEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
@@ -83,13 +126,32 @@ var FieldsEditor = (function() {
     currAliasEditor.session.setTabSize(3)
     currAliasEditor.session.setUseWrapMode(true)
     currAliasEditor.session.setMode("ace/mode/ini")
-    if ('mgmt' != tableType) {
+    if (autocompleteAndFilterMerged_(tableType)) {
       currAliasEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
           enableLiveAutocompletion: true
       })
       currAliasEditor.completers = [
+        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+      ]
+    }
+
+    var separateAutocompleteForm =
+      supportsAutocomplete_(tableType) && !autocompleteAndFilterMerged_(tableType)
+
+    if (separateAutocompleteForm) {
+      var autoFilterEditorId = `autocomplete_filter_${tableType}_${index}`
+      var currAutoFilterEditor = ace.edit(autoFilterEditorId)
+      currAutoFilterEditor.session.setTabSize(3)
+      currAutoFilterEditor.session.setUseWrapMode(true)
+      currAutoFilterEditor.session.setMode("ace/mode/ini")
+      currAutoFilterEditor.setOptions({
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+      })
+      currAutoFilterEditor.completers = [
         AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
       ]
     }
@@ -105,7 +167,7 @@ var FieldsEditor = (function() {
         var currText = currFilterEditor.session.getValue()
         var fieldFilters = currText.split("\n")
         headers.field_filters = fieldFilters
-        if ('mgmt' != tableType) {
+        if (autocompleteAndFilterMerged_(tableType)) {
           AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
         }
       })
@@ -118,8 +180,19 @@ var FieldsEditor = (function() {
         headers.field_aliases = fieldAliases
       })
     })
+    if (separateAutocompleteForm) {
+      currAutoFilterEditor.session.on('change', function(delta) {
+        Util.updateRawJson(globalEditor, function(currJson) {
+          var headers = Util.getOrPutJsonObj(currJson, [ "common", "headers" ])
+          var currAutoText = currAutoFilterEditor.session.getValue()
+          var autoFieldFilters = currAutoText.split("\n")
+          headers.autocomplete_filters = autoFieldFilters
+          AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+        })
+      })
+    }
 
-    if ('mgmt' != tableType) {
+    if (autocompleteAndFilterMerged_(tableType)) {
       $(`#exclude_${tableType}_${index}`).change(function() {
         var thisChecked = this.checked
         Util.updateRawJsonNow(globalEditor, function(currJson) {
