@@ -209,9 +209,9 @@ var AutocompletionManager = (function() {
         if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
           el = el.substring(1, el.length - 1)
         } else {
-          el = escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
+          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
                   .replace(/[*]/g, "[^.]*")
-                  .replace(/[.][.][.]/g, ".*")
+                  .replace(/[.][.][.]/g, ".*") + "$"
         }
         return firstEl + el
       })

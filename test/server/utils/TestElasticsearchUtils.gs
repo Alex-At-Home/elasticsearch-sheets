@@ -14,17 +14,20 @@ var TestElasticsearchUtils_ = (function() {
          "-": [],
          "+": [],
          "   ": [],
-         "  test1  ": [ "+test1" ],
-         " +test2,": [ "+test2" ],
-         "-test2  ": [ "-test2" ],
-         "-test.2  ": [ "-test\\.2" ],
-         "t.est*test , test**tes.t": [ "+t\\.est[^.]*test", "+test.*tes\\.t" ],
+         "  test1  ": [ "+^test1$" ],
+         " +test2,": [ "+^test2$" ],
+         "-test2  ": [ "-^test2$" ],
+         "-test.2  ": [ "-^test\\.2$" ],
+         "t.est*test , test**tes.t": [ "+^t\\.est[^.]*test$", "+^test.*tes\\.t$" ],
          " /reg.ex*/": [ "+reg.ex*" ],
          "-/regex**/": [ "-regex**" ]
        }
-       Object.keys(filterFieldTests).forEach(function(testIn) {
-         var expectedOut = filterFieldTests[testIn]
-         TestService_.Utils.assertEquals(expectedOut, ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_(testIn), testIn)
+       Object.keys(filterFieldTests).forEach(function(testInStr) {
+         var testIn = testInStr.split(",")
+         var expectedOut = filterFieldTests[testInStr]
+         TestService_.Utils.assertEquals(
+           expectedOut, ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_(testIn), testInStr
+         )
        })
     })
   }
@@ -43,16 +46,16 @@ var TestElasticsearchUtils_ = (function() {
           outList: ["stat2.filter_out"]
         },
         "/stat2[.]f[0-9]/": {
-          inList: ["stat.f1", "stat.f2", "state.filter"],
-          outList: ["state.filter"]
+          inList: ["stat2.f1", "stat2.f2", "state.filter"],
+          outList: ["stat2.f1", "stat2.f2"]
         },
         "t2,/stat[0-9]/,-nothing": {
           inList: ["stat1", "stat2", "stat1.test", "t2", "stata"],
-          outList: ["t2", "stata"]
+          outList: ["stat1", "stat2", "stat1.test", "t2"]
         },
         "-nothing": { inList: ["test"], outList: ["test"] }
       }
-      Object.keys(filterFieldTests).forEach(function(testInStr) {
+      Object.keys(fieldFilters).forEach(function(testInStr) {
         var testIn = testInStr.split(",")
         var transformedTestIn = ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_(testIn)
         var inOut = fieldFilters[testInStr] || { inList: [], outList: [] }
@@ -60,9 +63,82 @@ var TestElasticsearchUtils_ = (function() {
           return ElasticsearchUtils_.TESTONLY.isFieldWanted_(el, transformedTestIn)
         })
         TestService_.Utils.assertEquals(
-          inOut.outList, out, "Correct filtering for: [" + testInStr + "]"
+          inOut.outList, out, testInStr
         )
       })
+    })
+  }
+
+  /** (PRIVATE) ElasticsearchUtils_.isFieldWanted_ */
+  function calculateFilteredCols_(testSheet, testResults) {
+    TestService_.Utils.performTest(testResults, "various_usages", function() {
+      var filters1 = [
+        "/col[34]/",
+        "+/col[12][ab]?/",
+        "-filter_out"
+      ]
+      var testCols = [
+        { name: "col1" }, //there will match on group2
+        { name: "col2a" },
+        { name: "col2b" },
+        { name: "col3" }, //these will match on group1
+        { name: "filter_out" },
+        { name: "col4" }
+      ]
+      var aliases = [
+        "col4=Column4",
+        "col2b=Column2b",
+        "col2a=Column2a",
+      ]
+      var headerMeta = {
+          field_filters: filters1,
+          field_aliases: aliases
+      }
+      var renamedTestCols = [
+        "col1", "Column2a", "Column2b", "col3", "filter_out", "Column4"
+      ]
+      var testCols1 = TestService_.Utils.deepCopyJson(testCols)
+      var reorderedList = [ 5, 3, 2, 1, 0 ]
+      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols1, headerMeta)
+      var renamed = testCols1.map(function(el) { return el.name })
+
+      TestService_.Utils.assertEquals(
+        reorderedList, result, "column order (+ve and -ve)"
+      )
+      TestService_.Utils.assertEquals(
+        renamedTestCols, renamed, "column names (+ve and -ve)"
+      )
+
+      // Check no field filters
+      headerMeta.field_filters = [ "#" ]
+      var testCols2 = TestService_.Utils.deepCopyJson(testCols)
+      var defaultReorderedList = [ 5, 2, 1, 0, 3, 4 ]
+      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols2, headerMeta)
+      var renamed = testCols2.map(function(el) { return el.name })
+
+      TestService_.Utils.assertEquals(
+        defaultReorderedList, result, "column order (no field filters)"
+      )
+      TestService_.Utils.assertEquals(
+        renamedTestCols, renamed, "column names (no field filters)"
+      )
+
+      // Check no field aliases
+      headerMeta.field_filters = filters1
+      headerMeta.field_aliases = []
+
+      var testCols3 = TestService_.Utils.deepCopyJson(testCols)
+      var noAliasesReorderedList = [ 3, 5, 0, 1, 2 ]
+      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols3, headerMeta)
+      var renamed = testCols3.map(function(el) { return el.name })
+      var expectedRenamed = testCols.map(function(el) { return el.name })
+
+      TestService_.Utils.assertEquals(
+        noAliasesReorderedList, result, "column order (no field aliases)"
+      )
+      TestService_.Utils.assertEquals(
+        expectedRenamed, renamed, "column names (no field aliases)"
+      )
     })
   }
 
@@ -284,6 +360,9 @@ var TestElasticsearchUtils_ = (function() {
 
   return {
     buildFilterFieldRegex_: buildFilterFieldRegex_,
+    isFieldWanted_: isFieldWanted_,
+    calculateFilteredCols_: calculateFilteredCols_,
+
     buildRowColsFromAggregationResponse_: buildRowColsFromAggregationResponse_
   }
 

@@ -23,8 +23,8 @@ var ElasticsearchUtils_ = (function() {
      tableTypes.forEach(function(tableType) {
         var tableEls = tableConfig.aggregation_table[tableType] || []
         tableEls.filter(function(el) { return el.name }).forEach(function(tableEl) {
-          var filterFieldsStr = tableEl.field_filter || ""
-          tableColsMap[tableEl.name] = buildFilterFieldRegex_(filterFieldsStr)
+          var filterFieldsStr = (tableEl.field_filter || "").trim()
+          tableColsMap[tableEl.name] = buildFilterFieldRegex_(filterFieldsStr.split(","))
           if (('-' == filterFieldsStr) || ('-**' == filterFieldsStr)) {
             colsToIgnoreMap[tableEl.name] = true
           }
@@ -606,13 +606,13 @@ var ElasticsearchUtils_ = (function() {
   // Internal utils:
 
   /** Utility function to build filter fields (standalone for testability) */
-  function buildFilterFieldRegex_(filterFields) {
+  function buildFilterFieldRegex_(filterFieldArray) {
     var escapeRegExpNotStar = function(string) {
       return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
     }
-    var filterFieldsStr = (filterFields || "").trim()
-    var filterFields = filterFieldsStr.split(",")
+    var filterFields = filterFieldArray
       .map(function(el) { return el.trim() })
+      .filter(function(el) { return el && ('#' != el[0]) })
       .filter(function(el) { return el && ('+' != el) && ('-' != el) })
       .map(function(el) {
         var firstEl = ('-' == el[0]) ? '-' : '+'
@@ -622,20 +622,17 @@ var ElasticsearchUtils_ = (function() {
         if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
           el = el.substring(1, el.length - 1)
         } else {
-          el = escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
+          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
                   .replace(/[*]/g, "[^.]*")
-                  .replace(/[.][.][.]/g, ".*")
+                  .replace(/[.][.][.]/g, ".*") + "$"
         }
         return firstEl + el
       })
     return filterFields
   }
 
-  function isFieldWanted_(field, filterFieldArray) { //(see buildFilterFieldRegex_)
+  function isFieldWanted_(field, filterFieldArray, onMatchFn) { //(see buildFilterFieldRegex_)
     var negativeOnly = true
-    if (0 == filterFieldArray.length) {
-       return true
-    }
     for (var ii in filterFieldArray) {
       var plusOrMinusRegex = filterFieldArray[ii]
       var plusOrMinus = plusOrMinusRegex[0]
@@ -647,10 +644,79 @@ var ElasticsearchUtils_ = (function() {
       if (found && ('-' == plusOrMinus)) {
         return false
       } else if (found) {
+        if (onMatchFn) {
+          onMatchFn(plusOrMinusRegex, ii)
+        }
         return true
       }
     }
+    if (onMatchFn && negativeOnly) { //passses by default
+      onMatchFn("#", -1)
+    }
     return negativeOnly
+  }
+
+  /** Filters, reorders and renames the columns */
+  function calculateFilteredCols_(mutableCols, headerMeta) {
+    // Firstly, set up the alias map
+    var renameMap = {}
+    var fieldAliases = headerMeta.field_aliases || []
+    fieldAliases = fieldAliases
+      .map(function(a) { return a.trim() })
+      .filter(function(a) { return (0 == a.length) || ('#' != a[0]) })
+      .map(function(a) {
+        var fromTo = a.split("=", 2)
+        var from = fromTo[0]
+        var to = fromTo[1]
+        if (from && to) {
+          return { from: from, to: to }
+        } else {
+          return null
+        }
+      }).filter(function(a) { return null != a })
+
+    // Now figure out which fields match and group them according to the pattern order
+    var fieldFilters = buildFilterFieldRegex_(headerMeta.field_filters || [])
+
+    var defaultMatchField = "#"
+    var matchState = {}
+    mutableCols.forEach(function(mutableCol, jj) {
+      var onMatch = function(firstMatchingField, index) {
+        mutableCol.index = jj //(need this later)
+        if (index < 0) {
+          firstMatchingField = defaultMatchField
+        }
+        var list = matchState[firstMatchingField] || []
+        matchState[firstMatchingField] = list
+        list.push(mutableCol)
+      }
+      //(don't care about the result of this, just want)
+      isFieldWanted_(mutableCol.name, fieldFilters, onMatch)
+    })
+
+    // Order within each group and apply aliases at the same time
+    var globalList = []
+    fieldFilters.concat([ defaultMatchField ]).forEach(function(fieldFilter) {
+      var fields = matchState[fieldFilter] || []
+      var startOfList = []
+      var endOfList = []
+      fieldAliases.forEach(function(alias) {
+        fields.forEach(function(mutableCol) {
+          if (mutableCol.name == alias.from) {
+            mutableCol.name = alias.to
+            mutableCol.found = true
+            startOfList.push(mutableCol.index)
+          }
+        })
+      })
+      globalList = globalList.concat(startOfList)
+      fields.forEach(function(mutableCol) {
+        if (!mutableCol.found) {
+          globalList.push(mutableCol.index)
+        }
+      })
+    })
+    return globalList
   }
 
   /** Adds the error info the status, if necessary */
@@ -713,39 +779,6 @@ var ElasticsearchUtils_ = (function() {
              }
         }
      }
-  }
-
-  /** Filters, reorders and renames the columns */
-  function calculateFilteredCols_(mutableCols, headerMeta) {
-    //TODO: rename any cols
-    var renameMap = {}
-    var fieldAliases = headerMeta.field_aliases || []
-    fieldAliases = fieldAliases
-      .map(function(a) { return a.trim() })
-      .filter(function(a) { return (0 == a.length) || ('#' != a[0]) })
-      .map(function(a) {
-        var fromTo = a.split("=", 2)
-        var from = fromTo[0]
-        var to = fromTo[1]
-        if (from && to) {
-          return { from: from, to: to }
-        } else {
-          return null
-        }
-      }).filter(function(a) { return null != a })
-
-    var retVal = []
-    mutableCols.forEach(function(mutableCol, ii) {
-      for (var jj in fieldAliases) {
-        var alias = fieldAliases[jj]
-        if (mutableCol.name == alias.from) {
-          mutableCol.name = alias.to
-          break
-        }
-      }
-      retVal.push(ii) //TODO
-    })
-    return retVal
   }
 
   ////////////////////////////////////////////////////////

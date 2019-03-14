@@ -10,13 +10,13 @@ var TestAutocompletionManager = (function() {
       "-": [],
       "+": [],
       "   ": [],
-      "  test1  ": [ "+test1" ],
-      " +test2,": [ "+test2" ],
-      "-test2  ": [ "-test2" ],
-      "-test.2  ": [ "-test\\.2" ],
-      "t.est*test , test**tes.t": [ "+t\\.est[^.]*test", "+test.*tes\\.t" ],
+      "  test1  ": [ "+^test1$" ],
+      " +test2,": [ "+^test2$" ],
+      "-test2  ": [ "-^test2$" ],
+      "-test.2  ": [ "-^test\\.2$" ],
+      "t.est*test , test**tes.t": [ "+^t\\.est[^.]*test$", "+^test.*tes\\.t$" ],
       " /reg.ex*/": [ "+reg.ex*" ],
-      "-/regex**/,  #test_commented": [ "-regex**" ]
+      "-/regex**/": [ "-regex**" ]
     }
     Object.keys(filterFieldTests).forEach(function(testInStr) {
       var testIn = testInStr.split(",")
@@ -36,16 +36,16 @@ var TestAutocompletionManager = (function() {
         outList: ["stat2.filter_out"]
       },
       "/stat2[.]f[0-9]/": {
-        inList: ["stat.f1", "stat.f2", "state.filter"],
-        outList: ["state.filter"]
+        inList: ["stat2.f1", "stat2.f2", "state.filter"],
+        outList: ["stat2.f1", "stat2.f2"]
       },
       "t2,/stat[0-9]/,-nothing": {
         inList: ["stat1", "stat2", "stat1.test", "t2", "stata"],
-        outList: ["t2", "stata"]
+        outList: ["stat1", "stat2", "stat1.test", "t2"]
       },
       "-nothing": { inList: ["test"], outList: ["test"] }
     }
-    Object.keys(filterFieldTests).forEach(function(testInStr) {
+    Object.keys(fieldFilters).forEach(function(testInStr) {
       var testIn = testInStr.split(",")
       var transformedTestIn = AutocompletionManager.TESTONLY.buildFilterFieldRegex_(testIn)
       var inOut = fieldFilters[testInStr] || { inList: [], outList: [] }
