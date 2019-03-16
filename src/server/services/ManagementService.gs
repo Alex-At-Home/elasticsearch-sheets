@@ -129,7 +129,7 @@ var ManagementService_ = (function(){
     }
     var range = mgmtService
        .getRange('a' + firstBlankRow + ':' + 'c' + firstBlankRow) //(col 'c' will be to store temp objects in the future)
-    range.setValues([ [ name, JSON.stringify(configJson, null, 3), "" ] ])
+    range.setValues([ [ name, jsonOrEncoded_(name, configJson), "" ] ])
 
     return true
   }
@@ -151,7 +151,7 @@ var ManagementService_ = (function(){
         delete configJson.temp
         delete configJson.name
 
-        range.setValues([ [ name, JSON.stringify(configJson, null, 3), "" ] ])
+        range.setValues([ [ name, jsonOrEncoded_(name, configJson), "" ] ])
        return true
     } else {
        return false
@@ -174,7 +174,7 @@ var ManagementService_ = (function(){
            if (tempName) {
               configJson.name = tempName //(insert name in case it's different)
            }
-           range.setValue(JSON.stringify(configJson, null, 3))
+           range.setValue(jsonOrEncoded_(name, configJson))
         } else {
            range.setValue("")
         }
@@ -220,10 +220,10 @@ var ManagementService_ = (function(){
         if ((savedObjName == ManagementService_.getDefaultKeyName()) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
            var savedObj = defaultTableConfig_
          } else {
-           var savedObj = JSON.parse(savedObjStr)
+           var savedObj = parse_(savedObjStr)
         }
         if (tempObjStr) {
-           savedObj.temp = JSON.parse(tempObjStr)
+           savedObj.temp = parse_(tempObjStr)
         }
         // Don't expose these parameters to the UI, they are retrieved/managed separately
         if (discardRange) {
@@ -308,6 +308,42 @@ var ManagementService_ = (function(){
      }
   }
 
+  /** Returns the JSON string (or its encoded version) */
+  function jsonOrEncoded_(name, json) {
+    var jsonStr = JSON.stringify(json, null, 3)
+    if ((jsonStr.length >= 49500) || (name.indexOf("__encode_b64__") >= 0)) {
+      return compressAndEncode_(jsonStr)
+    } else {
+      return jsonStr
+    }
+  }
+
+  /** Returns a JSON object from a possible encoded/compressed string */
+  function parse_(jsonStrOrBlob) {
+    if ('{' == jsonStrOrBlob[0]) {
+      return JSON.parse(jsonStrOrBlob)
+    } else {
+      return JSON.parse(decodeAndDecompress_(jsonStrOrBlob))
+    }
+  }
+
+  /** Compresses and B64 encodes */
+  function compressAndEncode_(jsonStr) {
+    var textBlob = Utilities.newBlob(jsonStr)
+    var gzipBlob = Utilities.gzip(textBlob)
+    var encodedGzipStr = Utilities.base64Encode(gzipBlob.getBytes())
+    return encodedGzipStr
+  }
+
+  /** Decodes and decompresses */
+  function decodeAndDecompress_(encodedStr) {
+    var decodedBlob = Utilities.newBlob(Utilities.base64Decode(encodedStr))
+    decodedBlob.setContentType("application/x-gzip")
+    var uncompressedBlob = Utilities.ungzip(decodedBlob)
+    return uncompressedBlob.getDataAsString()
+  }
+
+
   /** (where the saved objects aka data tables start */
   var savedObjectMinRow_ = 9
 
@@ -331,6 +367,8 @@ var ManagementService_ = (function(){
     getDefaultKeyName: function() { return defaultTableConfigKey_ },
 
     TESTONLY: {
+      jsonOrEncoded_: jsonOrEncoded_,
+      parse_: parse_
     }
   }
 
