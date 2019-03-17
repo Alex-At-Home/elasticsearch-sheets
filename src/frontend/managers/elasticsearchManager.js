@@ -106,8 +106,10 @@ var ElasticsearchManager = (function(){
 
   /** Launches an aggregation query */
   function performAggregationQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
-     // Have an extra comms with the backend to build the query
      var tableMeta = esAndTableMeta.table_meta
+     // Incorporate lookups:
+     tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {})
+     // Have an extra comms with the backend to build the query
      google.script.run.withSuccessHandler(function(obj) {
 
        var endpoint = (Util.getJson(tableConfig, [ "aggregation_table", "index_pattern" ]) || "*") + "/_search"
@@ -213,6 +215,25 @@ var ElasticsearchManager = (function(){
 
         google.script.run.handleCatResponse(tableName, tableConfig, esAndTableMeta, result, catQuery)
      })
+  }
+
+  ////////////////////////////////////////////////////////
+
+  /** util function to escape rege - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions */
+  function escapeRegExp_(string){
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /** Find/replace lookups */
+  function incorporateLookups_(tableConfig, lookups) {
+    var tableConfigStr = JSON.stringify(tableConfig)
+    Object.entries(lookups).forEach(function(kv) {
+      var lookupStr = kv[0]
+      var lookupRegex = new RegExp(escapeRegExp_(lookupStr), "g")
+      var lookupJsonStr = JSON.stringify(kv[1])
+      tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
+    })
+    return JSON.parse(tableConfigStr)
   }
 
   ////////////////////////////////////////////////////////
