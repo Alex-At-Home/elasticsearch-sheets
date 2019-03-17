@@ -87,6 +87,15 @@ var ElasticsearchService_ = (function() {
      var statusInfo = "PENDING [" + new Date().toString() + "]"
      var tableMeta = ElasticsearchUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, testMode)
 
+     // Add lookup info
+     var lookups = findLookups_(tableConfig)
+     Object.keys(lookups).forEach(function(fullString) {
+       var nameOrNotation = lookups[fullString]
+       lookups[fullString] = LookupService_.getJsonLookup(nameOrNotation)
+     })
+     if (lookups && (Object.keys(lookups).length > 0)) {
+       tableMeta.lookups = lookups
+     }
      var retVal = { "es_meta": esInfo, "table_meta": tableMeta }
 
      return retVal
@@ -255,6 +264,24 @@ var ElasticsearchService_ = (function() {
 
   // Internal utils:
 
+  /** Finds table lookups and returns them in an associative array */
+  function findLookups_(tableConfig) {
+    var tableConfigStr = JSON.stringify(tableConfig)
+    var lookupMapRegex = /(['"])[$][$]lookupMap[(]['"]?(.*?)['"]?[)]\1/g
+    var lookups = {}
+    for (;;) {
+      var lookup = lookupMapRegex.exec(tableConfigStr)
+      if (!lookup) {
+        break
+      } else {
+        var fullLookup = lookup[0]
+        var lookupNameOrNotation = lookup[2]
+        lookups[fullLookup] = lookupNameOrNotation
+      }
+    }
+    return lookups
+  }
+
   ////////////////////////////////////////////////////////
 
   return {
@@ -268,7 +295,6 @@ var ElasticsearchService_ = (function() {
     handleAggregationResponse: handleAggregationResponse,
 
     TESTONLY: {
-
     }
   }
 }())

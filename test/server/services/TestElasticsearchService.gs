@@ -355,6 +355,34 @@
       }
       //TODO: tests for fixing formatting when switching between common options - just don't clear format between runs maybe?
       // and then check that the
+
+      TestService_.Utils.performTest(testResults, "Lookup integration", function() {
+        var ss = SpreadsheetApp.getActive()
+        var testConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+        testConfig.params = {
+          "test1": "$$lookupMap(A1:A2)",
+          "test2": "$$lookupMap('testNamedRange')",
+        }
+        try {
+          var range = testSheet.setActiveSelection("A1:A2")
+          ss.setNamedRange("testNamedRange", range)
+          range.setValues([
+            [ "test1" ],
+            [ "a" ],
+          ])
+          var retVal = ElasticsearchService_.getElasticsearchMetadata("test_lookups", testConfig, /*testMode*/true)
+          TestService_.Utils.assertEquals(
+            {
+              "\"$$lookupMap(A1:A2)\"": { "a": {} },
+              "\"$$lookupMap('testNamedRange')\"": { "a": {} }
+            },
+            retVal.table_meta.lookups
+          )
+
+        } finally {
+          ss.removeNamedRange("testNamedRange")
+        }
+      })
    }
 
    /** (PUBLIC) ElasticsearchService.handleSqlResults */
