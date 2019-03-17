@@ -9,7 +9,8 @@ var UiService_ = (function(){
   function onOpen() {
     var menu = [
       {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder'},
-      {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'}
+      {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'},
+      {name: 'View range\'s lookup map', functionName: 'launchLookupViewer'},
     ]
   //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
   //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
@@ -72,6 +73,27 @@ var UiService_ = (function(){
        })
     } else {
        SpreadsheetApp.getUi().showModalDialog(html.evaluate().setWidth(450).setHeight(350), 'Elasticsearch Configuration')
+    }
+  }
+
+  /** Launches a viewer for what lookup table would be generated with the current active range */
+  function launchLookupViewer() {
+    var html = HtmlService.createTemplateFromFile('lookupViewerDialog')
+    var ss = SpreadsheetApp.getActive()
+    if (null == ss.getActiveRange()) {
+      showStatus("Must have active range", "Server Error")
+      return
+    }
+    var nameOrNotation = LookupService_.getNamedRangeOrNotation(ss.getActiveRange())
+    html.lookupJson = LookupService_.getJsonLookup(nameOrNotation)
+    html.lookupReference = "$$lookupMap(" + nameOrNotation + ")"
+    if (TestService_.inTestMode()) {
+      TestService_.triggerUiEvent("launchLookupViewer", {
+         lookup_json: html.lookupJson, lookup_reference: html.lookupReference
+      })
+    } else {
+      var ui = SpreadsheetApp.getUi()
+      ui.showModalDialog(html.evaluate().setWidth(600).setHeight(600), "Lookup Map Viewer")
     }
   }
 
@@ -170,6 +192,7 @@ var UiService_ = (function(){
     onOpen: onOpen,
     launchElasticsearchConfig: launchElasticsearchConfig,
     launchElasticsearchTableBuilder: launchElasticsearchTableBuilder,
+    launchLookupViewer: launchLookupViewer,
 
     showStatus: showStatus,
     launchYesNoPrompt: launchYesNoPrompt,

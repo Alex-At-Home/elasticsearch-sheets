@@ -36,6 +36,9 @@ function launchElasticsearchConfig() { return UiService_.launchElasticsearchConf
 /** Creates any required internal state (first time) and launches the ES sidebar */
 function launchElasticsearchTableBuilder() { return UiService_.launchElasticsearchTableBuilder() }
 
+/** Launches a viewer for what lookup table would be generated with the current active range */
+function launchLookupViewer() { return UiService_.launchLookupViewer() }
+
 // 2] Interface with sidebar
 
 /** Provides status/error messaging back to user via a toast pop-up */
