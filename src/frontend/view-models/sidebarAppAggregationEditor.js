@@ -256,6 +256,7 @@ var AggregationEditor = (function(){
       //Autocompletion:
       switch(field) {
         case "params":
+          //TODO: completer for lookup tables
           break
         case "query":
           currMrEditor.setOptions({
@@ -276,8 +277,7 @@ var AggregationEditor = (function(){
           })
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
-            //AutocompletionManager.aggregationCompleter //TODO (also for fields editor)
-            //AutocompletionManager.painlessCompleter //TODO
+            AutocompletionManager.painlessCompleter(FieldsEditor.getFilterId())
           ]
           break
       }

@@ -61,6 +61,10 @@
       //TODO: get rid of this horrible piece of global state!
    </script>
 
+   <!-- Data Models -->
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchPainlessApi').getContent(); ?>
+
    <!-- Misc utils -->
    <?!= HtmlService.createHtmlOutputFromFile('autocompletionManager').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppUtils').getContent(); ?>
@@ -70,7 +74,6 @@
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppFieldsEditor').getContent(); ?>
 
    <!-- HTML and jquery code for the Aggregation editor in the top level accordion -->
-   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationForm').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationEditor').getContent(); ?>
 

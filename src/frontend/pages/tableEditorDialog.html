@@ -70,6 +70,10 @@
       var selectedTable = ""
    </script>
 
+   <!-- Data Models -->
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchPainlessApi').getContent(); ?>
+
    <!-- Misc utils -->
    <?!= HtmlService.createHtmlOutputFromFile('autocompletionManager').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppUtils').getContent(); ?>
@@ -80,6 +84,7 @@
 
    <!-- HTML and jquery code for the Aggregation editor in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchPainlessApi').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationForm').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppAggregationEditor').getContent(); ?>
 

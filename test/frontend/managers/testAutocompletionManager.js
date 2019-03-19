@@ -2,6 +2,9 @@ var TestAutocompletionManager = (function() {
 
   var testSuiteRoot = "testAutocompletionManager"
 
+  //TODO: add painless auto-completion test (including dynamic autocomplete)
+  //TODO: have test for (forthcoming) bucket output autocomplete
+
   /** Add new aggregation forms to an empty list */
   QUnit.test(`[${testSuiteRoot}] test filter fields utils`, function(assert) {
     //(These are duplicates of the server-side TestElasticsearchUtils.gs)
