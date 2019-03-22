@@ -11,6 +11,7 @@ var SqlEditor = (function(){
     <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_general_sql_${index}">General</a>
     </h4>
     </div>
+
     <div id="accordion_general_sql_${index}" class="panel-collapse collapse out">
     <div class="panel-body form-horizontal">
     ${GeneralEditor.buildHtmlStr(index, 'sql')}
@@ -26,6 +27,7 @@ var SqlEditor = (function(){
     ${FieldsEditor.buildHtmlStr(index, 'sql')}
     </div>
     </div>
+
     <div class="panel-heading">
     <h4 class="panel-title">
     <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_edit_sql_${index}">SQL</a>
@@ -64,7 +66,7 @@ var SqlEditor = (function(){
 
   /** Populate the data for this form */
   function populate(index, name, json, globalEditor) {
-    var sqlEditor = sqlEditor || ace.edit(`editor_sql_${index}`)
+    var sqlEditor = ace.edit(`editor_sql_${index}`)
 
     GeneralEditor.populate(index, name, json, 'sql')
     FieldsEditor.populate(index, name, json, globalEditor, 'sql')
@@ -97,7 +99,7 @@ var SqlEditor = (function(){
       AutocompletionManager.sqlCompleter
     ]
 
-    populate(index, name, json, sqlEditor) //(before we register the handlers - note calls GeneralEditor.populate)
+    populate(index, name, json, null) //(before we register the handlers - note calls GeneralEditor.populate)
 
     // General handlers
 

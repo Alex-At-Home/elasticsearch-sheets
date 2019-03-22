@@ -127,9 +127,7 @@ var TableForm = (function() {
     <div class="form-group">
     <select class="input-small form-control" id="type_${index}">
     <option disabled selected value="tabs_unknown_${index}">(Choose type)</option>
-    <!--
-    <option value="tabs_unknown_${index}">Data</option>
-    -->
+    <option value="tabs_data_${index}">Data</option>
     <option value="tabs_agg_${index}">Aggregation/Map Reduce</option>
     <option value="tabs_sql_${index}">SQL (requires license)</option>
     <option value="tabs_mgmt_${index}">Management</option>
@@ -209,7 +207,7 @@ var TableForm = (function() {
 
       var tableToTypeMap = {
         sql_table: `tabs_sql_${index}`,
-        data_table: `tabs_unknown_${index}`,
+        data_table: `tabs_data_${index}`,
         aggregation_table: `tabs_agg_${index}`,
         cat_table: `tabs_mgmt_${index}`,
         json_table: `tabs_json_${index}`
@@ -347,6 +345,7 @@ var TableForm = (function() {
 
   /** The different services supported by the table editor */
   var serviceMap_ = {
+    "tabs_data_": DataEditor,
     "tabs_agg_": AggregationEditor,
     "tabs_sql_": SqlEditor,
     "tabs_mgmt_": ManagementEditor

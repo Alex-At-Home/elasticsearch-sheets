@@ -274,7 +274,8 @@ var AggregationEditor = (function(){
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
             AutocompletionManager.paramsCompleter,
-            AutocompletionManager.queryCompleter
+            AutocompletionManager.queryCompleter,
+            AutocompletionManager.queryInsertionCompleter
           ]
           break
         default: //painless

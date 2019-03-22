@@ -70,8 +70,8 @@ var AutocompletionManager = (function() {
   // 2] ES Queries
 
   var querySubVariables_ = [
-    "$$query", "$$pagination"
-  ].map(function(el) { return { caption: el, snippet: el, meta: "substitution variable"} })
+    "$$query", "$$pagination_from", "$$pagination_size" 
+  ].map(function(el) { return { caption: el, value: el, meta: "substitution variable"} })
 
   var queryParameters_ = TopLevelQueryParameters.map(function(param) {
     return { caption: param, value: param, meta: "top-level query parameters" }
@@ -107,7 +107,7 @@ var AutocompletionManager = (function() {
 
   var querySubInsertMatch = function(editor, data) {
     var snippetManager = ace.require("ace/snippets").snippetManager
-    
+
     // (Don't have access to ace generated prefix, but this is fine since we know we haven't changed the id regex)
     editor.removeWordLeft()
 

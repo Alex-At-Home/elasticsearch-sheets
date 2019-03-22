@@ -67,11 +67,28 @@ var defaultTableConfig_ = {
   },
   "data_table": {
     "enabled": false,
+    //"index_pattern": "string"
+    "query": {
+      "query": {
+        "bool": {
+          "must": [{
+            "query_string": {
+              "query": "$$query"
+            }
+          }],
+          "filter": [],
+          "must_not": [],
+          "should": []
+        }
+      },
+      "from": "$$pagination_from",
+      "size": "$$pagination_size"
+    }
   },
    "aggregation_table": {
       "enabled": false,
       //"index_pattern": "string"
-      "query": {
+      "query": { //TODO move this to be the same as the data table
          "query": {
             "query_string": { "query": "$$query" }
          }
