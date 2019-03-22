@@ -256,7 +256,14 @@ var AggregationEditor = (function(){
       //Autocompletion:
       switch(field) {
         case "params":
-          //TODO: completer for lookup tables
+          currMrEditor.setOptions({
+              enableBasicAutocompletion: true,
+              enableSnippets: true,
+              enableLiveAutocompletion: true
+          })
+          currMrEditor.completers = [
+            AutocompletionManager.paramsCompleter
+          ]
           break
         case "query":
           currMrEditor.setOptions({
@@ -266,7 +273,8 @@ var AggregationEditor = (function(){
           })
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
-            //AutocompletionManager.queryCompleter //TODO
+            AutocompletionManager.paramsCompleter,
+            AutocompletionManager.queryCompleter
           ]
           break
         default: //painless

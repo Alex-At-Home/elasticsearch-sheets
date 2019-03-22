@@ -2,6 +2,7 @@ var QueryInfo = {
   // Misc queries
   "Misc Query": {
     "match_all": {},
+
   },
   // Full text Queries
   "Full Text Query": {
@@ -51,10 +52,35 @@ var QueryInfo = {
   },
   // Specialized Queries
   "Specialized Query": {
-
-  }
+    "more_like_this": { "fields": [ "FIELD1", "FIELD2" ], "like": "TEXT", "min_term_freq": 2, "max_query_terms": 25 },
+    "script": { "source": "SCRIPT", "lang": "painless", "params": {} },
+    "percolate": { "field": "QUERY_FIELD", "documents": [{}] },
+    "wrapper": { "query": "BASE64_ENCODED_QUERY" }
+  },
   // Span Queries
-  // TODO: 2 more misc
+  "Span Query": {
+    "span_term": { "FIELD": { "value": "VALUE" } },
+    "span_multi": { "match": { } },
+    "span_first": { "match": { } },
+    "span_near": { "clauses": [ { "span_term": { "FIELD": "VALUE" } } ], "in_order": false, "slop": 10 },
+    "span_or": { "clauses": [ { "span_term": { "FIELD": "VALUE" } } ] },
+    "span_not": { "include": { "span_term": { "FIELD1": "VALUE1" } }, "exclude": { "span_term": { "FIELD2": "VALUE2" } } },
+    "span_containing": { "little": { "span_term": { "FIELD1": "VALUE1" } }, "big": { "span_term": { "FIELD2": "VALUE2" } } },
+    "span_within": { "little": { "span_term": { "FIELD1": "VALUE1" } }, "big": { "span_term": { "FIELD2": "VALUE2" } } },
+    "field_masking_span": { "query": {}, "field": "FIELD" }
+  },
+  // Top-level fields
+  "Top Level Query Parameter": {
+    "sort": [ { "FIELD": {"order": "asc" } } ],
+    "_source": {   "includes": [ "FIELD_GLOB" ], "excludes": [ "" ] },
+    "stored_fields": [ "FIELD1", "FIELD2" ],
+    "script_field": { "FIELDNAME": { "script": { "lang": "painless", "source": "SCRIPT", "params": {} }}},
+    "docvalue_fields" : [ { "field": "FIELD", "format": "use_field_mapping" } ],
+    "post_filter": {},
+    "highlight": {"fields": { "FIELD": {} }},
+    "rescore": {"window_size": 10, "query": {}},
+    "collapse": { "field": "FIELD" }
+  }
 }
 var QueryKeywords = [
   "query", "operator", "zero_terms_query", "cutoff_frequency",
@@ -93,5 +119,35 @@ var QueryKeywords = [
   "validation_method", "plane", "mi", "miles", "yd", "yards", "ft", "feet",
   "in", "inch", "km", "kilometers", "m", "meter", "cm", "centimeters", "mm", "millimeters",
   "NM", "nauticalmiles", "nmi",
+  "fields", "like", "min_term_freq", "max_query_terms", "unlike", "like_text", "ids", "docs",
+  "min_doc_freq", "max_doc_freq", "min_word_length", "max_word_length", "stop_words",
+  "fail_on_unsupported_field", "boost_terms", "include",
+  "document", "documents", "name", "document_type", "index", "routing", "preference",
+  "version",
+  "end", "slop", "in_order", "clauses", "exclude", "pre", "post", "dist",
+  "little", "big",
+  "rewrite", "constant_score", "scoring_boolean", "constant_score_boolean",
+  "top_terms_N", "top_terms_boost_N", "top_terms_blended_freqs_N",
+  "inner_hits"
 ]
-//TODO add some date formats?
+var TopLevelQueryParameters = [
+  "timeout", "from", "size",
+  "request_cache", "allow_partial_search_results", "terminate_after",
+  "batched_reduce_size",
+  "aggs",
+  "search_type",
+  "explain",
+  "version",
+  "indices_boost",
+  "min_score",
+  "search_after"
+]
+var TopLevelQueryParameterValues = [
+  "search_type", "dfs_query_then_fetch", "query_then_fetch",
+  "order", "asc", "desc", "mode", "min", "max", "avg", "median", "sum",
+  "nested", "path", "filter", "max_children",
+  "includes", "excludes",
+  "_none_",
+  "lang", "source", "script", "params",
+  "field", "format", "use_field_mapping",
+]

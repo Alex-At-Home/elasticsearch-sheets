@@ -7,14 +7,14 @@ var AutocompletionManager = (function() {
     "DESCRIBE TABLE", "LIKE",
     "SELECT", "FROM", "WHERE", "GROUP BY", "HAVING", "ORDER BY", "ASC", "DESC", "LIMIT",
     "SHOW COLUMNS", "SHOW FUNCTIONS", "SHOW TABLES", "IN"
-  ].map(function(el) { return { caption: el, snippet: el, meta: "command keyword"} })
+  ].map(function(el) { return { caption: el, value: el, meta: "command keyword"} })
   var sqlAuxKeywords_ = [
     "ALL", "AND", "ANY", "AS", "BETWEEN", "BY", "DISTINCT",
     "EXISTS", "EXPLAIN", "EXTRACT", "FALSE", "FUNCTIONS", "FROM", "FULL",
     "INNER", "IS", "JOIN", "LEFT", "MATCH", "NATURAL", "NO", "NOT",
     "NULL", "ON", "OR", "OUTER", "RIGHT", "SESSION", "TABLE", "THEN", "TO",
     "TABLE", "TABLES", "TRUE", "USING", "WHEN", "WHERE", "WITH"
-  ].map(function(el) { return { caption: el, snippet: el, meta: "reserved keyword"} })
+  ].map(function(el) { return { caption: el, value: el, meta: "reserved keyword"} })
 
   var sqlFunctionsAggregate_ = [
     "AVG", "COUNT", "MAX", "MIN", "SUM", "KURTOSIS", "PERCENTILE",
@@ -47,9 +47,9 @@ var AutocompletionManager = (function() {
     "UCASE", "CAST", "CONVERT", "DATABASE", "USER", "SCORE"
   ].map(function(el) { return { caption: el, snippet: el + "(", meta: "function (scalar)"} })
 
-  var sqlSubVariables_ = [ //TODO (may become dynamic later? with named ranges for query)
+  var sqlSubVariables_ = [
     "$$query", "$$index", "$$pagination"
-  ].map(function(el) { return { caption: el, snippet: el, meta: "substitution variable"} })
+  ].map(function(el) { return { caption: el, value: el, meta: "substitution variable"} })
 
   var allSql_ = [].concat(sqlMainKeywords_).concat(sqlAuxKeywords_)
     .concat(sqlFunctionsAggregate_)
@@ -69,7 +69,95 @@ var AutocompletionManager = (function() {
 
   // 2] ES Queries
 
-  //TODO query completer
+  var querySubVariables_ = [
+    "$$query", "$$pagination"
+  ].map(function(el) { return { caption: el, snippet: el, meta: "substitution variable"} })
+
+  var queryParameters_ = TopLevelQueryParameters.map(function(param) {
+    return { caption: param, value: param, meta: "top-level query parameters" }
+  })
+
+
+  var queryParameterValues_ = TopLevelQueryParameterValues.map(function(paramValue) {
+    return { caption: paramValue, value: paramValue, meta: "top-level query parameter values" }
+  })
+
+  var dateFormats_ = [
+    "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd", "epoch_millis", "dd/MM/yyyy||yyyy"
+  ].map(function(el) { return { caption: el, value: el, meta: "sample date format", score: -20.0 } })
+
+  var queryKeywords_ = QueryKeywords.map(function(keyword) {
+    return { caption: keyword, value: keyword, meta: "query keyword", score: -40.0 }
+  })
+
+  var allQuery_ = [].concat(querySubVariables_)
+    .concat(queryParameters_)
+    .concat(queryParameterValues_)
+    .concat(dateFormats_)
+    .concat(queryKeywords_)
+
+  /** ACE code editor completion handler for params */
+  var queryCompleter = {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null, allQuery_)
+    }
+  }
+
+  // Subtituing snippets is a bit more involved because of leading/trailing "s:
+
+  var querySubInsertMatch = function(editor, data) {
+    var snippetManager = ace.require("ace/snippets").snippetManager
+    
+    // (Don't have access to ace generated prefix, but this is fine since we know we haven't changed the id regex)
+    editor.removeWordLeft()
+
+    // Now remove leading/trailing ""s if they exist
+    var pos = editor.getCursorPosition()
+    var line = editor.session.getLine(pos.row)
+    var startColToRemove = ((pos.column > 0) && (line[pos.column - 1] == "\"")) ? 1 :  0
+    var endColToRemove = ((pos.column < line.length) && (line[pos.column] == "\"")) ? 1 : 0
+
+    var ranges = editor.selection.getAllRanges()
+    for (var i = 0, range; range = ranges[i]; i++) {
+      range.start.column -= startColToRemove
+      range.end.column += endColToRemove
+      editor.session.remove(range)
+    }
+
+    // Use the existing snippet logic:
+    snippetManager.insertSnippet(editor, data.snippet)
+  }
+
+  var querySubstitutions_ = Object.keys(QueryInfo).flatMap(function(queryMeta){
+    var queries = QueryInfo[queryMeta]
+    return Object.keys(queries).map(function(queryName) {
+      var querySubJsonStr = `"${queryName}": ${JSON.stringify(queries[queryName], null, 3)}`
+      return {
+        caption: queryName, snippet: querySubJsonStr, meta: queryMeta, score: -10.0,
+        completer: { insertMatch: querySubInsertMatch }
+      }
+    })
+  })
+
+  var queryInsertionCompleter = {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null, querySubstitutions_)
+    }
+  }
+
+  // Parameters (query + also MR params)
+
+  var paramsHelp_ = [
+    "$$lookupMap(NAMED_RANGE_OR_A1_NOTATION)"
+  ].map(function(el) { return { caption: el, value: el, meta: "parameter substitution" } })
+
+  /** ACE code editor completion handler for params */
+  var paramsCompleter = {
+    //TODO: get list of candidate named ranges
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null, paramsHelp_)
+    }
+  }
 
   // 3] Painless
 
@@ -110,7 +198,7 @@ var AutocompletionManager = (function() {
     "states",
     "doc"
   ].map(function(el) {
-    return { caption: el, snippet: el, meta: "context variable" }
+    return { caption: el, value: el, meta: "context variable" }
   })
   //TODO: all keys from user specified param
 
@@ -122,7 +210,7 @@ var AutocompletionManager = (function() {
     "byte", "short", "char", "int", "long", "float", "double",
     "boolean", "def", "Object", "String", "void"
   ].map(function(el) {
-    return { caption: el, snippet: el, meta: "painless keyword", score: -50 }
+    return { caption: el, value: el, meta: "painless keyword", score: -50 }
   })
 
   var allPainless_ = painlessApi_.concat(painlessContext_).concat(painlessKeywords_)
@@ -204,13 +292,13 @@ var AutocompletionManager = (function() {
           var rows = response.rows || []
           retVal.raw = rows.map(function(row) {
             return {
-              caption: row[0], snippet: row[0], meta: `data field (${row[2]})`, filter_info: row[0]
+              caption: row[0], value: row[0], meta: `data field (${row[2]})`, filter_info: row[0]
             }
           })
           retVal.painless = retVal.raw.concat(rows.map(function(row) {
             var docField = `doc["${row[0]}"].value`
             return {
-              caption: docField, snippet: docField, meta: `document field (${row[2]})`, filter_info: row[0]
+              caption: docField, value: docField, meta: `document field (${row[2]})`, filter_info: row[0]
             }
           }))
           indexPatternToFields_[currIndexPatternVal] = retVal
@@ -288,6 +376,10 @@ var AutocompletionManager = (function() {
   return {
     sqlCompleter: sqlCompleter,
     painlessCompleter: painlessCompleter,
+
+    paramsCompleter: paramsCompleter,
+    queryCompleter: queryCompleter,
+    queryInsertionCompleter: queryInsertionCompleter,
 
     registerFilterList: registerFilterList,
     registerIndexPattern: registerIndexPattern,
