@@ -52,6 +52,7 @@ var ElasticsearchManager = (function(){
   // Internals
 
   var tableToQueryMapping_ = {
+      "data_table": { fn: performDataQuery, hasQueryBar: true },
       "cat_table": { fn: performCatQuery, hasQueryBar: false },
       "sql_table": { fn: performSqlQuery, hasQueryBar: true },
       "aggregation_table": { fn: performAggregationQuery, hasQueryBar: true },
@@ -143,6 +144,52 @@ var ElasticsearchManager = (function(){
      }).buildAggregationQuery(tableConfig, tableMeta.query || "")
   }
 
+  /** Launches an ES query */
+  function performDataQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
+     var tableMeta = esAndTableMeta.table_meta
+
+     var userQuery = tableMeta.query || "*"
+
+     var paginationSize = tableMeta.data_size || 100
+     var page = tableMeta.page || 0
+     var paginationFrom = tableMeta.page_info_offset ?
+      page*paginationSize : 0
+
+    var replacementMap = {
+      "[$][$]query": userQuery,
+      "[$][$]pagination_from": paginationFrom,
+      "[$][$]pagination_size": paginationSize
+    }
+    // Incorporate lookups:
+    tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {}, replacementMap)
+
+    var endpoint = (Util.getJson(tableConfig, [ "data_table", "index_pattern" ]) || "*") + "/_search"
+    var body = Util.getJson(tableConfig, [ "data_table", "query" ]) || {}
+
+    if (testMode) {
+      google.script.run.launchQueryViewer('View ES query: ' + tableName,
+        'POST', endpoint, JSON.stringify(body, null, 3)
+      )
+      return
+    }
+
+    esClient.transport.request({
+      method: "POST",
+      path: endpoint,
+      body: JSON.stringify(body, null, 3),
+      headers: esAndTableMeta.es_meta.headers
+    }, function(err, response, status) {
+      var result = {}
+      // Error or response
+      if (err) { result.err = err.message }
+      else { result.response = response }
+      // (always get status)
+      if (status) { result.status = status }
+
+      google.script.run.handleDataResponse(tableName, tableConfig, esAndTableMeta, result, fullSqlQuery)
+    })
+  }
+
   /** Launches a SQL query */
   function performSqlQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
      var tableMeta = esAndTableMeta.table_meta
@@ -225,7 +272,7 @@ var ElasticsearchManager = (function(){
   }
 
   /** Find/replace lookups */
-  function incorporateLookups_(tableConfig, lookups) {
+  function incorporateLookups_(tableConfig, lookups, otherReplacements) {
     var tableConfigStr = JSON.stringify(tableConfig)
     Object.entries(lookups).forEach(function(kv) {
       var lookupStr = kv[0]
@@ -233,6 +280,11 @@ var ElasticsearchManager = (function(){
       var lookupJsonStr = JSON.stringify(kv[1])
       tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
     })
+    if (otherReplacements) {
+      Object.entries(otherReplacements).forEach(function(kv) {
+        tableConfigStr = tableConfigStr.replace(new RegExp(kv[0], "g"), kv[1])
+      })
+    }
     return JSON.parse(tableConfigStr)
   }
 
