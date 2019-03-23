@@ -32,6 +32,7 @@
          UiService_.showStatus("Invalid range notation, should be eg 'A1:F10': [" + newRangeNotation + "]", "Server Error")
          return false
       } else {
+
          // Format skip rows/cols (error if wrong)
          //TODO
 
@@ -44,6 +45,11 @@
          if ((newRange.getHeight() < minHeight) || (newRange.getWidth() < minWidth)) {
             UiService_.showStatus("Need at least a "+minHeight+"x"+minWidth+" grid to build this table: [" + newRangeNotation + "] is too small", "Server Error")
             return false
+         }
+         var totalCells = newRange.getHeight()*newRange.getWidth()
+         if (totalCells > 50000) {  //(10% of total cell country for performance)
+           UiService_.showStatus("Max [50000] cells, this table: [" + newRangeNotation + "] is too large [" + totalCells + "]", "Server Error")
+           return false
          }
       }
       return true

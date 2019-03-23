@@ -135,7 +135,9 @@ var DataEditor = (function(){
     queryEditor.session.on('change', function(delta) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var data = Util.getOrPutJsonObj(currJson, [ "data_table" ])
-        data.query = queryEditor.session.getValue()
+        try {
+          data.query = JSON.parse(queryEditor.session.getValue())
+        } catch (err) {}
       })
     });
   }

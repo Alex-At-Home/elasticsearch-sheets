@@ -186,7 +186,7 @@ var ElasticsearchManager = (function(){
       // (always get status)
       if (status) { result.status = status }
 
-      google.script.run.handleDataResponse(tableName, tableConfig, esAndTableMeta, result, fullSqlQuery)
+      google.script.run.handleDataResponse(tableName, tableConfig, esAndTableMeta, result, body)
     })
   }
 

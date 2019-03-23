@@ -4,6 +4,38 @@
 
 var ElasticsearchUtils_ = (function() {
 
+  // 0] Query utils
+
+  /** Transforms a standard query response into rows/cols */
+  function buildRowColsFromDataResponse(tableName, tableConfig, context, json, queryJson) {
+
+    var headerSet = {}
+    var hits = TableRangeUtils_.getJson(json.response.hits.hits) || []
+    var flattenedHits = hits.map(function(hitJson) {
+      var flattenedHit = {}
+      partialFlatten_(hitJson, flattenedHit, /*topLevelOnly*/true)
+      partialFlatten_(hitJson._source || {}, flattenedHit, /*topLevelOnly*/false)
+      //TODO: fields
+      return flattenedHit
+    })
+    // Loop over the objects once to get the columns:
+    flattenedHits.forEach(function(flatHit) {
+      Object.keys(flatHit).forEach(function(header) {
+        if (!headerSet.hasOwnProperty(header)) {
+          headerSet[header] = true
+        }
+      })
+    })
+    // And now can build rows/cols:
+    // Default order is sorted lexicographically:
+    var sortedCols = Object.keys(headerSet)
+    sortedCols.sort()
+    var cols = sortedCols.map(function(header) {
+      return { name: header}
+    })
+    return { rows: flattenedHits, cols: cols }
+  }
+
   // 1] Aggregation utils:
 
   /** Transforms a complex aggregation response into rows/cols */
@@ -339,13 +371,26 @@ var ElasticsearchUtils_ = (function() {
            for (var i = 0; i < numTableCols; ++i) {
               var cell = range.getCell(currRow, i + 1)
               if (i < numDataCols) {
-                 cell.setValue(rowIsArray ? row[i] : row[fullCols[filteredCols[i]].name])
+                 if (rowIsArray) {
+                   cell.setValue(row[i])
+                 } else {
+                   var colName = fullCols[filteredCols[i]].name
+                   if (row.hasOwnProperty(colName)) {
+                     cell.setValue(row[colName])
+                   } else {
+                     cell.clearContent()
+                   }
+                 }
               } else {
-                 cell.clearContent()
+                 break //(data cleared below)
               }
            }
            dataRowOffset++
            currRow++
+        }
+        //(clear space to the left)
+        if (numTableCols > numDataCols) {
+          range.offset(0, numDataCols, currRow, numTableCols - numDataCols).clearContent()
         }
 
         // Handle - more/less data than we can write?
@@ -781,10 +826,42 @@ var ElasticsearchUtils_ = (function() {
      }
   }
 
+  /** Flattens an object up to an array, and returns arrays as stringified JSON */
+  function partialFlatten_(inObj, outObj, topLevelOnly) {
+    var isObject = function(possibleObj) {
+      return (possibleObj === Object(possibleObj)) && !Array.isArray(possibleObj)
+    }
+    var partialFlattenRecurse = function(curr, out, fieldPath) {
+      Object.keys(curr).forEach(function(key) {
+        var val = curr[key]
+        var newFieldPath = (fieldPath.length > 0) ? fieldPath + "." + key : key
+
+        if (null == val) { //(do nothing, gets cleared)
+        } else if (Array.isArray(val)) {
+          if (!topLevelOnly) {
+            //TODO: need to decide what to do with the logic here...
+            // metadata vs max_row vs max_size
+            // TODO: row filtering and regex filtering
+            out[newFieldPath] = JSON.stringify({len: val.length}, null, 3)
+//          out[fieldPath] = JSON.stringify(val, null, 3)
+          }
+        } else if (isObject(val)) {
+          if (!topLevelOnly) {
+            partialFlattenRecurse(val, out, newFieldPath)
+          }
+        } else { // primitive
+          out[newFieldPath] = val
+        }
+      })
+    }
+    partialFlattenRecurse(inObj, outObj, "")
+  }
+
   ////////////////////////////////////////////////////////
 
   return {
     buildRowColsFromAggregationResponse: buildRowColsFromAggregationResponse,
+    buildRowColsFromDataResponse: buildRowColsFromDataResponse,
     handleRowColResponse: handleRowColResponse,
     buildTableOutline: buildTableOutline,
 
@@ -792,7 +869,9 @@ var ElasticsearchUtils_ = (function() {
       buildFilterFieldRegex_: buildFilterFieldRegex_,
       isFieldWanted_: isFieldWanted_,
 
-      calculateFilteredCols_: calculateFilteredCols_
+      calculateFilteredCols_: calculateFilteredCols_,
+
+      partialFlatten_: partialFlatten_
     }
   }
 }())

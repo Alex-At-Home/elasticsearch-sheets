@@ -134,3 +134,8 @@ function handleCatResponse(tableName, tableConfig, context, json, catQuery) {
 function handleAggregationResponse(tableName, tableConfig, context, json, aggQueryJson) {
   return ElasticsearchService_.handleAggregationResponse(tableName, tableConfig, context, json, aggQueryJson)
 }
+
+/** Populates the data table range with the given query response (context comes from "getElasticsearchMetadata") */
+function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
+  return ElasticsearchService_.handleDataResponse(tableName, tableConfig, context, json, queryJson)
+}

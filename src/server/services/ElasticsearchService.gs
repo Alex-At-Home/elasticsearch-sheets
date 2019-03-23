@@ -225,13 +225,33 @@ var ElasticsearchService_ = (function() {
       }
     } catch (err) {
       json.response = null
-      json.err = { 'message': err.message }
+      json.err = err.message 
     }
     var aggQuery = JSON.stringify(aggQueryJson)
     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, aggQuery, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
   }
 
-  // 2] Internals
+  /** Populates the data table range with the given query response (context comes from "getElasticsearchMetadata") */
+  function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
+    //TODO: have hits so can be a bit more sophisticated with pagination
+    var rowsCols = { rows: [], cols: [] }
+    try {
+       if (null != json.response) {
+          rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
+            tableName, tableConfig, context, json, queryJson
+          )
+      }
+    } catch (err) {
+      json.response = null
+      json.err = err.message
+    }
+    var queryJsonStr = JSON.stringify(queryJson)
+    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, queryJsonStr, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+  }
+
+  ////////////////////////////////////////////////////////
+
+  // Internal utils:
 
   /** Converts the __map_reduce__ custom type into a scripted_metric, otherwise just embeds into its own object */
   function transformConfig_(globalConfig, configEl) {
@@ -259,10 +279,6 @@ var ElasticsearchService_ = (function() {
     }
     return retVal
   }
-
-  ////////////////////////////////////////////////////////
-
-  // Internal utils:
 
   /** Finds table lookups and returns them in an associative array */
   function findLookups_(tableConfig) {
@@ -293,6 +309,7 @@ var ElasticsearchService_ = (function() {
     handleSqlResponse: handleSqlResponse,
     handleCatResponse: handleCatResponse,
     handleAggregationResponse: handleAggregationResponse,
+    handleDataResponse: handleDataResponse,
 
     TESTONLY: {
     }
