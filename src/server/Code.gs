@@ -139,3 +139,12 @@ function handleAggregationResponse(tableName, tableConfig, context, json, aggQue
 function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
   return ElasticsearchService_.handleDataResponse(tableName, tableConfig, context, json, queryJson)
 }
+
+// 5] User defined function
+
+/** TODO docs */
+function summarizeEsSubTable(args) {
+  return ElasticsearchService_.summarizeEsSubTable(arguments)
+}
+
+//TODO: build sub-table

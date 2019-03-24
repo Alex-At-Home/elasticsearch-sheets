@@ -225,7 +225,7 @@ var ElasticsearchService_ = (function() {
       }
     } catch (err) {
       json.response = null
-      json.err = err.message 
+      json.err = err.message
     }
     var aggQuery = JSON.stringify(aggQueryJson)
     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, aggQuery, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
@@ -247,6 +247,19 @@ var ElasticsearchService_ = (function() {
     }
     var queryJsonStr = JSON.stringify(queryJson)
     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, queryJsonStr, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+  }
+
+  // User defined function
+
+  /** Summarizes a varargs of strings/JSON */
+  function summarizeEsSubTable(args) {
+    var len = args.length
+    var sample = args[0]
+    if (sample.length > 64) {
+      sample = sample.substring(0, 61) + "..."
+    }
+    var retVal = "[ " + len + " " + "value(s)" + ", sample: '" + sample + "']"
+    return retVal
   }
 
   ////////////////////////////////////////////////////////
@@ -310,6 +323,8 @@ var ElasticsearchService_ = (function() {
     handleCatResponse: handleCatResponse,
     handleAggregationResponse: handleAggregationResponse,
     handleDataResponse: handleDataResponse,
+
+    summarizeEsSubTable: summarizeEsSubTable,
 
     TESTONLY: {
     }

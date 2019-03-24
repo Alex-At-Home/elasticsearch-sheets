@@ -839,12 +839,20 @@ var ElasticsearchUtils_ = (function() {
         if (null == val) { //(do nothing, gets cleared)
         } else if (Array.isArray(val)) {
           if (!topLevelOnly) {
-            //TODO: need to decide what to do with the logic here...
-            // metadata vs max_row vs max_size
-            // TODO: row filtering and regex filtering
-            out[newFieldPath] = JSON.stringify({len: val.length}, null, 3)
-//          out[fieldPath] = JSON.stringify(val, null, 3)
-          }
+            if (val.length > 0) { //(else do nothing, leave as blank)
+              if (isObject(val[0]) ||
+                  (typeof val[0] == 'string' || val[0] instanceof String)) //(string or object, likely too big to render normally)
+              {
+                out[newFieldPath] = '=summarizeEsSubTable(\n' +
+                  val.map(function(el) {
+                    return '"' + JSON.stringify(el).replace(/["]/g, '""') + '"'
+                  }).join(",\n") +
+                  '\n)'
+              } else { // number/bool
+                out[newFieldPath] = JSON.stringify(val)
+              }
+            }
+          } //(else do nothing)
         } else if (isObject(val)) {
           if (!topLevelOnly) {
             partialFlattenRecurse(val, out, newFieldPath)
@@ -856,7 +864,7 @@ var ElasticsearchUtils_ = (function() {
     }
     partialFlattenRecurse(inObj, outObj, "")
   }
-
+  
   ////////////////////////////////////////////////////////
 
   return {
