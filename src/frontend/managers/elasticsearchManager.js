@@ -149,6 +149,8 @@ var ElasticsearchManager = (function(){
      var tableMeta = esAndTableMeta.table_meta
 
      var userQuery = tableMeta.query || "*"
+     var userQueryString = JSON.stringify(userQuery)
+     userQueryString = userQueryString.substring(1, userQueryString.length - 1)
 
      var paginationSize = tableMeta.data_size || 100
      var page = tableMeta.page || 0
@@ -156,7 +158,7 @@ var ElasticsearchManager = (function(){
       page*paginationSize : 0
 
     var replacementMap = {
-      "[$][$]query": userQuery,
+      "[$][$]query": userQueryString,
       "[$][$]pagination_from": paginationFrom,
       "[$][$]pagination_size": paginationSize
     }

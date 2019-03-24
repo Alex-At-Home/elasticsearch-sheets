@@ -6,7 +6,7 @@
 
  //TODO opponent_stats.** isn't working to get rid of all opponents stats, but opponent_stats** is
 //TODO check if should filter out arrays of objects as quickly as possible
-//TODO: not sure about peformance but maybe filter out sub-objects
+//TODO: not sure about peformance but maybe filter out sub-objects using existing fields logic
 
 //TODO figure out performance issues (100 rows, 50 cols == 10s).. is the problem processing or rendering?
 //(if the latter try building big arrays to minimize setValue calls)
