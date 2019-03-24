@@ -2,6 +2,15 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
+//TODO: if user requests entire set of rows and cols then reduce to default of 100/50
+
+ //TODO opponent_stats.** isn't working to get rid of all opponents stats, but opponent_stats** is
+//TODO check if should filter out arrays of objects as quickly as possible
+//TODO: not sure about peformance but maybe filter out sub-objects
+
+//TODO figure out performance issues (100 rows, 50 cols == 10s).. is the problem processing or rendering?
+//(if the latter try building big arrays to minimize setValue calls)
+
 //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 //TODO: serialize errors nicely, else it's impossible to read
 //TODO: sometimes missing stuff? Eg show
