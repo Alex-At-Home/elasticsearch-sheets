@@ -140,10 +140,9 @@ var TestUiService_ = (function(){
   }
 
   ////////////////////////////////////////////////////////
-  
+
   return {
     launchElasticsearchTableBuilder_: launchElasticsearchTableBuilder_,
     launchElasticsearchConfig: launchElasticsearchConfig
   }
 }())
-TestService_.registerTestSuite("UiService_", TestUiService_)

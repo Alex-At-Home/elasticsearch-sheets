@@ -6,6 +6,15 @@ function testRunner() {
   TestService_.testRunner("", /*deleteTestSheets*/true)
 }
 
+/** Calls all the test suite registrations */
+function registerAllTests_() {
+  Object.keys(this).forEach(function(global) {
+     if ((0 == global.indexOf("Test")) && (global != "TestService_")) {
+        TestService_.registerTestSuite(global, this[global])
+     }
+  })
+}
+
 var TestService_ = (function(){
 
    // 1] Called from test code
@@ -21,6 +30,7 @@ var TestService_ = (function(){
    function testRunner(filter, deleteTestSheets) {
 
       testMode_ = true
+      registerAllTests_()
 
       // Recreate test work sheet (deleting any previous tests)
       var ss = SpreadsheetApp.getActive()

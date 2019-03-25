@@ -2,7 +2,9 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
+//TODO: 0 getting written as blank in table?
 //TODO: if user requests entire set of rows and cols then reduce to default of 100/50
+//TODO: looks like I broke aggregation field ordering?
 
  //TODO opponent_stats.** isn't working to get rid of all opponents stats, but opponent_stats** is
 //TODO check if should filter out arrays of objects as quickly as possible

@@ -124,4 +124,3 @@ var TestLookupService_ = (function(){
     getNamedRangeOrNotation_: getNamedRangeOrNotation_
   }
 }())
-TestService_.registerTestSuite("LookupService_", TestLookupService_)

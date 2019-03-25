@@ -144,4 +144,3 @@ var TestTableRangeUtils_ = (function(){
   }
 
 }())
-TestService_.registerTestSuite("TableRangeUtils_", TestTableRangeUtils_)

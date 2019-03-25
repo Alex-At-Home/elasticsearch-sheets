@@ -367,4 +367,3 @@ var TestElasticsearchUtils_ = (function() {
   }
 
 }())
-TestService_.registerTestSuite("ElasticsearchUtils_", TestElasticsearchUtils_)

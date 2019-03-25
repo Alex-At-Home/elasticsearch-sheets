@@ -577,4 +577,3 @@
      buildAggregationQuery_: buildAggregationQuery_
    }
  }())
- TestService_.registerTestSuite("ElasticsearchService_", TestElasticsearchService_)
