@@ -1,9 +1,9 @@
 # elasticsearch-sheets
 An experimental Google Sheets add-on to view and interact with Elasticsearch indices
 
-## Features
-
 ![image](https://user-images.githubusercontent.com/17573856/55036844-39af9900-4ff2-11e9-9f39-1edcf0abc3e1.png)
+
+## Features
 
 * UI based table creation and management
 * `Data table` showing Elasticsearch query results as a table
