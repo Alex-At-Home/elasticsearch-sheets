@@ -278,7 +278,7 @@ var TestElasticsearchUtils_ = (function() {
         "b1.key.k1_f1", "b1.key.k1_f2", "b1.t1", "b2.key", "b2.stat1", "b2.t2", "m1.value"
      ].concat(mrHeaders)
       .concat("m2.stat2.f1", "m2.stat2.f2")
-      .map(function(n) { return { name: n } })
+      .map(function(n, ii) { return { name: n, index: ii } })
 
       var mr = function(prefix) {
          return requestConfig.mr_enabled ? [ prefix + 5 ] : []
@@ -303,7 +303,7 @@ var TestElasticsearchUtils_ = (function() {
       var requestConfig = { bad_enabled: false, mr_enabled: false, alt_filter: false }
       var tableConfig = configBuilder(requestConfig)
       var mockResults = { response: { aggregations: { "m1": { "v1": 1, "v2": 2 } } } }
-      var expectedOutput = { cols: [ { name: "m1.v1" }, { name: "m1.v2" } ], rows: [ [ 1, 2 ]  ]}
+      var expectedOutput = { cols: [ { name: "m1.v1", index: 0 }, { name: "m1.v2", index: 1 } ], rows: [ [ 1, 2 ]  ]}
       var testOutput = ElasticsearchUtils_.buildRowColsFromAggregationResponse("no_buckets", tableConfig, {}, mockResults, {})
       TestService_.Utils.assertEquals(expectedOutput, testOutput, "simple_input")
 

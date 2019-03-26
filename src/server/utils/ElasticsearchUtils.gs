@@ -15,7 +15,6 @@ var ElasticsearchUtils_ = (function() {
       var flattenedHit = {}
       partialFlatten_(hitJson, flattenedHit, /*topLevelOnly*/true)
       partialFlatten_(hitJson._source || {}, flattenedHit, /*topLevelOnly*/false)
-      //TODO: fields
       return flattenedHit
     })
     // Loop over the objects once to get the columns:
@@ -170,7 +169,11 @@ var ElasticsearchUtils_ = (function() {
                    mutableState.headers[parentField][newSubFieldChain] = true
                 }
                 if (metricInHeaders || metricNotFilteredOut) {
-                   mutableState.curr[parentField][newSubFieldChain] = objCursor[field] || ""
+                   if (objCursor.hasOwnProperty(field)) {
+                     mutableState.curr[parentField][newSubFieldChain] = objCursor[field]
+                   } else {
+                     mutableState.curr[parentField][newSubFieldChain] = ""
+                   }
                 }
                 if (!metricNotFilteredOut && !metricIsAlreadyFilteredOut) {
                   //(quick optimization so only have to call isFieldWanted_ once)
@@ -285,14 +288,20 @@ var ElasticsearchUtils_ = (function() {
      }
      var foundHeaders = false
      headerIterator(function(tableEl, subField) {
-       retVal.cols.push({ name: tableEl + "." + subField })
+       var index = retVal.cols.length
+       retVal.cols.push({ name: tableEl + "." + subField, index: index })
        foundHeaders = true
      })
      if (foundHeaders) {
        state.saved.forEach(function(row) {
          var rowArray = []
          headerIterator(function(tableEl, subField) {
-           rowArray.push((row[tableEl] || {})[subField] || "")
+           var colJson = (row[tableEl] || {})
+           if (colJson.hasOwnProperty(subField)) {
+              rowArray.push(colJson[subField])
+           } else {
+             rowArray.push("")
+           }
          })
          retVal.rows.push(rowArray)
        })
@@ -359,6 +368,8 @@ var ElasticsearchUtils_ = (function() {
         convertSpecialRows_(specialRows, numTableRows)
 
         // Write data
+        var rowArray = []
+        var startRow = -1
         while ((dataRowOffset < numDataRows) && (currRow <= numTableRows)) {
            if ((currRow == specialRows.pagination) || (currRow == specialRows.headers) ||
                (currRow == specialRows.status) || (currRow == specialRows.query_bar))
@@ -366,27 +377,38 @@ var ElasticsearchUtils_ = (function() {
               currRow++
               continue
            }
+           if (startRow < 0) {
+             startRow = currRow
+           }
+           var colArray = []
            var row = rows[dataRowOffset]
            var rowIsArray = Array.isArray(row)
            for (var i = 0; i < numTableCols; ++i) {
-              var cell = range.getCell(currRow, i + 1)
               if (i < numDataCols) {
                  if (rowIsArray) {
-                   cell.setValue(row[i])
+                   var index = fullCols[filteredCols[i]].index
+                   colArray.push(row[index])
                  } else {
                    var colName = fullCols[filteredCols[i]].name
                    if (row.hasOwnProperty(colName)) {
-                     cell.setValue(row[colName])
+                     colArray.push(row[colName])
                    } else {
-                     cell.clearContent()
+                      colArray.push("")
                    }
                  }
               } else {
                  break //(data cleared below)
               }
            }
+           rowArray.push(colArray)
            dataRowOffset++
            currRow++
+        }
+        //(write 2d array)
+        if (rowArray.length > 0) {
+          cell = range.getCell(startRow, 1)
+                  .offset(0, 0, rowArray.length, rowArray[0].length)
+                  .setValues(rowArray)
         }
         //(clear space to the left)
         if (numTableCols > numDataCols) {
@@ -864,7 +886,7 @@ var ElasticsearchUtils_ = (function() {
     }
     partialFlattenRecurse(inObj, outObj, "")
   }
-  
+
   ////////////////////////////////////////////////////////
 
   return {
