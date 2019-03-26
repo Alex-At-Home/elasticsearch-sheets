@@ -312,7 +312,7 @@ var ElasticsearchUtils_ = (function() {
   // 2] General response logic
 
   /** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
-  function handleRowColResponse(tableName, tableConfig, context, json, queryString, rows, fullCols, supportsSize) {
+  function handleRowColResponse(tableName, tableConfig, context, json, rows, fullCols, supportsSize) {
 
      /** Apply the global filters to the cols and re-order as desired */
      var filteredCols = calculateFilteredCols_(
@@ -449,8 +449,13 @@ var ElasticsearchUtils_ = (function() {
            }
            setQueryResponseInStatus_(range, context.table_meta.status_offset, "SUCCESS" + warningText)
         }
-     } else if (null != json.err) { // Write errors to status or toaster
-        var requestError = "ERROR: status = [" + json.status + "], msg = [" + json.err + "], query = [" + queryString + "]"
+     } else if (null != json.error_message) {
+        // Write errors to status or toaster
+        var requestError = (null != json.error_object) ?
+          "ERROR: status = [" + json.status + "], msg = [" + json.error_message + "], error_json = [\n" + JSON.stringify(json.error_object, null, 3) + "\n]"
+          :
+          "ERROR: status = [" + json.status + "], msg = [" + json.error_message + "], query = [" + json.query_string + "]"
+
         if (context.table_meta.status_offset) {
            setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError)
         } else { // pop up toaster
@@ -682,6 +687,14 @@ var ElasticsearchUtils_ = (function() {
       .filter(function(el) { return el && ('#' != el[0]) })
       .filter(function(el) { return el && ('+' != el) && ('-' != el) })
       .map(function(el) {
+        return el //handle substitutions
+          .replace(
+            "$$beats_fields", "/^(host.*|beat.*|input.*|prospector.*|source|offset|[@]timestamp)$/"
+          ).replace(
+            "$$docmeta_fields", "/^(_id|_index|_score|_type)$/"
+          )
+      })
+      .map(function(el) {
         var firstEl = ('-' == el[0]) ? '-' : '+'
         if (('+' == el[0]) || ('-' == el[0])) {
           el = el.substring(1)
@@ -689,9 +702,9 @@ var ElasticsearchUtils_ = (function() {
         if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
           el = el.substring(1, el.length - 1)
         } else {
-          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
+          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "^_^_")
                   .replace(/[*]/g, "[^.]*")
-                  .replace(/[.][.][.]/g, ".*") + "$"
+                  .replace(/[^]_[^]_/g, ".*") + "$"
         }
         return firstEl + el
       })

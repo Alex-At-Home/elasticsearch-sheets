@@ -129,13 +129,7 @@ var ElasticsearchManager = (function(){
           body: obj,
           headers: esAndTableMeta.es_meta.headers
        }, function(err, response, status) {
-          var result = {}
-          // Error or response
-          if (err) { result.err = err.message }
-          else { result.response = response }
-          // (always get status)
-          if (status) { result.status = status }
-
+          var result = handlePossibleError_(err, response, status, null, /*complexResponse*/true)
           google.script.run.handleAggregationResponse(tableName, tableConfig, esAndTableMeta, result, obj)
        })
 
@@ -181,13 +175,7 @@ var ElasticsearchManager = (function(){
       body: JSON.stringify(body, null, 3),
       headers: esAndTableMeta.es_meta.headers
     }, function(err, response, status) {
-      var result = {}
-      // Error or response
-      if (err) { result.err = err.message }
-      else { result.response = response }
-      // (always get status)
-      if (status) { result.status = status }
-
+      var result = handlePossibleError_(err, response, status, null, /*complexResponse*/true)
       google.script.run.handleDataResponse(tableName, tableConfig, esAndTableMeta, result, body)
     })
   }
@@ -224,13 +212,7 @@ var ElasticsearchManager = (function(){
         body: body,
         headers: esAndTableMeta.es_meta.headers
      }, function(err, response, status) {
-        var result = {}
-        // Error or response
-        if (err) { result.err = err.message }
-        else { result.response = response }
-        // (always get status)
-        if (status) { result.status = status }
-
+        var result = handlePossibleError_(err, response, status, fullSqlQuery, /*complexResponse*/false)
         google.script.run.handleSqlResponse(tableName, tableConfig, esAndTableMeta, result, fullSqlQuery)
      })
   }
@@ -255,18 +237,30 @@ var ElasticsearchManager = (function(){
         path: catQuery,
         headers: esAndTableMeta.es_meta.headers
      }, function(err, response, status) {
-        var result = {}
-        // Error or response
-        if (err) { result.err = err.message }
-        else { result.response = response }
-        // (always get status)
-        if (status) { result.status = status }
-
+        var result = handlePossibleError_(err, response, status, catQuery, /*complexResponse*/false)
         google.script.run.handleCatResponse(tableName, tableConfig, esAndTableMeta, result, catQuery)
      })
   }
 
   ////////////////////////////////////////////////////////
+
+  /** Common formatting for errors */
+  function handlePossibleError_(err, response, status, queryString, complexResponse) {
+    var result = {}
+    if (err) {
+      if (complexResponse && response.error) {
+        result.error_message = err.message
+        result.error_object = response.error
+      } else {
+        result.error_message = err.message
+        result.query_string = queryString
+      }
+    } else {
+      result.response = response
+    }
+    if (status) { result.status = status || "unknown" }
+    return result
+  }
 
   /** util function to escape rege - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions */
   function escapeRegExp_(string){

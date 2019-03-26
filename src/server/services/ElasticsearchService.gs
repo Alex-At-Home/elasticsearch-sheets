@@ -2,44 +2,13 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
-//TODO: if user requests entire set of rows and cols then reduce to default of 100/50
-//TODO: if there's no data at all (SQL at least) then blank lines overwrite status bar at top
+ //TODO: if user requests entire set of rows and cols then reduce to default of 100/50
+ //TODO: if there's no data at all (SQL at least) then blank lines overwrite status bar at top
 
- //TODO opponent_stats.** isn't working to get rid of all opponents stats, but opponent_stats** is
 //TODO check if should filter out arrays of objects as quickly as possible
 //TODO: not sure about peformance but maybe filter out sub-objects using existing fields logic
 
 //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
-//TODO: serialize errors nicely, else it's impossible to read
-//TODO: sometimes missing stuff? Eg show
-//ERROR: status = [503], msg = [[search_phase_execution_exception] ],
-//for
-/*{
-  "error": {
-    "root_cause": [],
-    "type": "search_phase_execution_exception",
-    "reason": "",
-    "phase": "fetch",
-    "grouped": true,
-    "failed_shards": [],
-    "caused_by": {
-      "type": "script_exception",
-      "reason": "compile error",
-      "script_stack": [
-        "doc_count > 20",
-        "^---- HERE"
-      ],
-      "script": "doc_count > 20",
-      "lang": "painless",
-      "caused_by": {
-        "type": "illegal_argument_exception",
-        "reason": "Variable [doc_count] is not defined."
-      }
-    }
-  },
-  "status": 503
-}
-*/
 
 var ElasticsearchService_ = (function() {
 
@@ -207,8 +176,7 @@ var ElasticsearchService_ = (function() {
         })
         rows = json.response.rows
      }
-//TODO: error obj (from ES), misc error (eg proxy), string error (eg SQL)     
-     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, sqlQuery, rows, cols, /*supportsSize*/false)
+     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/false)
   }
 
   /** Populates the data table range with the given "_cat" response (context comes from "getElasticsearchMetadata") */
@@ -221,7 +189,7 @@ var ElasticsearchService_ = (function() {
           cols = Object.keys(rows[0]).map(function(x) { return { name: x } })
         }
      }
-     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, catQuery, rows, cols, /*supportsSize*/true)
+     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/true)
   }
 
   /** Populates the data table range with the given aggregation response (context comes from "getElasticsearchMetadata") */
@@ -235,10 +203,10 @@ var ElasticsearchService_ = (function() {
       }
     } catch (err) {
       json.response = null
-      json.err = err.message
+      json.error_message = err.message
+      json.query_string = JSON.stringify(aggQueryJson)
     }
-    var aggQuery = JSON.stringify(aggQueryJson)
-    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, aggQuery, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
   }
 
   /** Populates the data table range with the given query response (context comes from "getElasticsearchMetadata") */
@@ -253,10 +221,10 @@ var ElasticsearchService_ = (function() {
       }
     } catch (err) {
       json.response = null
-      json.err = err.message
+      json.error_message = err.message
+      json.query_string = JSON.stringify(queryJson)
     }
-    var queryJsonStr = JSON.stringify(queryJson)
-    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, queryJsonStr, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
   }
 
   // User defined function
