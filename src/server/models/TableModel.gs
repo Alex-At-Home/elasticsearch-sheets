@@ -42,12 +42,14 @@ var defaultTableConfig_ = {
         "field_filters": [
           "# eg -x.*.y / +x.**",
           "# [+-]/regex/",
+          "# pre-built groups: $$<name>",
           "#(note fields are laid out in selection order)"
         ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
         "exclude_filtered_fields_from_autocomplete": true,
         "autocomplete_filters": [ //(only affects autocomplete - eg for aggregations)
           "# eg -x.*.y / +x.**",
-          "# [+-]/regex/"
+          "# [+-]/regex/",
+          "# pre-built groups: $$<name>"
         ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
         "field_aliases": [
           "#field.path=Alias To Use",

@@ -14,10 +14,13 @@ var TestElasticsearchUtils_ = (function() {
          "-": [],
          "+": [],
          "   ": [],
+         "$$beats_fields": [ "+^(host.*|beat.*|input.*|prospector.*|source|offset|[@]timestamp)$" ],
+         "-$$docmeta_fields": [ "-^(_id|_index|_score|_type)$" ],
          "  test1  ": [ "+^test1$" ],
          " +test2,": [ "+^test2$" ],
          "-test2  ": [ "-^test2$" ],
          "-test.2  ": [ "-^test\\.2$" ],
+         "-test.**  ": [ "-^test\\..*$" ],
          "t.est*test , test**tes.t": [ "+^t\\.est[^.]*test$", "+^test.*tes\\.t$" ],
          " /reg.ex*/": [ "+reg.ex*" ],
          "-/regex**/": [ "-regex**" ]
@@ -40,6 +43,10 @@ var TestElasticsearchUtils_ = (function() {
         "-stat2.filter_out": {
           inList: ["stat2.filter_out", "stat2.filter_out.in", "test", "stat1.filter_out"],
           outList: ["stat2.filter_out.in", "test", "stat1.filter_out"]
+        },
+        "-stat2.**": {
+          inList: ["stat2.filter_out", "stat2.filter_out.in", "test", "stat1.filter_out"],
+          outList: ["test", "stat1.filter_out" ]
         },
         "-stat2.filter": {
           inList: ["stat2.filter_out"],

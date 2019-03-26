@@ -119,6 +119,9 @@ var FieldsEditor = (function() {
       currFilterEditor.completers = [
         AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
       ]
+      if ('data' == tableType) {
+        currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+      }
     }
 
     var aliasEditorId = `field_aliases_${tableType}_${index}`
@@ -153,6 +156,7 @@ var FieldsEditor = (function() {
       })
       currAutoFilterEditor.completers = [
         AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+        AutocompletionManager.filterFieldGroupCompleter
       ]
     }
 

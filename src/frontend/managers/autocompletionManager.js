@@ -70,7 +70,7 @@ var AutocompletionManager = (function() {
   // 2] ES Queries
 
   var querySubVariables_ = [
-    "$$query", "$$pagination_from", "$$pagination_size" 
+    "$$query", "$$pagination_from", "$$pagination_size"
   ].map(function(el) { return { caption: el, value: el, meta: "substitution variable"} })
 
   var queryParameters_ = TopLevelQueryParameters.map(function(param) {
@@ -319,6 +319,22 @@ var AutocompletionManager = (function() {
 
   //TODO index pattern completer?
 
+  var commonDocFieldFilters_ = [
+    "$$beats_fields",
+    "-$$beats_fields",
+    "$$docmeta_fields",
+    "-$$docmeta_fields",
+  ].map(function(el) {
+    return { caption: el, value: el, meta: "useful field filter composites" }
+  })
+
+  /** ACE code editor completion handler for almost all tables */
+  var filterFieldGroupCompleter = {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null,  commonDocFieldFilters_)
+    }
+  }
+
   ////////////////////////////////////////////////////
 
   // Some internal utils, duplicated from ElasticsearchUtils.gs
@@ -384,6 +400,8 @@ var AutocompletionManager = (function() {
     registerFilterList: registerFilterList,
     registerIndexPattern: registerIndexPattern,
     dataFieldCompleter: dataFieldCompleter,
+
+    filterFieldGroupCompleter: filterFieldGroupCompleter,
 
     TESTONLY: {
       isFieldWanted_: isFieldWanted_,
