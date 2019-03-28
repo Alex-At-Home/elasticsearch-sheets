@@ -9,6 +9,16 @@ var FieldsEditor = (function() {
     return ('mgmt' != tableType)
   }
 
+  /** Is this a selected table type, or a dormant one? */
+  function isEnabled_(json, tableType) {
+    var adjustedTableType =
+      ("agg" == tableType) ? "aggregation" :
+      (("mgmt" == tableType) ? "cat" :
+      tableType)
+    var enabledPath = adjustedTableType + "_table"
+    var tableObj = json[enabledPath] || {}
+    return !tableObj.hasOwnProperty("enabled") || tableObj.enabled
+  }
 
   /** Build the HTML for the fields editor for this table */
   function buildHtmlStr(index, tableType) {
@@ -46,6 +56,7 @@ var FieldsEditor = (function() {
   }
   /** Called from the table types' "populate", populates the common model from the JSON */
   function populate(index, name, json, globalEditor, tableType) {
+
     var filterEditorId = `field_filter_${tableType}_${index}`
     var currFilterEditor = ace.edit(filterEditorId)
     var fieldFilters = Util.getJson(json, [ "common", "headers", "field_filters" ]) || []
@@ -61,15 +72,22 @@ var FieldsEditor = (function() {
     var separateAutocompleteForm =
       supportsAutocomplete_(tableType) && !autocompleteAndFilterMerged_(tableType)
 
+    // Only register fields if I'm selected (since the logic depends on table type)
+    var isEnabled = isEnabled_(json, tableType)
+
     if (separateAutocompleteForm) {
       var autoFilterEditorId = `autocomplete_filter_${tableType}_${index}`
       var currAutoFilterEditor = ace.edit(autoFilterEditorId)
       var autoFieldFilters = Util.getJson(json, [ "common", "headers", "autocomplete_filters" ]) || []
       currAutoFilterEditor.session.setValue(autoFieldFilters.join("\n"))
 
-      AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+      if (isEnabled) {
+        AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+      }
     } else if (supportsAutocomplete_(tableType)) {
-      AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+      if (isEnabled) {
+        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+      }
     }
 
     if (autocompleteAndFilterMerged_(tableType)) {
@@ -117,7 +135,7 @@ var FieldsEditor = (function() {
           enableLiveAutocompletion: true
       })
       currFilterEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
       ]
       if ('data' == tableType) {
         currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
@@ -155,7 +173,7 @@ var FieldsEditor = (function() {
           enableLiveAutocompletion: true
       })
       currAutoFilterEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
         AutocompletionManager.filterFieldGroupCompleter
       ]
     }
@@ -172,7 +190,9 @@ var FieldsEditor = (function() {
         var fieldFilters = currText.split("\n")
         headers.field_filters = fieldFilters
         if (autocompleteAndFilterMerged_(tableType)) {
-          AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+          if (isEnabled_(currJson, tableType)) {
+            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+          }
         }
       })
     })
@@ -191,7 +211,9 @@ var FieldsEditor = (function() {
           var currAutoText = currAutoFilterEditor.session.getValue()
           var autoFieldFilters = currAutoText.split("\n")
           headers.autocomplete_filters = autoFieldFilters
-          AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+          if (isEnabled_(currJson, tableType)) {
+           AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+         }
         })
       })
     }
@@ -205,7 +227,9 @@ var FieldsEditor = (function() {
           var fieldFilters = thisChecked ?
             (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
             []
-          AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+          if (isEnabled_(currJson, tableType)) {
+            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+          }
         })
       })
     }

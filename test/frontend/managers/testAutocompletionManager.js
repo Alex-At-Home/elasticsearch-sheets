@@ -10,33 +10,39 @@ var TestAutocompletionManager = (function() {
     //(These are duplicates of the server-side TestElasticsearchUtils.gs)
 
     var filterFieldTests = {
-      "-": [],
+      "-,+": [],
       "+": [],
-      "   ": [],
-      "  test1  ": [ "+^test1$" ],
-      " +test2,": [ "+^test2$" ],
-      "-test2  ": [ "-^test2$" ],
-      "-test.2  ": [ "-^test\\.2$" ],
-      "t.est*test , test**tes.t": [ "+^t\\.est[^.]*test$", "+^test.*tes\\.t$" ],
-      " /reg.ex*/": [ "+reg.ex*" ],
-      "-/regex**/": [ "-regex**" ]
+      "#test": [],
+      "   ,   ": [],
+      "$$beats_fields": [ "+^(host|beat|input|prospector|source|offset|[@]timestamp)($|[.].*)" ],
+      "-$$docmeta_fields": [ "-^(_id|_index|_score|_type)$" ],
+      "  test1  ": [ "+^test1($|[.].*)" ],
+      " +test2,": [ "+^test2($|[.].*)" ],
+      "-test2  ": [ "-^test2($|[.].*)" ],
+      "-test.2  ": [ "-^test\\.2($|[.].*)" ],
+      "-test.*  ": [ "-^test\\..*($|[.].*)" ],
+      "t.est*test , test*?tes.t": [ "+^t\\.est.*test($|[.].*)", "+^test.*\\?tes\\.t($|[.].*)" ],
+      " /reg.,ex*/": [ "+reg.,ex*" ]
     }
     Object.keys(filterFieldTests).forEach(function(testInStr) {
-      var testIn = testInStr.split(",")
-      var expectedOut = filterFieldTests[testIn]
+      var expectedOut = filterFieldTests[testInStr]
       assert.deepEqual(
-        AutocompletionManager.TESTONLY.buildFilterFieldRegex_(testIn), expectedOut, `Regex test ${testIn}`)
+        AutocompletionManager.TESTONLY.buildFilterFieldRegex_([ testInStr ]), expectedOut, `Regex test ${testInStr}`)
     })
 
     var fieldFilters = {
-      "-**": { inList: ["test"], outList: [] },
+      "-*": { inList: ["test"], outList: [] },
       "-stat2.filter_out": {
-        inList: ["stat2.filter_out", "stat2.filter_out.in", "test", "stat1.filter_out"],
-        outList: ["stat2.filter_out.in", "test", "stat1.filter_out"]
+        inList: ["stat2.filter_out", "stat2.filter_out2", "stat2.filter_out.in", "test", "stat1.filter_out"],
+        outList: ["stat2.filter_out2", "test", "stat1.filter_out"]
       },
-      "-stat2.filter": {
+      "-stat2.*": {
+        inList: ["stat2.filter_out", "stat21.field", "stat2.filter_out.in", "test", "stat1.filter_out"],
+        outList: ["stat21.field", "test", "stat1.filter_out" ]
+      },
+      "-stat2.filter*": {
         inList: ["stat2.filter_out"],
-        outList: ["stat2.filter_out"]
+        outList: []
       },
       "/stat2[.]f[0-9]/": {
         inList: ["stat2.f1", "stat2.f2", "state.filter"],

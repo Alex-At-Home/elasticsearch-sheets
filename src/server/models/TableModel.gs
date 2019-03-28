@@ -35,25 +35,23 @@ var defaultTableConfig_ = {
      },
      "status": {
         "position": "top", //(or "bottom", "none")
-        "merge": true //(if false will be its own separate line, else will merge with query/pagination if they exist)
+        "merge": false //(if false will be its own separate line, else will merge with query/pagination if they exist)
      },
      "headers": {
         "position": "top", //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
         "field_filters": [
-          "# eg -x.*.y / +x.**",
-          "# [+-]/regex/",
+          "# eg -x.*.y / +x.y (start with -s where possible)",
           "# pre-built groups: $$<name>",
-          "#(note fields are laid out in selection order)"
+          "#(note fields are laid out in match order)"
         ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
         "exclude_filtered_fields_from_autocomplete": true,
         "autocomplete_filters": [ //(only affects autocomplete - eg for aggregations)
-          "# eg -x.*.y / +x.**",
-          "# [+-]/regex/",
+          "# eg x, -x.*.y, +x.y (start with -s if possible)",
           "# pre-built groups: $$<name>"
         ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
         "field_aliases": [
           "#field.path=Alias To Use",
-          "#(note fields are laid out in selection order within regex matches)"
+          "#(note fields are laid out in order within filter matches)"
         ] //(# to ignore, format is '<field-path>=Alias')
      },
      "formatting": {
@@ -84,16 +82,27 @@ var defaultTableConfig_ = {
         }
       },
       "from": "$$pagination_from",
-      "size": "$$pagination_size"
+      "size": "$$pagination_size",
+      "_source": "$$field_filters"
     }
   },
    "aggregation_table": {
       "enabled": false,
       //"index_pattern": "string"
-      "query": { //TODO move this to be the same as the data table
-         "query": {
-            "query_string": { "query": "$$query" }
-         }
+      "query": {
+        "query": {
+          "bool": {
+            "must": [{
+              "query_string": {
+                "query": "$$query"
+              }
+            }],
+            "filter": [],
+            "must_not": [],
+            "should": []
+          }
+        },
+        "_source": "$$field_filters"
       },
       "map_reduce": {
          "params": {},

@@ -109,7 +109,14 @@ var ElasticsearchManager = (function(){
   function performAggregationQuery(tableName, tableConfig, esAndTableMeta, esClient, testMode) {
      var tableMeta = esAndTableMeta.table_meta
      // Incorporate lookups:
-     tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {})
+     var replacementMap = {
+       "\"[$][$]field_filters\"": JSON.stringify(
+         convertFieldFilterToSource_(
+           Util.getJson(tableConfig, [ "common", "headers", "autocomplete_filters"]) || []
+         )
+       )
+     }
+     tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {}, replacementMap)
      // Have an extra comms with the backend to build the query
      google.script.run.withSuccessHandler(function(obj) {
 
@@ -151,12 +158,17 @@ var ElasticsearchManager = (function(){
      var paginationFrom = tableMeta.page_info_offset ?
       page*paginationSize : 0
 
+    // Incorporate lookups:
     var replacementMap = {
       "[$][$]query": userQueryString,
       "[$][$]pagination_from": paginationFrom,
-      "[$][$]pagination_size": paginationSize
+      "[$][$]pagination_size": paginationSize,
+      "\"[$][$]field_filters\"": JSON.stringify(
+        convertFieldFilterToSource_(
+          Util.getJson(tableConfig, [ "common", "headers", "field_filters"]) || []
+        )
+      )
     }
-    // Incorporate lookups:
     tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {}, replacementMap)
 
     var endpoint = (Util.getJson(tableConfig, [ "data_table", "index_pattern" ]) || "*") + "/_search"
@@ -284,11 +296,76 @@ var ElasticsearchManager = (function(){
     return JSON.parse(tableConfigStr)
   }
 
+  /** Converts the field filter into a reduction */
+  function convertFieldFilterToSource_(fieldFilters) {
+    var retVal = {
+      includes: [],
+      excludes: []
+    }
+    //(see also ElasticsearchUtils_ and AutocompletionManager .buildFilterFieldRegex_)
+    var tidiedUp = fieldFilters
+      .map(function(el) { return el.trim() })
+      .filter(function(el) { return el && ('#' != el[0]) })
+      .map(function(el) {
+        return el //handle built-in substitutions
+          .replace(
+            "-$$beats_fields", "-host, -beat, -input, -prospector, -source, -offset, -@timestamp"
+          ).replace( //(also works for +$$beats_fields)
+            "$$beats_fields", "host, beat, input, prospector, source, offset, @timestamp"
+          ).replace(
+            "-$$docmeta_fields", "-_id, -_index, -_score, -_type"
+          ).replace( //(also works for +$$docmeta_fields)
+            "$$docmeta_fields", "_id, _index, _score, _type"
+          )
+      }).flatMap(function(elArrayStr) {
+        return (elArrayStr.indexOf("/") >= 0)
+          ? [ elArrayStr ] //(1 regex per line)
+          : elArrayStr.split(",")
+      }).map(function(el) { return el.trim() })
+      .filter(function(el) { return el && ('+' != el) && ('-' != el) })
+      .filter(function(el) { return el })
+      .map(function(el) {
+        var firstEl = ('-' == el[0]) ? '-' : '+'
+        if (('+' == el[0]) || ('-' == el[0])) {
+          el = el.substring(1)
+        }
+        return firstEl + el
+      })
+    // OK so here's the plan:
+    // 1) grab the first block of negative matches (ignoring regexes)
+    // 2) grab following positive matches, treating a regex as *
+    //    (and ignoring all negative matches)
+    for (var ii = 0; ii < tidiedUp.length; ++ii) {
+      var filter = tidiedUp[ii]
+      if ('-' == filter[0]) {
+        if (filter.indexOf("/") < 0) { //not a regex
+          retVal.excludes.push(filter.substring(1))
+        }
+      } else break
+    }
+    for (; ii < tidiedUp.length; ++ii) {
+      var filter = tidiedUp[ii]
+      if ('+' == filter[0]) {
+        if (filter.indexOf("/") < 0) { //not a regex
+          retVal.includes.push(filter.substring(1))
+        } else {
+          retVal.includes = [] //(have to allow all)
+          break
+        }
+      }
+    }
+    return retVal
+  }
+
   ////////////////////////////////////////////////////////
 
   return {
     populateTable: populateTable,
-    retrieveIndexPatternFields: retrieveIndexPatternFields
+    retrieveIndexPatternFields: retrieveIndexPatternFields,
+
+    TESTONLY: {
+      convertFieldFilterToSource_: convertFieldFilterToSource_
+    }
   }
 
 }())

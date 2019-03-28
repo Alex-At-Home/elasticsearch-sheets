@@ -2,13 +2,17 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
- //TODO: if user requests entire set of rows and cols then reduce to default of 100/50
+ //TODO: let's get rid of "Status:" (or Page:) as the query bar contents!
+
  //TODO: if there's no data at all (SQL at least) then blank lines overwrite status bar at top
 
-//TODO check if should filter out arrays of objects as quickly as possible
+ //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
+
+//TODO check if should filter out arrays of objects as quickly as possible (and arrays of arrays ...
+//     looks like time spent deserializing is massive, 3000x2 took seconds with ES side filtering, 50s browser side
+
 //TODO: not sure about peformance but maybe filter out sub-objects using existing fields logic
 
-//TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
 var ElasticsearchService_ = (function() {
 
@@ -53,6 +57,21 @@ var ElasticsearchService_ = (function() {
      }
      tableConfig.sheet = range.getSheet().getName()
      tableConfig.range = range.getA1Notation()
+
+     // Special case, full selection from partial selections:
+     if (null == tableRange) {
+       if (!range.getA1Notation() && (range.getNumRows() > 0)) {
+         tableConfig.range = "A1:Z200"
+         range = range.getSheet().getRange("A1:Z200")
+       } else if (range.getA1Notation().match(/[0-9]+:[0-9]+/)) {
+         range = range.getSheet().getRange(1, 1, range.getNumRows(), 26)
+         tableConfig.range = range.getA1Notation()
+       } else if (range.getA1Notation().match(/[a-z]+:[a-z]+/i)) {
+         range = range.getSheet().getRange(1, 1, 200, range.getNumColumns())
+         tableConfig.range = range.getA1Notation()
+       }
+     }
+
      if (!TableRangeUtils_.validateNewRange(ss, tableConfig)) {
        return null
      }

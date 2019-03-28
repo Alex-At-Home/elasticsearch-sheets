@@ -70,7 +70,7 @@ var AutocompletionManager = (function() {
   // 2] ES Queries
 
   var querySubVariables_ = [
-    "$$query", "$$pagination_from", "$$pagination_size"
+    "$$query", "$$pagination_from", "$$pagination_size", "$$field_filters"
   ].map(function(el) { return { caption: el, value: el, meta: "substitution variable"} })
 
   var queryParameters_ = TopLevelQueryParameters.map(function(param) {
@@ -243,6 +243,7 @@ var AutocompletionManager = (function() {
       filteredRetVal[key] = unfilteredFields[key].filter(function(el) {
         return isFieldWanted_(el.filter_info, fieldFilters_[editorId] || [])
       })
+      filteredRetVal["all_" + key] = [].concat(unfilteredFields[key])
     })
     indexIdToFields_[indexPatternId] = filteredRetVal
   }
@@ -366,23 +367,37 @@ var AutocompletionManager = (function() {
     var escapeRegExpNotStar = function(string) {
       return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
     }
-    var filterFields = filterFieldArray
+    var filterFields = []
+    filterFieldArray
       .map(function(el) { return el.trim() })
       .filter(function(el) { return el && ('#' != el[0]) })
-      .filter(function(el) { return el && ('+' != el) && ('-' != el) })
       .map(function(el) {
-        var firstEl = ('-' == el[0]) ? '-' : '+'
-        if (('+' == el[0]) || ('-' == el[0])) {
-          el = el.substring(1)
-        }
-        if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
-          el = el.substring(1, el.length - 1)
-        } else {
-          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "...")
-                  .replace(/[*]/g, "[^.]*")
-                  .replace(/[.][.][.]/g, ".*") + "$"
-        }
-        return firstEl + el
+        return el //handle built-in substitutions
+          .replace(
+            "$$beats_fields", "/^(host|beat|input|prospector|source|offset|[@]timestamp)($|[.].*)/"
+          ).replace(
+            "$$docmeta_fields", "/^(_id|_index|_score|_type)$/"
+          )
+      })
+      .map(function(elArrayStr) {
+        return ((elArrayStr.indexOf("/") >= 0)
+          ? [ elArrayStr ] //(1 regex per line)
+          : elArrayStr.split(","))
+            .map(function(el) { return el.trim() })
+            .filter(function(el) { return el && ('+' != el) && ('-' != el) })
+            .filter(function(el) { return el })
+            .forEach(function(el) {
+              var firstEl = ('-' == el[0]) ? '-' : '+'
+              if (('+' == el[0]) || ('-' == el[0])) {
+                el = el.substring(1)
+              }
+              if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
+                el = el.substring(1, el.length - 1)
+              } else {
+                el = "^" + escapeRegExpNotStar(el).replace(/[*]/g, ".*") + "($|[.].*)"
+              }
+              filterFields.push(firstEl + el)
+            })
       })
     return filterFields
   }

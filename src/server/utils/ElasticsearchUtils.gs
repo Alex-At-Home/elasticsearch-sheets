@@ -682,31 +682,37 @@ var ElasticsearchUtils_ = (function() {
     var escapeRegExpNotStar = function(string) {
       return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
     }
-    var filterFields = filterFieldArray
+    var filterFields = []
+    filterFieldArray
       .map(function(el) { return el.trim() })
       .filter(function(el) { return el && ('#' != el[0]) })
-      .filter(function(el) { return el && ('+' != el) && ('-' != el) })
       .map(function(el) {
-        return el //handle substitutions
+        return el //handle built-in substitutions
           .replace(
-            "$$beats_fields", "/^(host.*|beat.*|input.*|prospector.*|source|offset|[@]timestamp)$/"
+            "$$beats_fields", "/^(host|beat|input|prospector|source|offset|[@]timestamp)($|[.].*)/"
           ).replace(
             "$$docmeta_fields", "/^(_id|_index|_score|_type)$/"
           )
       })
-      .map(function(el) {
-        var firstEl = ('-' == el[0]) ? '-' : '+'
-        if (('+' == el[0]) || ('-' == el[0])) {
-          el = el.substring(1)
-        }
-        if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
-          el = el.substring(1, el.length - 1)
-        } else {
-          el = "^" + escapeRegExpNotStar(el).replace(/[*][*]/g, "^_^_")
-                  .replace(/[*]/g, "[^.]*")
-                  .replace(/[^]_[^]_/g, ".*") + "$"
-        }
-        return firstEl + el
+      .map(function(elArrayStr) {
+        return ((elArrayStr.indexOf("/") >= 0)
+          ? [ elArrayStr ] //(1 regex per line)
+          : elArrayStr.split(","))
+            .map(function(el) { return el.trim() })
+            .filter(function(el) { return el && ('+' != el) && ('-' != el) })
+            .filter(function(el) { return el })
+            .forEach(function(el) {
+              var firstEl = ('-' == el[0]) ? '-' : '+'
+              if (('+' == el[0]) || ('-' == el[0])) {
+                el = el.substring(1)
+              }
+              if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
+                el = el.substring(1, el.length - 1)
+              } else {
+                el = "^" + escapeRegExpNotStar(el).replace(/[*]/g, ".*") + "($|[.].*)"
+              }
+              filterFields.push(firstEl + el)
+            })
       })
     return filterFields
   }
