@@ -154,9 +154,9 @@ var ElasticsearchManager = (function(){
      userQueryString = userQueryString.substring(1, userQueryString.length - 1)
 
      var paginationSize = tableMeta.data_size || 100
-     var page = tableMeta.page || 0
+     var page = tableMeta.page || 1
      var paginationFrom = tableMeta.page_info_offset ?
-      page*paginationSize : 0
+      (page - 1)*paginationSize : 0
 
     // Incorporate lookups:
     var replacementMap = {
@@ -198,8 +198,9 @@ var ElasticsearchManager = (function(){
      var userQuery = tableMeta.query || "True"
      var indices = Util.getJson(tableConfig, [ "sql_table", "index_pattern" ]) || ""
      var pagination = ""
+     var page = tableMeta.page || 1
      if (tableMeta.page_info_offset) {
-        var rowsToPull = tableMeta.page*tableMeta.data_size + 1 // ES SQL currently doesn't support full pagination so have to grovel
+        var rowsToPull = page*tableMeta.data_size + 1 // ES SQL currently doesn't support full pagination so have to grovel
         //(grab +1 so we know if there are more pages)
         pagination = "LIMIT " + rowsToPull
      }

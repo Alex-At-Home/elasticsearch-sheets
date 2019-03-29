@@ -2,17 +2,27 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
- //TODO: let's get rid of "Status:" (or Page:) as the query bar contents!
-
- //TODO: if there's no data at all (SQL at least) then blank lines overwrite status bar at top
+//TODO sub-table viewer and javadocs for 2 UDFs
 
  //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
-//TODO check if should filter out arrays of objects as quickly as possible (and arrays of arrays ...
-//     looks like time spent deserializing is massive, 3000x2 took seconds with ES side filtering, 50s browser side
+//TODO: saving password does weird redirect thing
 
-//TODO: not sure about peformance but maybe filter out sub-objects using existing fields logic
+//TODO (add move range copy/paste)
 
+//TODO: get add-on menu working
+
+//TODO: Longer term:
+
+//TODO: handleRowColResponse _badly_ needs some unit tests :(
+
+//TODO: offload more processing into browser via shared files
+
+//TODO: once the mapping is pulled from non-SQL, can use it to create cols without needing ~2 passes over the data
+
+//TODO: would be nice to have a data summary table, 1 row per field with stats
+
+//TODO: allow specification of data type per col (including JSON, prettyJSON)
 
 var ElasticsearchService_ = (function() {
 
@@ -230,10 +240,11 @@ var ElasticsearchService_ = (function() {
 
   /** Populates the data table range with the given query response (context comes from "getElasticsearchMetadata") */
   function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
-    //TODO: have hits so can be a bit more sophisticated with pagination
     var rowsCols = { rows: [], cols: [] }
+    var numHits = 0
     try {
        if (null != json.response) {
+          numHits =  TableRangeUtils_.getJson(json.response || {}, [ "hits", "total" ]) || 0
           rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
             tableName, tableConfig, context, json, queryJson
           )
@@ -243,7 +254,10 @@ var ElasticsearchService_ = (function() {
       json.error_message = err.message
       json.query_string = JSON.stringify(queryJson)
     }
-    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+    ElasticsearchUtils_.handleRowColResponse(
+      tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true,
+      numHits
+    )
   }
 
   // User defined function

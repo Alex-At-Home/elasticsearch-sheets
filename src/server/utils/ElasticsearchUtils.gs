@@ -312,7 +312,7 @@ var ElasticsearchUtils_ = (function() {
   // 2] General response logic
 
   /** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
-  function handleRowColResponse(tableName, tableConfig, context, json, rows, fullCols, supportsSize) {
+  function handleRowColResponse(tableName, tableConfig, context, json, rows, fullCols, supportsSize, numHits) {
 
      /** Apply the global filters to the cols and re-order as desired */
      var filteredCols = calculateFilteredCols_(
@@ -361,7 +361,7 @@ var ElasticsearchUtils_ = (function() {
 
         var paginationSetup = (specialRows.pagination != 0)
         var dataRowOffset = 0
-        if (paginationSetup) {
+        if (paginationSetup && (null == numHits)) {
            dataRowOffset = (context.table_meta.page - 1)*context.table_meta.data_size
         }
 
@@ -410,34 +410,60 @@ var ElasticsearchUtils_ = (function() {
                   .offset(0, 0, rowArray.length, rowArray[0].length)
                   .setValues(rowArray)
         }
-        //(clear space to the left)
+        //(clear space to the left for rows we've written to - other rows handled below)
         if (numTableCols > numDataCols) {
-          range.offset(0, numDataCols, currRow, numTableCols - numDataCols).clearContent()
+          var rowsWritten = (startRow > 0) ? currRow - startRow : 0
+          if (rowsWritten > 0) {
+            range.offset(startRow - 1, numDataCols, rowsWritten, numTableCols - numDataCols).clearContent()
+          }
         }
 
         // Handle - more/less data than we can write?
         if (dataRowOffset < numDataRows) { // still have data left to write
+          var numDataRowsOrTotalHits = (null != numHits) ? numHits : numDataRows
            if (paginationSetup) { // fake pagination but we can use this to tell users if there is more data or not
               var pageInfoCell = range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
               if (supportsSize) {
-                var actualPages = Math.ceil(numDataRows/context.table_meta.data_size)
+                var actualPages = Math.ceil(numDataRowsOrTotalHits/context.table_meta.data_size)
                  pageInfoCell.setValue("Page (of " + actualPages + "):")
               } else {
                  pageInfoCell.setValue("Page (of > " + context.table_meta.page + "):")
               }
            } else {
-              warnings.push("Table not deep enough for all rows, needs to be [" + numDataRows + "], is only [" + dataRowOffset + "]")
+              warnings.push("Table not deep enough for all rows, needs to be [" + numDataRowsOrTotalHits + "], is only [" + dataRowOffset + "]")
            }
         } else {
+          //(quick check that we didn't land on a special row>)
+          while ((currRow == specialRows.pagination) || (currRow == specialRows.headers) ||
+              (currRow == specialRows.status) || (currRow == specialRows.query_bar))
+          {
+             currRow++
+             continue
+          }
+          var numTableDataRows = numTableRows
+          while ((numTableDataRows == specialRows.pagination) || (numTableDataRows == specialRows.headers) ||
+              (numTableDataRows == specialRows.status) || (numTableDataRows == specialRows.query_bar))
+          {
+             numTableDataRows--
+             continue
+          }
           // Clear remaining data rows:
-          var rowsLeft = numTableRows - (currRow - 1) //(-1 because we're moving from co-ords starting at (1,1) to offset starting at (0,0))
+          var rowsLeft = numTableDataRows - (currRow - 1) //(-1 because we're moving from co-ords starting at (1,1) to offset starting at (0,0))
           if (rowsLeft > 0) {
              range.offset(currRow - 1, 0, rowsLeft).clearContent()
           }
           // Update pagination
           if (paginationSetup) {
-             range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
-                .setValue("Page (of " + context.table_meta.page + "):")
+            var page = (null == numHits) ? context.table_meta.page :
+              Math.ceil(numHits/context.table_meta.data_size)
+            if ((null == numHits) && (startRow < 0)) { //special case, no data at all
+              page = "< " + page
+            }
+            range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
+                .setValue("Page (of " + page + "):")
+          } else if ((null != numHits) && (dataRowOffset < numHits)) {
+            // We have the exact hits so can tell
+            warnings.push("Table not deep enough for all rows, needs to be [" + numHits + "], is only [" + dataRowOffset + "]")
           }
         }
 
