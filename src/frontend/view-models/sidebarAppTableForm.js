@@ -22,7 +22,7 @@ var TableForm = (function() {
       (name == selectedTable) || (isFirstElement && (selectedTable == defaultKey))
 
     if (tmp) {
-      tableName = tmp.name || name
+      tableName = tmp.name || tableName
       json = tmp
     }
     delete json.temp
@@ -164,23 +164,22 @@ var TableForm = (function() {
       globalEditor.session.setUseWrapMode(true)
       globalEditor.session.setValue(JSON.stringify(json, null, 3))
 
-      // Register all the "child" event handlers
-      // Add the index to all fields
-      //TODO: currently unused i think, should maybe remove?
-      $(`#accordion_${index}`).each(function() {
-        $(this).data("accordion_index", index)
-        //(retrived from handler by $(this).data("accordion_index")
-      })
+      // Store the current and original name as part of the element metadata
+      var originalName = isFirstElement ? defaultKey : name
+      $(`#editor_${index}`).data("original_es_table_name", originalName)
+      var currentName = tableName
+      $(`#editor_${index}`).data("current_es_table_name", currentName)
+      //(retrived from handler by eg $(this).data("original_es_table_name"), current_es_table_name
 
       // Add table selection handler
 
       var onTableSelection = function(tab) {
-          $(`#tabs_${index} .tab-pane`).removeClass('active')
-          $(`#${tab}`).addClass('active')
+        $(`#tabs_${index} .tab-pane`).removeClass('active')
+        $(`#${tab}`).addClass('active')
 
-          if (tab == `tabs_json_${index}`) {
-            ace.edit(`editor_${index}`).resize()
-          } else { //(group all the "non raw" editors together)
+        if (tab == `tabs_json_${index}`) {
+          ace.edit(`editor_${index}`).resize()
+        } else { //(group all the "non raw" editors together)
 
           // (If first element, enable the extra options)
           if (isFirstElement) {
@@ -195,7 +194,7 @@ var TableForm = (function() {
       }
 
       $(`#type_${index}`).on('change', function () {
-        var tab = $(this).val()
+        var tab = $(this).val() || "unknown"
         onTableSelection(tab)
       })
 
@@ -235,9 +234,7 @@ var TableForm = (function() {
           $(`#collapse${index}`).collapse('toggle')
 
           // Activate the right type
-          if (!isFirstElement) {
-            selectTableType()
-          }
+          selectTableType()
         })
 
       } else { //(no handler, just set on startup
@@ -269,7 +266,20 @@ var TableForm = (function() {
           var newName = $(`#name_${index}`).val() || "(no name)"
           var jsonStr = globalEditor.session.getValue()
           var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-          ElasticsearchManager.populateTable(newName, jsonBody, /*testMode*/true)
+          ElasticsearchManager.populateTable(newName, jsonBody, "manual", /*testMode*/true)
+        })
+
+        // Ensure the current name is attached to the editor metadata
+        // hence is incorporated into stash
+        $(`#name_${index}`).on('focusout', function(){
+          var editorDiv = $(`#editor_${index}`)
+          var oldName = editorDiv.data("current_es_table_name")
+          var newName = $(`#name_${index}`).val()
+          if (oldName != newName) {
+            editorDiv.data("current_es_table_name", newName)
+            var jsonStr = globalEditor.session.getValue()
+            TableManager.onUpdateTempName(newName, originalName, jsonStr)
+          }
         })
 
         if (isFirstElement) { //create, cancel
@@ -288,11 +298,12 @@ var TableForm = (function() {
           $(`#test_${index}`).click(function(){
             var jsonStr = globalEditor.session.getValue()
             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-            ElasticsearchManager.populateTable(name, jsonBody)
+            ElasticsearchManager.populateTable(name, jsonBody, "manual", /*testMode*/false)
           })
           $(`#cancel_${index}`).click(function(){
             $(`#name_${index}`).val("")
             $(`#type_${index}`).val(`tabs_unknown_${index}`).change()
+            $(`#editor_${index}`).data("current_es_table_name", "")
             globalEditor.session.setValue(JSON.stringify(savedJson, null, 3))
             $(`#dropdown_${index}`).attr('disabled', true)
             TableManager.clearTempConfig(defaultKey)
@@ -308,7 +319,7 @@ var TableForm = (function() {
           $(`#query_${index}`).click(function(){
             var jsonStr = globalEditor.session.getValue()
             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-            ElasticsearchManager.populateTable(name, jsonBody, /*testMode*/false)
+            ElasticsearchManager.populateTable(name, jsonBody, "manual", /*testMode*/false)
           })
 
           // Name editing
@@ -336,6 +347,10 @@ var TableForm = (function() {
           $(`#update_${index}`).click(function(){
             var newName = $(`#name_${index}`).val()
             var jsonStr = globalEditor.session.getValue()
+
+            var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+            ElasticsearchManager.populateTable(name, jsonBody, "table_change", /*testMode*/false)
+
             TableManager.onUpdateTable(newName, name, jsonStr, index)
           })
         }

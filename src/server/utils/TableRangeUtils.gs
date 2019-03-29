@@ -279,6 +279,15 @@
      return retVal
    }
 
+   /** Format date to a standard */
+   function formatDate(date) {
+     var dateOrNow = date ? date : new Date()
+     var ss = SpreadsheetApp.getActiveSpreadsheet()
+     return Utilities.formatDate(dateOrNow, ss.getSpreadsheetTimeZone(),
+      "HH:mm@MM.dd.yy"
+    )
+   }
+
    ////////////////////////////////////////////////////////
 
    // 3] Internal utils
@@ -338,6 +347,7 @@
 
      getJson: getJson,
      shallowCopy: shallowCopy,
+     formatDate: formatDate,
 
      TESTONLY: {
 

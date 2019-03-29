@@ -27,11 +27,16 @@ var GeneralEditor = (function(){
     `
     <form>
     <div class="form-group">
-    <div class="checkbox">
-    <label><input type="checkbox" id="enabled_${tableType}_${index}">Enabled</label>
+    <label>Query Bar</label>
+    <select class="input-small form-control" id="trigger_${tableType}_${index}">
+    <option value='disabled'>Disabled</option>
+    <option value='manual'>Manual</option>
+    <option value='table_change'>Table Change</option>
+    </select>
     </div>
-    </div>
+
     ${hasQueryBar_(tableType) ? queryBar : ""}
+
     <div class="form-group">
     <label>Headers</label>
     <select class="input-small form-control" id="headers_${tableType}_${index}">
@@ -93,9 +98,9 @@ var GeneralEditor = (function(){
   /** Called from the table types' "populate", populates the common model from the JSON */
   function populate(index, name, json, tableType) {
 
-    // Globally enabled:
-    var globalEnable = json.enabled || true
-    $(`#enabled_${tableType}_${index}`).prop('checked', globalEnable)
+    // Trigger:
+    var trigger = json.trigger || "table_change"
+    $(`#trigger_${tableType}_${index}`).val(trigger)
 
     // Query bar
 
@@ -141,11 +146,11 @@ var GeneralEditor = (function(){
 
   /** Called from the table types' "register", Adds event handlers to all the common elements */
   function register(index, name, json, globalEditor, tableType) {
-    // Globally enabled:
-    $(`#enabled_${tableType}_${index}`).change(function() {
-      var thisChecked = this.checked
+    // Trigger:
+    $(`#trigger_${tableType}_${index}`).change(function() {
+      var thisValue = this.value
       Util.updateRawJsonNow(globalEditor, function(currJson) {
-        currJson.enabled = thisChecked
+        currJson.trigger = thisValue
       })
     })
     // Query bar

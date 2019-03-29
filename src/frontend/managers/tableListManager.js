@@ -12,7 +12,7 @@ var TableListManager = (function() {
       function(obj) {
         if (obj) {
           State_.addEntry(name, json)
-          rebuildAccordion()
+          rebuildAccordion(name)
         } //(else request silently failed)
         enableInput()
       }
@@ -32,7 +32,7 @@ var TableListManager = (function() {
         if (obj && (oldName != newName)) { // else don't need to do anything
           State_.removeEntry(index)
           State_.addEntry(newName, json)
-          rebuildAccordion()
+          rebuildAccordion(newName)
           enableInput()
         } else { //(request failed or no input)
           enableInput()
@@ -71,6 +71,22 @@ var TableListManager = (function() {
       function(obj) {
         buildAccordionTable(obj)
         selectedTable = "" //(reset, ie only do it once)
+
+        // Get the current metadata and start the refresh timer:
+        google.script.run.withSuccessHandler(
+          function(obj) {
+            var esMeta = obj.es_meta
+            if (esMeta.hasOwnProperty("query_trigger_interval_s")) {
+              timerInterval_ = esMeta.query_trigger_interval_s*1000
+            }
+            var triggerType = esMeta.query_trigger || "timed"
+            if ("timed" == esMeta.query_trigger) {
+              console.log(`Starting table refresh service, interval [${timerInterval_}]`)
+              onTableRefresh_()
+            }
+          }
+        ).getElasticsearchMetadata()
+
       }
     ).withFailureHandler(
       function(msg) {
@@ -103,15 +119,55 @@ var TableListManager = (function() {
 
   ////////////////////////////////////////////////////////
 
+  /** Timer id for the refresh */
+  var refreshTimerId_
+
+  /** Timer interval */
+  var timerInterval_ = 5000 //(ms)
+
+  /** At desired interval, checks if any tables need refreshing */
+  function onTableRefresh_() {
+
+    var scheduleNextRefresh = function() {
+      refreshTimerId_ = setTimeout(function() {
+        onTableRefresh_()
+      }, timerInterval_)
+    }
+
+    // Get tables in need of refresh:
+    google.script.run.withSuccessHandler(function(obj) {
+      try {
+        Object.entries(obj).map(function(kv) {
+          //TODO: I'm not sure this is right .. needs to be the _latest_ table config
+          var tableConfig = State_.getEntryByName(kv[0])
+          if (tableConfig) {
+            ElasticsearchManager.populateTable(kv[0], tableConfig, kv[1], /*testMode*/false)
+          }
+        })
+      } catch (err) {
+        throw err
+      } finally {
+        scheduleNextRefresh()
+      }
+    }).withFailureHandler(function(err) {
+      scheduleNextRefresh()
+    }).listTriggeredTables()
+  }
+
   var State_ = (function() {
     var accordianOneUp = 0
     var accordianNames = {}
     var accordianBodies = {}
+    var accordianBodiesByName = {}
 
     // Methods:
     return {
       /** The current 1-up to use as an index */
       getOneUp: function() { return accordianOneUp },
+
+      getEntryByName: function(name) {
+        return accordianBodiesByName[name]
+      },
 
       /** Update state while adding entry to accordion */
       addEntry: function(name, json) {
@@ -119,11 +175,14 @@ var TableListManager = (function() {
         accordianOneUp++
         accordianNames[index] = name
         accordianBodies[index] = json
+        accordianBodiesByName[name] = json
       },
       /** Update state when an entry is deleted */
       removeEntry: function(index) {
+        var name = accordianNames[index] || ""
         delete accordianNames[index]
         delete accordianBodies[index]
+        delete accordianBodiesByName[name]
       },
       /** Copies current state into an object and then resets the state */
       copyThenReset: function(mutableObj) {
@@ -136,20 +195,25 @@ var TableListManager = (function() {
         accordianOneUp = 0
         accordianNames = {}
         accordianBodies = {}
+        accordianBodiesByName = {}
       }
     }
   }())
 
   /** Rebuilds the accordion following a complex table change (delete/update-name/create) */
-  function rebuildAccordion() {
+  function rebuildAccordion(tableToReselect) {
 
     // Rebuild state
     var obj = {}
     State_.copyThenReset(obj)
     // Rebuild table
     $("#accordion").empty()
-    buildAccordionTable(obj)
-
+    selectedTable = tableToReselect || ""
+    try {
+      buildAccordionTable(obj)
+    } finally {
+      selectedTable = "" //(just once)
+    }
     //TODO: keep entries that are already open, open
   }
 

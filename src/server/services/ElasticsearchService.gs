@@ -2,6 +2,13 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
+//TODO basic triggers (including a macro-able menu item to refresh current table)
+// not wotking .. eg agg test kept repeating over and over again
+
+//TODO: _cat ... if you enter recovery but don't tab out, if doesn't take the endpoint because of how autocomplete works
+
+//TODO: remove temp for d_e_f_a_u_l_t when creating element
+
 //TODO sub-table viewer and javadocs for 2 UDFs
 
  //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
@@ -9,6 +16,8 @@
 //TODO: get add-on menu working
 
 //TODO: Longer term:
+
+//TODO: memory leak might be a problem?
 
 //TODO: handleRowColResponse _badly_ needs some unit tests :(
 
@@ -36,6 +45,26 @@ var ElasticsearchService_ = (function() {
   }
 
   // 2] Pre-request logic
+
+  /** Update the status field of tables that have changed */
+  function markTableAsPending(tableName) {
+    try {
+      var savedObjects = ManagementService_.listSavedObjects(/*discardRange*/false)
+      var tableConfig = savedObjects[tableName]
+      if (tableConfig.temp) {
+        tableConfig = tableConfig.temp
+      }
+      if (tableConfig) {
+        var ss = SpreadsheetApp.getActive()
+        var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
+        if (tableRange) {
+          var range = tableRange.getRange()
+          var statusInfo = "AWAITING REFRESH [" + TableRangeUtils_.formatDate() + "]"
+          var tableMeta = ElasticsearchUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
+        }
+      }
+    } catch (err) {} //(fire and forget, just for display)
+  }
 
   /** Retrieves the ES info from the mangement service so the _client_ can perform the call. Also table info */
   function getElasticsearchMetadata(tableName, tableConfig, testMode) {
@@ -67,13 +96,13 @@ var ElasticsearchService_ = (function() {
      // Special case, full selection from partial selections:
      if (null == tableRange) {
        if (!range.getA1Notation() && (range.getNumRows() > 0)) {
-         tableConfig.range = "A1:Z200"
-         range = range.getSheet().getRange("A1:Z200")
+         tableConfig.range = "A1:Z50"
+         range = range.getSheet().getRange("A1:Z50")
        } else if (range.getA1Notation().match(/[0-9]+:[0-9]+/)) {
          range = range.getSheet().getRange(1, 1, range.getNumRows(), 26)
          tableConfig.range = range.getA1Notation()
        } else if (range.getA1Notation().match(/[a-z]+:[a-z]+/i)) {
-         range = range.getSheet().getRange(1, 1, 200, range.getNumColumns())
+         range = range.getSheet().getRange(1, 1, 50, range.getNumColumns())
          tableConfig.range = range.getA1Notation()
        }
      }
@@ -84,8 +113,13 @@ var ElasticsearchService_ = (function() {
 
      // Build table outline and add pending
 
-     var statusInfo = "PENDING [" + new Date().toString() + "]"
+     var statusInfo = "PENDING [" + TableRangeUtils_.formatDate() + "]"
      var tableMeta = ElasticsearchUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, testMode)
+
+     // We've not set the status to pending, so clear any triggers:
+     if (!testMode && (null != tableRange)) {
+       ManagementService_.setSavedObjectTrigger(tableName, "")
+     }
 
      // Add lookup info
      var lookups = findLookups_(tableConfig)
@@ -323,6 +357,7 @@ var ElasticsearchService_ = (function() {
   return {
     configureElasticsearch: configureElasticsearch,
 
+    markTableAsPending : markTableAsPending,
     getElasticsearchMetadata: getElasticsearchMetadata,
     buildAggregationQuery: buildAggregationQuery,
 

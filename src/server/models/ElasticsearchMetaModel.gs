@@ -9,6 +9,6 @@ var esMetaModel_ = {
    "header_json": {}, //key, value map
    "client_options_json": {}, //(passed directly to ES client)
    "enabled": true,
-   "query_trigger": "none", //"none", "timed", "popup", "timed_or_popup"
-   "query_trigger_interval_s": 2
+   "query_trigger": "timed", //"none", "timed"
+   "query_trigger_interval_s": 5
 }

@@ -163,7 +163,6 @@ var UiService_ = (function(){
 
   /** Handles the result of a JSON table edit - doesn't store anywhere */
   function stashJsonFromEditor(tableName, currName, jsonConfig) {
-    //TODO: need to clear the temp saved object (inc default) on create/(update - done)/reset/clear
     ManagementService_.updateTempSavedObject(tableName, currName, jsonConfig) //(save updated contents from editor)
     launchElasticsearchTableBuilder(tableName)
   }

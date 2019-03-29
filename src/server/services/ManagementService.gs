@@ -128,10 +128,45 @@ var ManagementService_ = (function(){
       found = ("" == mgmtService.getRange('a' + firstBlankRow).getValue())
     }
     var range = mgmtService
-       .getRange('a' + firstBlankRow + ':' + 'c' + firstBlankRow) //(col 'c' will be to store temp objects in the future)
-    range.setValues([ [ name, jsonOrEncoded_(name, configJson), "" ] ])
+       .getRange('a' + firstBlankRow + ':' + 'e' + firstBlankRow)
+        //(col 'c' stores temp objects)
+        //(col 'd' reveals a tables update status)
+        //(col 'e' is the time it was last updated)
+    range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", "table_change", TableRangeUtils_.formatDate() ] ])
 
     return true
+  }
+
+  /** Updates the trigger state of a saved object */
+  function setSavedObjectTrigger(name, trigger) {
+    var mgmtService = getManagementService_()
+    var matchingRow = savedObjectMinRow_ - 1
+    var found = false
+    while (!found) {
+      matchingRow++
+      found = (name == mgmtService.getRange('a' + matchingRow).getValue())
+    }
+    if (found) {
+        var range = mgmtService
+           .getRange('d' + matchingRow + ':' + 'e' + matchingRow)
+        var curr = range.getValue()
+        var doUpdate = true
+        if ("" != trigger) { //(always overwrite)
+          switch (curr) { // don't overwrite a change of higher applicability
+            case "manual":
+              trigger = "manual" //nothing can overwrite manual (except "")
+              break
+            case "table_change": //(everything except data_change overwrites)
+              trigger = ("data_change" == trigger) ? curr : trigger
+              break
+            default: //("" or "data_change" - always update)
+              break
+          }
+        }
+        //(update the date anyway)
+        var dateOrClear = trigger ? TableRangeUtils_.formatDate() : ""
+        range.setValues([ [ trigger, dateOrClear ] ])
+    }
   }
 
   /** Updates an object (name stays the same) */
@@ -145,13 +180,14 @@ var ManagementService_ = (function(){
     }
     if (found) {
         var range = mgmtService
-           .getRange('a' + matchingRow + ':' + 'c' + matchingRow) //(col 'c' will be to store temp objects in the future)
+           .getRange('a' + matchingRow + ':' + 'e' + matchingRow)
+           //(see above for col descriptions)
 
         //(just unset a couple of temp fields, shouldn't be set here)
         delete configJson.temp
         delete configJson.name
 
-        range.setValues([ [ name, jsonOrEncoded_(name, configJson), "" ] ])
+        range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", "", "" ] ])
        return true
     } else {
        return false
@@ -209,11 +245,12 @@ var ManagementService_ = (function(){
 
     var savedObjList = {}
     for (var i = firstRow; i <= lastRow; ++i) {
-      var savedObjRow = mgmtService.getRange('a' + i + ':' + 'c' + i)
+      var savedObjRow = mgmtService.getRange('a' + i + ':' + 'd' + i)
       try {
         var savedObjName = savedObjRow.getCell(1, 1).getValue()
         var savedObjStr = savedObjRow.getCell(1, 2).getValue()
         var tempObjStr = savedObjRow.getCell(1, 3).getValue()
+        var tempTrigger = savedObjRow.getCell(1, 4).getValue()
         if (!savedObjName && !savedObjStr) {
           continue //(if only one then log error since something weird has happened)
         }
@@ -224,6 +261,9 @@ var ManagementService_ = (function(){
         }
         if (tempObjStr) {
            savedObj.temp = parse_(tempObjStr)
+        }
+        if (tempTrigger) {
+          savedObj.temp_trigger = tempTrigger
         }
         // Don't expose these parameters to the UI, they are retrieved/managed separately
         if (discardRange) {
@@ -360,6 +400,7 @@ var ManagementService_ = (function(){
 
     addSavedObject: addSavedObject,
     updateSavedObject: updateSavedObject,
+    setSavedObjectTrigger: setSavedObjectTrigger,
     updateTempSavedObject: updateTempSavedObject,
     deleteSavedObject: deleteSavedObject,
     listSavedObjects: listSavedObjects,

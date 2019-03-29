@@ -79,6 +79,11 @@ function listTableConfigs() {
   return TableService_.listTableConfigs()
 }
 
+/** List the triggered tables in the format { table_name: trigger } */
+function listTriggeredTables() {
+  return TableService_.listTriggeredTables()
+}
+
 /** Stores the temp config */
 function stashTempConfig(tableName, currName, tempConfig) {
   return TableService_.stashTempConfig(tableName, currName, tempConfig)
@@ -93,7 +98,6 @@ function clearTempConfig(tableName) {
 function createTable(name, tableConfigJson) {
    return TableService_.createTable(name, tableConfigJson)
 }
-
 
 /** Deletes a table from the management service */
 function deleteTable(name) { return TableService_.deleteTable(name) }

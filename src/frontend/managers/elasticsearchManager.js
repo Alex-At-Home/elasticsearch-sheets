@@ -4,7 +4,16 @@ var ElasticsearchManager = (function(){
   // Interface with UI
 
   /** Populate a data table from a query */
-  function populateTable(tableName, tableConfig, testMode) {
+  function populateTable(tableName, tableConfig, trigger, testMode) {
+    if (!testMode) { //(always allow test mode)
+        if (!isTriggerEnabled_(tableConfig, trigger)) {
+            // If it's manual then warn:
+            if ("manual" == trigger) {
+              Util.showStatus("This table is disabled", "Warning")
+            }
+            return
+        }
+    }
      for (var key in tableToQueryMapping_) {
         var enabled = Util.getJson(tableConfig, [ key, "enabled" ]) || false
         if (enabled) {
@@ -13,7 +22,7 @@ var ElasticsearchManager = (function(){
            if (!queryType.hasQueryBar) {
               Util.getOrPutJsonObj(tableConfig, [ "common", "query" ]).source = "none"
            }
-           performGenericOperation(tableName, tableConfig, queryType.fn, testMode)
+           performGenericOperation(tableName, tableConfig, queryType.fn, trigger, testMode)
            break
         }
      }
@@ -90,7 +99,7 @@ var ElasticsearchManager = (function(){
   }())
 
   /** Launches an ES client operation */
-  function performGenericOperation(tableName, tableConfig, operationLogicFn, testMode) {
+  function performGenericOperation(tableName, tableConfig, operationLogicFn, trigger, testMode) {
      google.script.run.withSuccessHandler(function(obj) {
         if (obj && (obj.es_meta.enabled || true)) { //(null used to return error which server has already handled)
            //TODO: all sorts of works still to be done on auth
@@ -101,7 +110,11 @@ var ElasticsearchManager = (function(){
            }
         }
      }).withFailureHandler(function(obj) {
-        Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+       if ("manual" == trigger) { //TODO: move this into Util.showStatus
+         Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+       } else { //(just log to avoid annoying pop-up all the time)
+         console.log("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+       }
      }).getElasticsearchMetadata(tableName, tableConfig, testMode)
   }
 
@@ -239,10 +252,21 @@ var ElasticsearchManager = (function(){
      var catQuery = `/_cat/${endpoint}?format=json` + (options.length > 0 ? '&' : '') + options.join("&")
 
      if (testMode) {
-        google.script.run.launchQueryViewer('View _cat query: ' + tableName,
-           'GET', catQuery, ""
-        )
-        return
+       if (!endpoint) {
+         Util.showState("_cat must have endpoint", "Client error")
+       } else {
+          google.script.run.launchQueryViewer('View _cat query: ' + tableName,
+             'GET', catQuery, ""
+          )
+          return
+       }
+     }
+     if (!endpoint) { // Simulate a 400 error from the server
+       var result = handlePossibleError_(
+         { message: "_cat must have endpoint" }, {}, -400, catQuery, false
+       )
+       google.script.run.handleCatResponse(tableName, tableConfig, esAndTableMeta, result, catQuery)
+       return
      }
 
      esClient.transport.request({
@@ -356,6 +380,19 @@ var ElasticsearchManager = (function(){
       }
     }
     return retVal
+  }
+
+  /** Checks whether a requested re-populate is desired */
+  function isTriggerEnabled_(tableConfig, trigger) {
+    var tableTrigger = tableConfig.trigger || "table_change"
+    switch(trigger) {
+      case "manual":
+        return (tableTrigger != "disabled")
+      case "table_change":
+        return (tableTrigger != "disabled") && (tableTrigger != "manual")
+      default:
+        return true
+    }
   }
 
   ////////////////////////////////////////////////////////

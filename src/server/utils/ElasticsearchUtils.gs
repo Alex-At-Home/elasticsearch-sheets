@@ -313,22 +313,21 @@ var ElasticsearchUtils_ = (function() {
 
   /** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
   function handleRowColResponse(tableName, tableConfig, context, json, rows, fullCols, supportsSize, numHits) {
+    var ss = SpreadsheetApp.getActive()
+    var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
+    var range = null
+    if (null == tableRange) { //(use current selection, test mode
+       range = ss.getActiveRange()
+    } else {
+       range = tableRange.getRange()
+    }
 
-     /** Apply the global filters to the cols and re-order as desired */
-     var filteredCols = calculateFilteredCols_(
-       fullCols,
-       TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
-     )
-
-     var ss = SpreadsheetApp.getActive()
-     var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
-     var range = null
-     if (null == tableRange) { //(use current selection, test mode
-        range = ss.getActiveRange()
-     } else {
-        range = tableRange.getRange()
-     }
      if (null != json.response) {
+        /** Apply the global filters to the cols and re-order as desired */
+        var filteredCols = calculateFilteredCols_(
+          fullCols,
+          TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
+        )
         var warnings = []
 
         var numDataCols = filteredCols.length
@@ -471,16 +470,17 @@ var ElasticsearchUtils_ = (function() {
         if (context.table_meta.status_offset) {
            var warningText = ""
            if (warnings.length > 0) {
-              warningText = " (WARNINGS = " + warnings.map(function(x) { return "[" + x + "]" }).join(", ") + ")"
+              warningText = ": (WARNINGS = " + warnings.map(function(x) { return "[" + x + "]" }).join(", ") + ")"
            }
-           setQueryResponseInStatus_(range, context.table_meta.status_offset, "SUCCESS" + warningText)
+           setQueryResponseInStatus_(range, context.table_meta.status_offset,
+             "SUCCESS [" + TableRangeUtils_.formatDate() + "]" + warningText)
         }
      } else if (null != json.error_message) {
         // Write errors to status or toaster
         var requestError = (null != json.error_object) ?
-          "ERROR: status = [" + json.status + "], msg = [" + json.error_message + "], error_json = [\n" + JSON.stringify(json.error_object, null, 3) + "\n]"
+          "ERROR [" + TableRangeUtils_.formatDate() + "]" + ": status = [" + json.status + "], msg = [" + json.error_message + "], error_json = [\n" + JSON.stringify(json.error_object, null, 3) + "\n]"
           :
-          "ERROR: status = [" + json.status + "], msg = [" + json.error_message + "], query = [" + json.query_string + "]"
+          "ERROR [" + TableRangeUtils_.formatDate() + "]" + ": status = [" + json.status + "], msg = [" + json.error_message + "], query = [" + json.query_string + "]"
 
         if (context.table_meta.status_offset) {
            setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError)

@@ -7,6 +7,12 @@ var Util = (function(){
   /** How long after we stop typing the JSON will be updated */
   var jsonUpdateTimerInterval_ = 200 //ms
 
+  /** How long after we stop typing the state will be stashed */
+  var saveTimerInterval_ = 2000 //(ms)
+
+  /** Stores the timer id for that editor */
+  var saveTimers_ = {}
+
   /** All the handlers called, indexed by editor id */
   var eventQueues_ = {}
 
@@ -98,6 +104,20 @@ var Util = (function(){
           tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
           try {
             editor.session.setValue(newJsonStr)
+            var saveTimer = saveTimers_[editor.id]
+            if (saveTimer) {
+              clearTimeout(saveTimer)
+            }
+            saveTimers_[editor.id] = setTimeout(function() {
+             delete saveTimers_[editor.id]
+             var originalName = $(`#${editor.container.id}`).data("original_es_table_name")
+             if (originalName) {
+               var currentName = $(`#${editor.container.id}`).data("current_es_table_name")
+               google.script.run.stashTempConfig( //(fire and forget)
+                 originalName, currentName, jsonBody
+               )
+             }
+            }, saveTimerInterval_)
           } catch (err) {
             tempDisableJsonChange_ = false
             throw err

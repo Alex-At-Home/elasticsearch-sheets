@@ -35,7 +35,12 @@ var TableService_ = (function(){
   /** Moves the range for the specified table */
   function setCurrentTableRange(tableName, newRange) {
     var ss = SpreadsheetApp.getActive()
-    return TableRangeUtils_.moveTableRange(ss, tableName, newRange)
+    var retVal = TableRangeUtils_.moveTableRange(ss, tableName, newRange)
+    if (retVal) {
+      ManagementService_.setSavedObjectTrigger(tableName, "table_change")
+      ElasticsearchService_.markTableAsPending(tableName) //(fire and forget)
+    }
+    return retVal
   }
 
   /** Gets the current selection */
@@ -61,8 +66,24 @@ var TableService_ = (function(){
       ManagementService_.addSavedObject(ManagementService_.getDefaultKeyName(), {})
       return ManagementService_.listSavedObjects(/*discardRange=*/true)
     } else {
+      Object.keys(tableConfigs).forEach(function(key) {
+        delete tableConfigs[key].temp_trigger //(don't expose these)
+      })
       return tableConfigs
     }
+  }
+
+  /** List the triggered tables in the format { table_name: trigger } */
+  function listTriggeredTables() {
+    var tableConfigs = ManagementService_.listSavedObjects(/*discardRange=*/true)
+    var retVal = {}
+    Object.keys(tableConfigs).forEach(function(name) {
+      var el = tableConfigs[name]
+      if (el.temp_trigger) {
+        retVal[name] = el.temp_trigger
+      }
+    })
+    return retVal
   }
 
   /** Stores the temp config */
@@ -162,6 +183,7 @@ var TableService_ = (function(){
     }
     if (rangeValid) {
       var retVal = ManagementService_.addSavedObject(name, tableConfigJson)
+      ElasticsearchService_.markTableAsPending(name) //(fire and forget)
       if (retVal) { // clear temp
          ManagementService_.updateTempSavedObject(ManagementService_.getDefaultKeyName(), null, null)
       }
@@ -180,6 +202,7 @@ var TableService_ = (function(){
     getCurrentSelection: getCurrentSelection,
 
     listTableConfigs: listTableConfigs,
+    listTriggeredTables: listTriggeredTables,
     stashTempConfig: stashTempConfig,
     clearTempConfig: clearTempConfig,
     createTable: createTable,

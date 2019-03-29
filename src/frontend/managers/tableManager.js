@@ -32,7 +32,6 @@ var TableManager = (function() {
       TableListManager.enableInput() //(just in case createNewAccordionElement throws)
       Util.showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
     }
-    //TODO: and apply the query one creation is complete
   }
 
   /** When the user deletes an existing table */
@@ -66,7 +65,15 @@ var TableManager = (function() {
         Util.showStatus("Updated JSON invalid: [" + err.message + "]", 'Client Error')
       }
     }
-    //TODO: I think we want to refresh the query here (after the update is complete)?
+  }
+
+  /** The user has updated the name, stash the result */
+  function onUpdateTempName(newTableName, oldTableName, newJsonStr) {
+    try {
+      google.script.run.stashTempConfig( //(fire and forget)
+        oldTableName, newTableName, JSON.parse(newJsonStr)
+      )
+    } catch (err) {} //(invalid JSON, just do nothing)
   }
 
   // 3] Utility methods
@@ -87,6 +94,7 @@ var TableManager = (function() {
     onCreateTable: onCreateTable,
     onDeleteTable: onDeleteTable,
     onUpdateTable: onUpdateTable,
+    onUpdateTempName: onUpdateTempName,
 
     validateName: validateName
   }
