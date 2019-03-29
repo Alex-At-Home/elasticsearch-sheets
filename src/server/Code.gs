@@ -70,8 +70,8 @@ function setCurrentTableRange(tableName, newRange) {
 }
 
 /** Gets the current selection */
-function getCurrentTableRangeSelection() {
-  return TableService_.getCurrentTableRangeSelection()
+function getCurrentSelection() {
+  return TableService_.getCurrentSelection()
 }
 
 /** Lists the current data tables (including the default one used to populate the "create new table" entry */

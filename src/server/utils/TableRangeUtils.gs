@@ -148,10 +148,10 @@
                   (currMatchingRange.getRange().getA1Notation().toLowerCase() != newRangeNotation.toLowerCase()))
            {
              var newRange = ss.getSheetByName(newSheetName).getRange(newRangeNotation)
-
-             // Clear old range:
-             currMatchingRange.getRange().clear()
-             // Overwrite range:
+             // Move data and format to new range
+             var resizedOldRange =
+              resizeToTargetRange_(currMatchingRange.getRange(), newRange)
+             resizedOldRange.moveTo(newRange)
              currMatchingRange.setRange(newRange)
            }
         }
@@ -302,6 +302,24 @@
          }
       }
       return retVal
+   }
+
+   /** Resizes range1 to ensure it fits in range 2 and clears extraneneous data/format */
+   function resizeToTargetRange_(range1, range2) {
+     var finalRange = range1
+     var startHeight = finalRange.getNumRows()
+     if (startHeight > range2.getNumRows()) {
+       finalRange = finalRange.offset(0, 0, range2.getNumRows())
+       finalRange.offset(range2.getNumRows() , 0, startHeight - range2.getNumRows()).clear()
+     }
+     var startWidth = finalRange.getNumColumns()
+     if (startWidth > range2.getNumColumns()) {
+       finalRange = finalRange.offset(0, 0, finalRange.getNumRows(), range2.getNumColumns())
+       finalRange.offset(0 , range2.getNumColumns(),
+        finalRange.getNumRows(), startWidth - range2.getNumColumns()
+       ).clear()
+     }
+     return finalRange
    }
 
    ////////////////////////////////////////////////////////

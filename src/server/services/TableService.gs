@@ -39,7 +39,7 @@ var TableService_ = (function(){
   }
 
   /** Gets the current selection */
-  function getCurrentTableRangeSelection() {
+  function getCurrentSelection() {
     var ss = SpreadsheetApp.getActive()
     var range = ss.getActiveRange()
     if (null != range) {
@@ -177,7 +177,7 @@ var TableService_ = (function(){
     getCurrentTableRange: getCurrentTableRange,
     activateTableRange: activateTableRange,
     setCurrentTableRange: setCurrentTableRange,
-    getCurrentTableRangeSelection: getCurrentTableRangeSelection,
+    getCurrentSelection: getCurrentSelection,
 
     listTableConfigs: listTableConfigs,
     stashTempConfig: stashTempConfig,
