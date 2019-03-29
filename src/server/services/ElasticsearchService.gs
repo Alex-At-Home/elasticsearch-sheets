@@ -6,8 +6,6 @@
 
  //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
-//TODO: saving password does weird redirect thing
-
 //TODO (add move range copy/paste)
 
 //TODO: get add-on menu working
