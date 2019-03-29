@@ -379,8 +379,8 @@ var AutocompletionManager = (function() {
             "$$docmeta_fields", "/^(_id|_index|_score|_type)$/"
           )
       })
-      .map(function(elArrayStr) {
-        return ((elArrayStr.indexOf("/") >= 0)
+      .forEach(function(elArrayStr) {
+        ((elArrayStr.indexOf("/") >= 0)
           ? [ elArrayStr ] //(1 regex per line)
           : elArrayStr.split(","))
             .map(function(el) { return el.trim() })
