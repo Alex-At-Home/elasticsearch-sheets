@@ -63,14 +63,16 @@ var Util = (function(){
   /** Internal - adds a JSON change to the queue */
   function addToEventQueue_(editor, updateFn) {
     clearTimeout(jsonUpdateTimerId_)
-    var list = eventQueues_[editor.id] || []
+    var editorId = editor.container.id
+    var list = eventQueues_[editorId] || []
     list.push({updateFn: updateFn, editor: editor})
-    eventQueues_[editor.id] = list
+    eventQueues_[editorId] = list
   }
 
   /** Update the raw JSON in the ACE code editor - asynchronously, eg when typing */
   function updateRawJson(editor, updateFn) {
     if (!tempDisableJsonChange_) {
+      var editorId = editor.container.id
       addToEventQueue_(editor, updateFn)
       jsonUpdateTimerId_ = setTimeout(function() { updateRawJsonNow_() } , jsonUpdateTimerInterval_)
     }
@@ -90,6 +92,7 @@ var Util = (function(){
         var list = kv[1]
         if (list.length > 0) {
           var editor = list[0].editor
+          var editorId = editor.container.id
           var jsonStr = editor.session.getValue()
           try {
             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
@@ -101,26 +104,22 @@ var Util = (function(){
             updateFn(jsonBody)
           })
           var newJsonStr = JSON.stringify(jsonBody, null, 3)
-          tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
-          try {
-            editor.session.setValue(newJsonStr)
-            var saveTimer = saveTimers_[editor.id]
-            if (saveTimer) {
-              clearTimeout(saveTimer)
+          if (newJsonStr != jsonStr) { // nothing to do if the strings are the same
+            tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
+            try {
+              editor.session.setValue(newJsonStr)
+              var saveTimer = saveTimers_[editorId]
+              if (saveTimer) {
+                clearTimeout(saveTimer)
+              }
+              saveTimers_[editorId] = setTimeout(function() {
+               delete saveTimers_[editorId]
+               TableListManager.stashCurrentTableConfig(editorId, jsonBody)
+              }, saveTimerInterval_)
+            } catch (err) {
+              tempDisableJsonChange_ = false
+              throw err
             }
-            saveTimers_[editor.id] = setTimeout(function() {
-             delete saveTimers_[editor.id]
-             var originalName = $(`#${editor.container.id}`).data("original_es_table_name")
-             if (originalName) {
-               var currentName = $(`#${editor.container.id}`).data("current_es_table_name")
-               google.script.run.stashTempConfig( //(fire and forget)
-                 originalName, currentName, jsonBody
-               )
-             }
-            }, saveTimerInterval_)
-          } catch (err) {
-            tempDisableJsonChange_ = false
-            throw err
           }
         }
       })

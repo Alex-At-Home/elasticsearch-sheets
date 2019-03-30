@@ -16,16 +16,13 @@ var TableForm = (function() {
     }
 
     // Now we've stashed the saved entries, handle any temp copies
-    var savedJson = json //(for cancel/reset)
-    var tmp = json.temp
-    var isSelectedOnLoad =
-      (name == selectedTable) || (isFirstElement && (selectedTable == defaultKey))
-
+    var tmp = json.temp //(will keep this in case the page is reloaded with no changes)
     if (tmp) {
       tableName = tmp.name || tableName
       json = tmp
     }
-    delete json.temp
+    json = Util.shallowCopy(json)
+    delete json.temp //(don't want this in the code editor)
 
     // Append to accordion
 
@@ -225,6 +222,9 @@ var TableForm = (function() {
         }
       }
 
+      var isSelectedOnLoad =
+        (name == selectedTable) || (isFirstElement && (selectedTable == defaultKey))
+
       if (isSelectedOnLoad) {
         $(`#collapse${index}`).collapse('toggle')
         selectTableType()
@@ -304,7 +304,7 @@ var TableForm = (function() {
             $(`#name_${index}`).val("")
             $(`#type_${index}`).val(`tabs_unknown_${index}`).change()
             $(`#editor_${index}`).data("current_es_table_name", "")
-            globalEditor.session.setValue(JSON.stringify(savedJson, null, 3))
+            globalEditor.session.setValue(JSON.stringify(json, null, 3))
             $(`#dropdown_${index}`).attr('disabled', true)
             TableManager.clearTempConfig(defaultKey)
           })
@@ -341,7 +341,7 @@ var TableForm = (function() {
           })
           $(`#reset_${index}`).click(function(){
             $(`#name_${index}`).val(name)
-            globalEditor.session.setValue(JSON.stringify(savedJson, null, 3))
+            globalEditor.session.setValue(JSON.stringify(json, null, 3))
             TableManager.clearTempConfig(name)
           })
           $(`#update_${index}`).click(function(){

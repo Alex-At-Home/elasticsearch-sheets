@@ -1,9 +1,5 @@
 var TableListManager = (function() {
 
-//TODO: issues
-// update fails with "updated name must be valid"
-// view table range not working
-
   // 1] Service methods to manipulate the Table List:
 
   /** Create a new data table UI element */
@@ -11,6 +7,11 @@ var TableListManager = (function() {
     google.script.run.withSuccessHandler(
       function(obj) {
         if (obj) {
+          // Update the state: add new entry and clear any stashed data
+          var originalTableConfig = State_.getEntryByName(defaultKey)
+          if (originalTableConfig) {
+            delete originalTableConfig.temp
+          }
           State_.addEntry(name, json)
           rebuildAccordion(name)
         } //(else request silently failed)
@@ -34,11 +35,12 @@ var TableListManager = (function() {
           State_.addEntry(newName, json)
           rebuildAccordion(newName)
           enableInput()
-        } else { //(request failed or no input)
+        } else { //(except to update the cache)
+          State_.updateEntryByName(oldName, json)
           enableInput()
         }
       }
-    ).withFailureHandler(
+    ).withFailureHandler( //(request failed or no input)
       function(msg) {
         enableInput()
         console.log("updateTable: error: [" + JSON.stringify(msg) + "]")
@@ -96,6 +98,21 @@ var TableListManager = (function() {
     ).listTableConfigs()
   }
 
+  /** Stashes a persistent store of the user's typing, also saves locally */
+  function stashCurrentTableConfig(globalEditorId, jsonBody) {
+    var originalName = $(`#${globalEditorId}`).data("original_es_table_name")
+    if (originalName) {
+      var currentName = $(`#${globalEditorId}`).data("current_es_table_name")
+      var tableConfig = State_.getEntryByName(originalName)
+      if (tableConfig) {
+        tableConfig.temp = jsonBody
+      }
+      google.script.run.stashTempConfig( //(fire and forget)
+        originalName, currentName, jsonBody
+      )
+    }
+  }
+
   // 3] Utils:
 
   /** An entry has been added to the table list - update state */
@@ -138,9 +155,9 @@ var TableListManager = (function() {
     google.script.run.withSuccessHandler(function(obj) {
       try {
         Object.entries(obj).map(function(kv) {
-          //TODO: I'm not sure this is right .. needs to be the _latest_ table config
           var tableConfig = State_.getEntryByName(kv[0])
           if (tableConfig) {
+            tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
             ElasticsearchManager.populateTable(kv[0], tableConfig, kv[1], /*testMode*/false)
           }
         })
@@ -165,8 +182,17 @@ var TableListManager = (function() {
       /** The current 1-up to use as an index */
       getOneUp: function() { return accordianOneUp },
 
+      /** Gets the entire JSON object by its name */
       getEntryByName: function(name) {
         return accordianBodiesByName[name]
+      },
+
+      /** Updates an existing entry */
+      updateEntryByName: function(name, newJson) {
+        var curr = accordianBodiesByName[name] || {}
+        if (curr.hasOwnProperty(name)) {
+          accordianBodiesByName[name] = newJson
+        }
       },
 
       /** Update state while adding entry to accordion */
@@ -214,7 +240,6 @@ var TableListManager = (function() {
     } finally {
       selectedTable = "" //(just once)
     }
-    //TODO: keep entries that are already open, open
   }
 
   /** Builds the accordion table from an object (user created or from server) */
@@ -244,6 +269,8 @@ var TableListManager = (function() {
     createNewAccordionElement: createNewAccordionElement,
     updateAccordionElement: updateAccordionElement,
     deleteAccordionElement: deleteAccordionElement,
+
+    stashCurrentTableConfig: stashCurrentTableConfig,
 
     buildAccordionTableFromSource: buildAccordionTableFromSource,
 

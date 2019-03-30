@@ -2,20 +2,17 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
-//TODO basic triggers (including a macro-able menu item to refresh current table)
-// not wotking .. eg agg test kept repeating over and over again
+ //TODO: -------- short term: -------------------
 
-//TODO: _cat ... if you enter recovery but don't tab out, if doesn't take the endpoint because of how autocomplete works
-
-//TODO: remove temp for d_e_f_a_u_l_t when creating element
+//TODO refresh selected table macro item
 
 //TODO sub-table viewer and javadocs for 2 UDFs
 
- //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
+//TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
 //TODO: get add-on menu working
 
-//TODO: Longer term:
+//TODO: -------- Longer term: -------------------
 
 //TODO: memory leak might be a problem?
 
@@ -28,6 +25,8 @@
 //TODO: would be nice to have a data summary table, 1 row per field with stats
 
 //TODO: allow specification of data type per col (including JSON, prettyJSON)
+
+//TODO: stash for at least the build new table should be user metadata not in the spreadsheet
 
 var ElasticsearchService_ = (function() {
 
