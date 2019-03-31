@@ -30,7 +30,7 @@ var ElasticsearchUtils_ = (function() {
     var sortedCols = Object.keys(headerSet)
     sortedCols.sort()
     var cols = sortedCols.map(function(header) {
-      return { name: header}
+      return { name: header }
     })
     return { rows: flattenedHits, cols: cols }
   }

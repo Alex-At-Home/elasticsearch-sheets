@@ -154,4 +154,17 @@ function summarizeEsSubTable(args) {
   return ElasticsearchService_.summarizeEsSubTable(arguments)
 }
 
-//TODO: build sub-table
+/** TODO docs */
+function buildEsSubTable(args) {
+  return ElasticsearchService_.buildEsSubTable(arguments)
+}
+
+//sample:
+
+/**
+ * Multiplies the input value by 2.
+ *
+ * @param {number} input The value to multiply.
+ * @return The input multiplied by 2.
+ * @customfunction
+ */

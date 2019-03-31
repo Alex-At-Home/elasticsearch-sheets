@@ -6,7 +6,7 @@
 
 //TODO refresh selected table macro item
 
-//TODO sub-table viewer and javadocs for 2 UDFs
+//TODO javadocs for 2 UDFs
 
 //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
@@ -300,6 +300,59 @@ var ElasticsearchService_ = (function() {
     return retVal
   }
 
+  /** Builds a sub-table out of a summary object */
+  function buildEsSubTable(args) {
+    var ss = SpreadsheetApp.getActive()
+    var formula = SpreadsheetApp.getActiveRange().getFormula()
+    var targetCell = formula.match(/=buildEsSubTable *\((.*)\)/i)[1]
+    try {
+      var range = ss.getRange(targetCell)
+    }
+    catch(e) {
+      throw new Error(args + ' is not a valid range')
+    }
+    var cellVal = range.getFormula()
+    var cellValToArrayStr = cellVal
+      .replace("=summarizeEsSubTable(", "[")
+      .replace(/[)] *$/, "]")
+      .replace(/["]["]/g, "\\\"")
+
+    var arrayOfJson = JSON.parse(cellValToArrayStr).map(function(line) {
+      return { _source: JSON.parse(line) }
+    })
+    var mockResponse = {
+      response: { hits: { hits: arrayOfJson }}
+    }
+    //TODO find intersecting row/col and use its table config to manage header fields
+    var rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
+      "", {}, {}, mockResponse, {}
+    )
+    // Convert to a 2d array
+    var rows = [ [] ]
+    var filteredCols = rowsCols.cols.map(function(col, index) {
+      return index //TODO extra filtering etc
+    })
+    var addedHeaders = false
+    var headers = rows[0]
+    rowsCols.rows.forEach(function(row) {
+      var colArray = []
+      filteredCols.forEach(function(colIndex) {
+        var colName = rowsCols.cols[colIndex].name
+        if (!addedHeaders) {
+          headers.push(colName)
+        }
+        if (row.hasOwnProperty(colName)) {
+          colArray.push(row[colName])
+        } else {
+           colArray.push("")
+        }
+      })
+      addedHeaders = true
+      rows.push(colArray)
+    })
+    return rows
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internal utils:
@@ -364,6 +417,7 @@ var ElasticsearchService_ = (function() {
     handleDataResponse: handleDataResponse,
 
     summarizeEsSubTable: summarizeEsSubTable,
+    buildEsSubTable: buildEsSubTable,
 
     TESTONLY: {
     }
