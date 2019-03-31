@@ -79,7 +79,8 @@ var TableService_ = (function(){
     var retVal = {}
     Object.keys(tableConfigs).forEach(function(name) {
       var el = tableConfigs[name]
-      if (el.temp_trigger) {
+      //(never allowed to trigger on the default object, add this for safety)
+      if ((ManagementService_.getDefaultKeyName() != name) && el.temp_trigger) {
         retVal[name] = el.temp_trigger
       }
     })

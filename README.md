@@ -11,13 +11,13 @@ An experimental Google Sheets add-on to view and interact with Elasticsearch ind
   * Summarizes nested JSON arrays
 * `Aggregation table` showing Elasticsearch aggregations results as a table
    * A hybrid UI uses the ES DSL to configure individual metrics
-   * Autocomplete for both the DSL and the data fields 
+   * Autocomplete for both the DSL and the data fields
    * Includes an integrated "MapReduce" UI with `painless` autocompletion
-      * Use cell ranges as lookup tables for the `MapReduce` logic 
+      * Use cell ranges as lookup tables for the `MapReduce` logic
 * `SQL table` providing an interface to `elasticsearch-sql`
    * SQL and data field autocompletion
 * `Management table`
-   * Gives access to the `cat` endpoints 
+   * Gives access to the `cat` endpoints
 * Safe sharing of the spreadsheet
    * password or anonymous access to Elasticsearch from the browser
 
@@ -25,11 +25,14 @@ An experimental Google Sheets add-on to view and interact with Elasticsearch ind
 
 The intention is for this project to be consumable as a Google Sheets add-on
 
-In the meantime, the following steps allow it to be demo'd (or used from source):
+In the meantime, if you trust me (general disclaimer: please don't unless you have some reason to!), request a share of [this spreadsheet](https://docs.google.com/spreadsheets/d/1b-6Ut21fmGHNdUWLtmJNRZkRiOBOjFNaMyYBxae4dyk/edit#gid=0), make a copy of it, and the "Elasticsearch" menu should appear after a while (if not, select `Tools > Script Editor` then exit out of it).
+To run the script you will have to grant it whatever permissions it wants. The original spreadsheet lists the current release status.
+
+Alternatively, the following steps allow it to be built and used from source:
 * Install [`clasp`](https://developers.google.com/apps-script/guides/clasp)
 * Login via `clasp login` (follow oauth instructions to authenticate via Google)
-* `cd` to `elasticsearch-sheets/elastic-sheets-project` and run `clasp create elasticSheetsProjects` 
-* `cd` to `elasticsearch-sheets` and run `sh build-elastic-sheets-project.sh`
+* `cd` to `elasticsearch-sheets/elastic-sheets-project` and run `clasp create elasticSheetsProjects`
+* `cd` to `elasticsearch-sheets` and run `sh build-elastic-sheets-project.sh elastic-sheets-project`
 * Visit [script.google.com](https://script.google.com) - there should now be a project `Elastic-sheets-project`
    * (Taken from the directory name, see below)
 * Click on the `Open Container` project to open a spreadsheet with the script attached (requires clicking through a bunch of permissions/disclaimers first time)

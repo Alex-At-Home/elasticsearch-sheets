@@ -132,7 +132,9 @@ var ManagementService_ = (function(){
         //(col 'c' stores temp objects)
         //(col 'd' reveals a tables update status)
         //(col 'e' is the time it was last updated)
-    range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", "table_change", TableRangeUtils_.formatDate() ] ])
+    var tableChangeUnlessDefaultObj =
+      (defaultTableConfigKey_ == name) ? "" : "table_change" //(this is the default object being created)
+    range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", tableChangeUnlessDefaultObj, TableRangeUtils_.formatDate() ] ])
 
     return true
   }
@@ -205,7 +207,7 @@ var ManagementService_ = (function(){
     }
     if (found) {
         var range = mgmtService
-           .getRange('c' + matchingRow) //(col 'c' will be to store temp objects in the future)
+           .getRange('c' + matchingRow) //(col 'c' saves temp objects)
         if (configJson) {
            if (tempName) {
               configJson.name = tempName //(insert name in case it's different)
@@ -254,7 +256,7 @@ var ManagementService_ = (function(){
         if (!savedObjName && !savedObjStr) {
           continue //(if only one then log error since something weird has happened)
         }
-        if ((savedObjName == ManagementService_.getDefaultKeyName()) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
+        if ((defaultTableConfigKey_ == savedObjName) && ("{}" == savedObjStr)) { // unless overridden explicity, use the most up-to-date defaults
            var savedObj = defaultTableConfig_
          } else {
            var savedObj = parse_(savedObjStr)

@@ -10,8 +10,6 @@
 
 //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
 
-//TODO: get add-on menu working
-
 //TODO: -------- Longer term: -------------------
 
 //TODO: memory leak might be a problem?
