@@ -7,15 +7,25 @@ var UiService_ = (function(){
 
   /** A special function that inserts a custom menu when the spreadsheet opens. */
   function onOpen() {
-    var menu = [
-      {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder'},
-      {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'},
-      {name: 'View range\'s lookup map', functionName: 'launchLookupViewer'},
-    ]
-  //  var parentMenu = SpreadsheetApp.getUi().createAddonMenu()
-  //  parentMenu.addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
-  //  parentMenu.addItem(''Configure Elasticsearch...', 'launchElasticsearchConfig')
-    SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
+    // Try both add-on and normal menu - one will work
+
+    try {
+      var menu = [
+        {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder'},
+        {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'},
+        {name: 'View range\'s lookup map', functionName: 'launchLookupViewer'},
+      ]
+      SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
+    } catch (err) {}
+
+    try {
+      SpreadsheetApp.getUi()
+        .createAddonMenu()
+        .addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
+        .addItem('Configure Elasticsearch...', 'launchElasticsearchConfig')
+        .addItem('View range\'s lookup map', 'launchLookupViewer')
+        .addToUi();
+    } catch (err) {}
   }
 
   /** Creates any required internal state (first time) and launches the ES sidebar */

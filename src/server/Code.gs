@@ -15,6 +15,9 @@ function launchYesNoPrompt(title, question) {
 /** A special function that inserts a custom menu when the spreadsheet opens. */
 function onOpen() { return UiService_.onOpen() }
 
+/** A special function that inserts a custom menu when the add-on is installed */
+function onInstall() { return UiService_.onOpen() }
+
 /** Allows for UI to launch a full screen dialog showing the query that would be launched */
 function launchQueryViewer(title, queryMethod, queryUrl, queryBody) {
   return UiService_.launchQueryViewer(title, queryMethod, queryUrl, queryBody)
