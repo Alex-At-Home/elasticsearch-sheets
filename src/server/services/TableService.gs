@@ -37,7 +37,7 @@ var TableService_ = (function(){
     var ss = SpreadsheetApp.getActive()
     var retVal = TableRangeUtils_.moveTableRange(ss, tableName, newRange)
     if (retVal) {
-      ManagementService_.setSavedObjectTrigger(tableName, "table_change")
+      ManagementService_.setSavedObjectTrigger(tableName, "config_change")
       ElasticsearchService_.markTableAsPending(tableName) //(fire and forget)
     }
     return retVal
@@ -163,6 +163,22 @@ var TableService_ = (function(){
      }
   }
 
+  /** Returns a map of tables intersecting the given range */
+  function findTablesIntersectingRange(range) {
+    var ss = SpreadsheetApp.getActive()
+    var currRange = ss.getActiveRange()
+    var tableMap = ManagementService_.listSavedObjects()
+    var namedRangeMap = TableRangeUtils_.listTableRanges(ss, Object.keys(tableMap))
+    var retVal = {}
+    Object.keys(namedRangeMap).forEach(function(tableName) {
+      var namedRange = namedRangeMap[tableName]
+      if (TableRangeUtils_.doRangesIntersect(range, namedRange.getRange())) {
+        retVal[tableName] = tableMap[tableName]
+      }
+    })
+    return retVal
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internals
@@ -211,6 +227,7 @@ var TableService_ = (function(){
     updateTable: updateTable,
 
     checkTableRangesAgainstDataRanges: checkTableRangesAgainstDataRanges,
+    findTablesIntersectingRange: findTablesIntersectingRange,
 
     TESTONLY: {
     }

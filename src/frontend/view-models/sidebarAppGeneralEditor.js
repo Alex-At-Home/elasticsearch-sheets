@@ -99,7 +99,7 @@ var GeneralEditor = (function(){
   function populate(index, name, json, tableType) {
 
     // Trigger:
-    var trigger = json.trigger || "table_change"
+    var trigger = json.trigger || "config_change"
     $(`#trigger_${tableType}_${index}`).val(trigger)
 
     // Query bar

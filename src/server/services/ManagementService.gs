@@ -133,7 +133,7 @@ var ManagementService_ = (function(){
         //(col 'd' reveals a tables update status)
         //(col 'e' is the time it was last updated)
     var tableChangeUnlessDefaultObj =
-      (defaultTableConfigKey_ == name) ? "" : "table_change" //(this is the default object being created)
+      (defaultTableConfigKey_ == name) ? "" : "config_change" //(this is the default object being created)
     range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", tableChangeUnlessDefaultObj, TableRangeUtils_.formatDate() ] ])
 
     return true
@@ -158,10 +158,10 @@ var ManagementService_ = (function(){
             case "manual":
               trigger = "manual" //nothing can overwrite manual (except "")
               break
-            case "table_change": //(everything except data_change overwrites)
-              trigger = ("data_change" == trigger) ? curr : trigger
+            case "config_change": //(everything except data_change overwrites)
+              trigger = ("content_change" == trigger) ? curr : trigger
               break
-            default: //("" or "data_change" - always update)
+            default: //("" or "content_change" - always update)
               break
           }
         }

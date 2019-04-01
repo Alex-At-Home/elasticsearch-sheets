@@ -288,6 +288,36 @@
     )
    }
 
+   /** Returns true if 2 ranges have a non-empty intersection */
+   function doRangesIntersect(r1, r2) {
+     return (r1.getLastRow() >= r2.getRow()) && (r2.getLastRow() >= r1.getRow()) &&
+     (r1.getLastColumn() >= r2.getColumn()) && (r2.getLastColumn() >= r1.getColumn()) &&
+     (r1.getSheet().getName() == r2.getSheet().getName())
+   }
+
+   /** Returns a map of table ranges with name as key
+    * tableNames is a list of actual names and is used
+    * to translate the names from listTableRanges
+    */
+   function listTableRanges(ss, tableNames) {
+      var sheetPrefix = ManagementService_.managementSheetName()
+      var retVal = {}
+      var tableNameMap = {}
+      if (tableNames) tableNames.forEach(function(name) {
+        tableNameMap[buildTableRangeName_(name)] = name
+      })
+      var ranges = ss.getNamedRanges()
+      for (var i in ranges) {
+         var range = ranges[i]
+         var name = range.getName()
+         if (name.indexOf(sheetPrefix) >= 0) {
+            name = tableNameMap[name] || name
+            retVal[name] = range
+         }
+      }
+      return retVal
+   }
+
    ////////////////////////////////////////////////////////
 
    // 3] Internal utils
@@ -295,22 +325,6 @@
    /** Converts the table name into a pure alphanum string not starting with a digit */
    function buildTableRangeName_(tableName) {
       return tableName.replace(/^[0-9]/, '').replace(/[^a-zA-Z0-9]/g, "") + ManagementService_.managementSheetName()
-   }
-
-   /** Returns a map of table ranges with name as key
-    * TODO note getNamedRanges does not return #ref ranges
-    */
-   function listTableRanges(ss) {
-      var sheetPrefix = ManagementService_.managementSheetName()
-      var retVal = {}
-      var ranges = ss.getNamedRanges()
-      for (var i in ranges) {
-         var range = ranges[i]
-         if (range.getName().indexOf(sheetPrefix) >= 0) {
-            retVal[range.getName()] = range
-         }
-      }
-      return retVal
    }
 
    /** Resizes range1 to ensure it fits in range 2 and clears extraneneous data/format */
@@ -342,12 +356,14 @@
      findTableRange: findTableRange,
      renameTableRange: renameTableRange,
      moveTableRange: moveTableRange,
+     listTableRanges: listTableRanges,
 
      buildSpecialRowInfo: buildSpecialRowInfo,
 
      getJson: getJson,
      shallowCopy: shallowCopy,
      formatDate: formatDate,
+     doRangesIntersect: doRangesIntersect,
 
      TESTONLY: {
 

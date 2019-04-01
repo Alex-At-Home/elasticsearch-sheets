@@ -323,23 +323,32 @@ var ElasticsearchService_ = (function() {
     var mockResponse = {
       response: { hits: { hits: arrayOfJson }}
     }
-    //TODO find intersecting row/col and use its table config to manage header fields
+    var matchingTables = TableService_.findTablesIntersectingRange(range)
+    var tableConfig = {}
+    for (var tableName in matchingTables) {
+      tableConfig = matchingTables[tableName]
+      tableConfig = tableConfig.temp || tableConfig //(use temp if present)
+      break
+    }
     var rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
-      "", {}, {}, mockResponse, {}
+      tableName, tableConfig, {}, mockResponse, {}
     )
     // Convert to a 2d array
     var rows = [ [] ]
-    var filteredCols = rowsCols.cols.map(function(col, index) {
-      return index //TODO extra filtering etc
-    })
+    var filteredCols = ElasticsearchUtils_.calculateFilteredCols(
+      rowsCols.cols,
+      TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
+    )
     var addedHeaders = false
     var headers = rows[0]
     rowsCols.rows.forEach(function(row) {
       var colArray = []
       filteredCols.forEach(function(colIndex) {
-        var colName = rowsCols.cols[colIndex].name
+        var colObj = rowsCols.cols[colIndex]
+        var colName = colObj.name
         if (!addedHeaders) {
-          headers.push(colName)
+          var colAlias = colObj.alias || colName
+          headers.push(colAlias)
         }
         if (row.hasOwnProperty(colName)) {
           colArray.push(row[colName])

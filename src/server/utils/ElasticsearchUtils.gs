@@ -324,7 +324,7 @@ var ElasticsearchUtils_ = (function() {
 
      if (null != json.response) {
         /** Apply the global filters to the cols and re-order as desired */
-        var filteredCols = calculateFilteredCols_(
+        var filteredCols = calculateFilteredCols(
           fullCols,
           TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
         )
@@ -351,7 +351,9 @@ var ElasticsearchUtils_ = (function() {
            for (var i = 0; i < numTableCols; ++i) {
               var cell = range.getCell(specialRows.headers, i + 1)
               if (i < numDataCols) {
-                 cell.setValue(fullCols[filteredCols[i]].name)
+                 var nameOrAliasObj = fullCols[filteredCols[i]]
+                 var nameOrAlias = nameOrAliasObj.alias || nameOrAliasObj.name
+                 cell.setValue(nameOrAlias)
               } else {
                  cell.clearContent()
               }
@@ -699,6 +701,69 @@ var ElasticsearchUtils_ = (function() {
      return retVal
   }
 
+  /** Filters, reorders and renames the columns */
+  function calculateFilteredCols(mutableCols, headerMeta) {
+    // Firstly, set up the alias map
+    var renameMap = {}
+    var fieldAliases = headerMeta.field_aliases || []
+    fieldAliases = fieldAliases
+      .map(function(a) { return a.trim() })
+      .filter(function(a) { return (0 == a.length) || ('#' != a[0]) })
+      .map(function(a) {
+        var fromTo = a.split("=", 2)
+        var from = fromTo[0]
+        var to = fromTo[1]
+        if (from && to) {
+          return { from: from, to: to }
+        } else {
+          return null
+        }
+      }).filter(function(a) { return null != a })
+
+    // Now figure out which fields match and group them according to the pattern order
+    var fieldFilters = buildFilterFieldRegex_(headerMeta.field_filters || [])
+
+    var defaultMatchField = "#"
+    var matchState = {}
+    mutableCols.forEach(function(mutableCol, jj) {
+      var onMatch = function(firstMatchingField, index) {
+        mutableCol.index = jj //(need this later)
+        if (index < 0) {
+          firstMatchingField = defaultMatchField
+        }
+        var list = matchState[firstMatchingField] || []
+        matchState[firstMatchingField] = list
+        list.push(mutableCol)
+      }
+      //(don't care about the result of this, just want)
+      isFieldWanted_(mutableCol.name, fieldFilters, onMatch)
+    })
+
+    // Order within each group and apply aliases at the same time
+    var globalList = []
+    fieldFilters.concat([ defaultMatchField ]).forEach(function(fieldFilter) {
+      var fields = matchState[fieldFilter] || []
+      var startOfList = []
+      var endOfList = []
+      fieldAliases.forEach(function(alias) {
+        fields.forEach(function(mutableCol) {
+          if (mutableCol.name == alias.from) {
+            mutableCol.alias = alias.to
+            mutableCol.found = true
+            startOfList.push(mutableCol.index)
+          }
+        })
+      })
+      globalList = globalList.concat(startOfList)
+      fields.forEach(function(mutableCol) {
+        if (!mutableCol.found) {
+          globalList.push(mutableCol.index)
+        }
+      })
+    })
+    return globalList
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internal utils:
@@ -766,69 +831,6 @@ var ElasticsearchUtils_ = (function() {
       onMatchFn("#", -1)
     }
     return negativeOnly
-  }
-
-  /** Filters, reorders and renames the columns */
-  function calculateFilteredCols_(mutableCols, headerMeta) {
-    // Firstly, set up the alias map
-    var renameMap = {}
-    var fieldAliases = headerMeta.field_aliases || []
-    fieldAliases = fieldAliases
-      .map(function(a) { return a.trim() })
-      .filter(function(a) { return (0 == a.length) || ('#' != a[0]) })
-      .map(function(a) {
-        var fromTo = a.split("=", 2)
-        var from = fromTo[0]
-        var to = fromTo[1]
-        if (from && to) {
-          return { from: from, to: to }
-        } else {
-          return null
-        }
-      }).filter(function(a) { return null != a })
-
-    // Now figure out which fields match and group them according to the pattern order
-    var fieldFilters = buildFilterFieldRegex_(headerMeta.field_filters || [])
-
-    var defaultMatchField = "#"
-    var matchState = {}
-    mutableCols.forEach(function(mutableCol, jj) {
-      var onMatch = function(firstMatchingField, index) {
-        mutableCol.index = jj //(need this later)
-        if (index < 0) {
-          firstMatchingField = defaultMatchField
-        }
-        var list = matchState[firstMatchingField] || []
-        matchState[firstMatchingField] = list
-        list.push(mutableCol)
-      }
-      //(don't care about the result of this, just want)
-      isFieldWanted_(mutableCol.name, fieldFilters, onMatch)
-    })
-
-    // Order within each group and apply aliases at the same time
-    var globalList = []
-    fieldFilters.concat([ defaultMatchField ]).forEach(function(fieldFilter) {
-      var fields = matchState[fieldFilter] || []
-      var startOfList = []
-      var endOfList = []
-      fieldAliases.forEach(function(alias) {
-        fields.forEach(function(mutableCol) {
-          if (mutableCol.name == alias.from) {
-            mutableCol.name = alias.to
-            mutableCol.found = true
-            startOfList.push(mutableCol.index)
-          }
-        })
-      })
-      globalList = globalList.concat(startOfList)
-      fields.forEach(function(mutableCol) {
-        if (!mutableCol.found) {
-          globalList.push(mutableCol.index)
-        }
-      })
-    })
-    return globalList
   }
 
   /** Adds the error info the status, if necessary */
@@ -940,11 +942,11 @@ var ElasticsearchUtils_ = (function() {
     handleRowColResponse: handleRowColResponse,
     buildTableOutline: buildTableOutline,
 
+    calculateFilteredCols: calculateFilteredCols,
+
     TESTONLY: {
       buildFilterFieldRegex_: buildFilterFieldRegex_,
       isFieldWanted_: isFieldWanted_,
-
-      calculateFilteredCols_: calculateFilteredCols_,
 
       partialFlatten_: partialFlatten_
     }

@@ -83,7 +83,7 @@ var TestElasticsearchUtils_ = (function() {
     })
   }
 
-  /** (PRIVATE) ElasticsearchUtils_.isFieldWanted_ */
+  /** (PRIVATE) ElasticsearchUtils_.calculateFilteredCols */
   function calculateFilteredCols_(testSheet, testResults) {
     TestService_.Utils.performTest(testResults, "various_usages", function() {
       var filters1 = [
@@ -113,7 +113,7 @@ var TestElasticsearchUtils_ = (function() {
       ]
       var testCols1 = TestService_.Utils.deepCopyJson(testCols)
       var reorderedList = [ 5, 3, 2, 1, 0 ]
-      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols1, headerMeta)
+      var result = ElasticsearchUtils_.calculateFilteredCols(testCols1, headerMeta)
       var renamed = testCols1.map(function(el) { return el.name })
 
       TestService_.Utils.assertEquals(
@@ -127,7 +127,7 @@ var TestElasticsearchUtils_ = (function() {
       headerMeta.field_filters = [ "#" ]
       var testCols2 = TestService_.Utils.deepCopyJson(testCols)
       var defaultReorderedList = [ 5, 2, 1, 0, 3, 4 ]
-      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols2, headerMeta)
+      var result = ElasticsearchUtils_.calculateFilteredCols(testCols2, headerMeta)
       var renamed = testCols2.map(function(el) { return el.name })
 
       TestService_.Utils.assertEquals(
@@ -143,7 +143,7 @@ var TestElasticsearchUtils_ = (function() {
 
       var testCols3 = TestService_.Utils.deepCopyJson(testCols)
       var noAliasesReorderedList = [ 3, 5, 0, 1, 2 ]
-      var result = ElasticsearchUtils_.TESTONLY.calculateFilteredCols_(testCols3, headerMeta)
+      var result = ElasticsearchUtils_.calculateFilteredCols(testCols3, headerMeta)
       var renamed = testCols3.map(function(el) { return el.name })
       var expectedRenamed = testCols.map(function(el) { return el.name })
 
