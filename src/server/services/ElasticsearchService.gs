@@ -301,15 +301,21 @@ var ElasticsearchService_ = (function() {
   }
 
   /** Builds a sub-table out of a summary object */
-  function buildEsSubTable(args) {
+  function buildEsSubTable(subTableCell, configOverride) {
     var ss = SpreadsheetApp.getActive()
     var formula = SpreadsheetApp.getActiveRange().getFormula()
-    var targetCell = formula.match(/=buildEsSubTable *\((.*)\)/i)[1]
+    try {
+      var targetCell = formula.match(/=buildEsSubTable *\(([^,]*)(?:,.*)?\)/i)[1]
+    } catch (err) {
+      throw new Error(
+        "Expect cell contents to be [buildEsSubTable(single-cell-range[, override])], vs ["
+        + formula + "]"
+      )
+    }
     try {
       var range = ss.getRange(targetCell)
-    }
-    catch(e) {
-      throw new Error(args + ' is not a valid range')
+    } catch(err) {
+      throw new Error(targetCell + ' is not a valid range')
     }
     var cellVal = range.getFormula()
     var cellValToArrayStr = cellVal
@@ -324,23 +330,30 @@ var ElasticsearchService_ = (function() {
       response: { hits: { hits: arrayOfJson }}
     }
     var matchingTables = TableService_.findTablesIntersectingRange(range)
-    var tableConfig = {}
-    for (var tableName in matchingTables) {
-      tableConfig = matchingTables[tableName]
-      tableConfig = tableConfig.temp || tableConfig //(use temp if present)
-      break
+    var tableConfig = configOverride ? JSON.parse(configOverride) : {}
+    if (!configOverride) {
+      for (var tableName in matchingTables) {
+        tableConfig = matchingTables[tableName]
+        tableConfig = tableConfig.temp || tableConfig //(use temp if present)
+        break
+      }
     }
     var rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
       tableName, tableConfig, {}, mockResponse, {}
     )
     // Convert to a 2d array
-    var rows = [ [] ]
+    var rows = []
+    var headerConfig = TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
     var filteredCols = ElasticsearchUtils_.calculateFilteredCols(
-      rowsCols.cols,
-      TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
+      rowsCols.cols, headerConfig
     )
-    var addedHeaders = false
-    var headers = rows[0]
+    var addedHeaders = headerConfig.position == "none"
+    var headers = (function() {
+      if (!addedHeaders) {
+        rows.push([])
+        return rows[0]
+      } else return []
+    }())
     rowsCols.rows.forEach(function(row) {
       var colArray = []
       filteredCols.forEach(function(colIndex) {
