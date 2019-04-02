@@ -556,7 +556,7 @@
          "test_key_client": "test_value_client"
       }, //(passed directly to ES client)
       "enabled": true,
-      "query_trigger": "test-trigger", //"none", "timed", "popup", "timed_or_popup"
+      "query_trigger": "test-trigger", //"none", "timed_config", "timed_content"
       "query_trigger_interval_s": 10
    }
 

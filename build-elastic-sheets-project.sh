@@ -11,6 +11,7 @@ cd $1
 #clasp create elasticSheetsProjects
 #clasp create elasticSheetsShare
 rm -f *.js *.gs *.html
+cp ../appsscript.json .
 for i in $(find ../src ../test/server -name "*.gs" -o -name "*.html"); do cp $i .; done
 for i in $(find ../src ../test/server -name "*.js"); do
    BASENAME=$(basename $i)

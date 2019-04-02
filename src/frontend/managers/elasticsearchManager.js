@@ -384,12 +384,15 @@ var ElasticsearchManager = (function(){
 
   /** Checks whether a requested re-populate is desired */
   function isTriggerEnabled_(tableConfig, trigger) {
-    var tableTrigger = tableConfig.trigger || "config_change"
+    //(copy paste from ElasticsearchService.handleContentUpdates.isTriggerEnabled)
+    var tableTrigger = tableConfig.trigger || "content_change"
     switch(trigger) {
       case "manual":
         return (tableTrigger != "disabled")
       case "config_change":
         return (tableTrigger != "disabled") && (tableTrigger != "manual")
+      case "content_change":
+        return (tableTrigger == "content_change")
       default:
         return true
     }

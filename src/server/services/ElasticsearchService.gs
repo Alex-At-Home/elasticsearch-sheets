@@ -4,11 +4,11 @@
 
  //TODO: -------- short term: -------------------
 
-//TODO refresh selected table macro item
-
-//TODO javadocs for 2 UDFs
-
 //TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
+
+//TODO: one time the expand editor didn't appear to save my changes (I hit update immediately, not sure if that's related)
+
+//TODO: if MR has nested set/map (?list), then it doesn't get rendered...
 
 //TODO: -------- Longer term: -------------------
 
@@ -375,6 +375,40 @@ var ElasticsearchService_ = (function() {
     return rows
   }
 
+  /** Trigger for edit */
+  function handleContentUpdates(range, triggerOverride) {
+    //(copy paste from ElasticsearchManager.isTriggerEnabled_)
+    var isTriggerEnabled = function(tableConfig, trigger) {
+      var tableTrigger = tableConfig.trigger || "content_change"
+      switch(trigger) {
+        case "manual":
+          return (tableTrigger != "disabled")
+        case "config_change":
+          return (tableTrigger != "disabled") && (tableTrigger != "manual")
+        case "content_change":
+          return (tableTrigger == "content_change")
+        default:
+          return true
+      }
+    }
+    var trigger = triggerOverride || "content_change"
+    var triggerPolicy = ManagementService_.getEsTriggerPolicy()
+    if (!triggerOverride && ("timed_content" != triggerPolicy)) {
+      return
+    }
+    var matchingTables = TableService_.findTablesIntersectingRange(range)
+    Object.keys(matchingTables).forEach(function(matchingTableName) {
+      var tableConfig = matchingTables[matchingTableName]
+      tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
+      if (isTriggerEnabled(tableConfig, trigger)) {
+        markTableAsPending(matchingTableName)
+        ManagementService_.setSavedObjectTrigger(
+          matchingTableName, trigger
+        )
+      }
+    })
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internal utils:
@@ -440,6 +474,7 @@ var ElasticsearchService_ = (function() {
 
     summarizeEsSubTable: summarizeEsSubTable,
     buildEsSubTable: buildEsSubTable,
+    handleContentUpdates: handleContentUpdates,
 
     TESTONLY: {
     }

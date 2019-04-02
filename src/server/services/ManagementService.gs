@@ -62,6 +62,12 @@ var ManagementService_ = (function(){
 
   // 2] Methods for manipulating the ES metadata stored in the management service
 
+  /** Returns the overall trigger policy */
+  function getEsTriggerPolicy() {
+    var mgmtService = getManagementService_()
+    return mgmtService.getRange('f2').getValue() || "timed_content"
+  }
+
   /** Retrieves and formats the ES metadata */
   function getEsMeta() {
     var mgmtService = getManagementService_()
@@ -398,6 +404,7 @@ var ManagementService_ = (function(){
     managementSheetName: managementSheetName,
 
     getEsMeta: getEsMeta,
+    getEsTriggerPolicy: getEsTriggerPolicy,
     setEsMeta: setEsMeta,
 
     addSavedObject: addSavedObject,

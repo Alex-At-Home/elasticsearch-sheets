@@ -81,8 +81,8 @@ var TableListManager = (function() {
             if (esMeta.hasOwnProperty("query_trigger_interval_s")) {
               timerInterval_ = esMeta.query_trigger_interval_s*1000
             }
-            var triggerType = esMeta.query_trigger || "timed"
-            if ("timed" == esMeta.query_trigger) {
+            var triggerType = esMeta.query_trigger || "timed_content"
+            if (esMeta.query_trigger.indexOf("timed") >= 0) {
               console.log(`Starting table refresh service, interval [${timerInterval_}]`)
               onTableRefresh_()
             }

@@ -1,6 +1,6 @@
 /** The default table config - also using to sort-of-document the model */
 var defaultTableConfig_ = {
-  "trigger": "config_change", //OR "disabled", "manual", "config_change" - later "content_change", "timed"
+  "trigger": "content_change", //OR "disabled", "manual", "config_change", content_change" - later  "timed"
   "common": {
 //     "refresh": {
 //        "on_query_change": true,

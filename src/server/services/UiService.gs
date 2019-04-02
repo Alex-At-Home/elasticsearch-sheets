@@ -8,22 +8,24 @@ var UiService_ = (function(){
   /** A special function that inserts a custom menu when the spreadsheet opens. */
   function onOpen() {
     // Try both add-on and normal menu - one will work
-
+    /*
     try {
       var menu = [
         {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder'},
         {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'},
         {name: 'View range\'s lookup map', functionName: 'launchLookupViewer'},
+        {name: 'Refresh active table', functionName: 'refreshSelectedTable'},
       ]
       SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
     } catch (err) {}
-
+    */
     try {
       SpreadsheetApp.getUi()
         .createAddonMenu()
         .addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
         .addItem('Configure Elasticsearch...', 'launchElasticsearchConfig')
         .addItem('View range\'s lookup map', 'launchLookupViewer')
+        .addItem('Refresh active table', 'refreshSelectedTable')
         .addToUi();
     } catch (err) {}
   }

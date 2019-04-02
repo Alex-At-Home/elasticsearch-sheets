@@ -31,7 +31,8 @@ var GeneralEditor = (function(){
     <select class="input-small form-control" id="trigger_${tableType}_${index}">
     <option value='disabled'>Disabled</option>
     <option value='manual'>Manual</option>
-    <option value='table_change'>Table Change</option>
+    <option value='config_change'>Config Change</option>
+    <option value='content_change'>Content Change</option>
     </select>
     </div>
 
@@ -99,7 +100,7 @@ var GeneralEditor = (function(){
   function populate(index, name, json, tableType) {
 
     // Trigger:
-    var trigger = json.trigger || "config_change"
+    var trigger = json.trigger || "content_change"
     $(`#trigger_${tableType}_${index}`).val(trigger)
 
     // Query bar

@@ -1,0 +1,13 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "sheets": {
+    "macros": [{
+      "menuName": "refreshSelectedTable",
+      "functionName": "refreshSelectedTable",
+      "defaultShortcut": "Ctrl+Alt+Shift+1"
+    }]
+  }
+}
