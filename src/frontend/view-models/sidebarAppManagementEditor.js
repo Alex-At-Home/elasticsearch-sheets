@@ -89,8 +89,12 @@ var ManagementEditor = (function(){
 
     // Management specific handlers:
 
+    //(ensures all the elements are redrawn as we change the display settings)
     $(`#accordion_edit_mgmt_${index}`).on('shown.bs.collapse', function () {
-      onSelect(index, /*selected*/ true, globalEditor) //(ensures all the elements are redrawn as we change the display settings)
+      onSelect(index, /*selected*/ true, globalEditor)
+    })
+    $(`#accordion_fields_mgmt_${index}`).on('shown.bs.collapse', function () {
+      FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'mgmt')
     })
 
     $(`#options_mgmt_${index}`).on('input', function() {

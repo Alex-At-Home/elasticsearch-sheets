@@ -369,11 +369,16 @@ var AggregationEditor = (function(){
         ace.edit(`${field}_agg_${index}`).resize()
       })
     })
+    $(`#accordion_fields_agg_${index}`).on('shown.bs.collapse', function () {
+      FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'agg')
+    })
 
     // Build from template:
     if (0 == index) {
       $(`#dataexplorer_template_${index}`).click(function(){
-        globalEditor.session.setValue(JSON.stringify(DataExplorerTemplate, null, 3))
+        Util.updateRawJsonNow(globalEditor, function(currJson) {
+          return DataExplorerTemplate
+        }, /*updateDisplay*/ true)
       })
     }
   }

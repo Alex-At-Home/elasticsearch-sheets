@@ -128,8 +128,12 @@ var DataEditor = (function(){
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
 
-    $(`#accordion_edit_data_${index}`).on('shown.bs.collapse', function () {
-      onSelect(index, /*selected*/ true, globalEditor) //(ensures all the elements are redrawn as we change the display settings)
+    //(ensures all the elements are redrawn as we change the display settings)
+    $(`#accordion_query_data_${index}`).on('shown.bs.collapse', function () {
+      onSelect(index, /*selected*/ true, globalEditor)
+    })
+    $(`#accordion_fields_data_${index}`).on('shown.bs.collapse', function () {
+      FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'data')
     })
 
     queryEditor.session.on('change', function(delta) {

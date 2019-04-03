@@ -16,13 +16,15 @@ var TableForm = (function() {
     }
 
     // Now we've stashed the saved entries, handle any temp copies
+    json = Util.shallowCopy(json)
+    var savedJson = json //(this is what we reset to)
     var tmp = json.temp //(will keep this in case the page is reloaded with no changes)
+    delete json.temp //(don't want these in the code editor)
     if (tmp) {
       tableName = tmp.name || tableName
-      json = tmp
+      json = Util.shallowCopy(tmp)
+      delete json.temp
     }
-    json = Util.shallowCopy(json)
-    delete json.temp //(don't want this in the code editor)
 
     // Append to accordion
 
@@ -241,12 +243,17 @@ var TableForm = (function() {
         selectTableType()
       }
 
+      // Used when: global editor hand edited, reset/cancel
+      var repopulate = function(newJson) {
+        Object.entries(serviceMap_).forEach(function(kv) {
+          kv[1].populate(index, name, newJson, globalEditor)
+        })
+      }
+
       // Register event handler on raw JSON
       globalEditor.session.on('change', function(delta) {
         Util.safeChangeGlobalJson(globalEditor, function(newJson) {
-          Object.entries(serviceMap_).forEach(function(kv) {
-            kv[1].populate(index, name, newJson, globalEditor)
-          })
+          repopulate(newJson)
         })
       })
 
@@ -259,7 +266,9 @@ var TableForm = (function() {
         $(`#expand_${index}`).click(function(){
           var newName = $(`#name_${index}`).val() || "(no name)"
           var jsonStr = globalEditor.session.getValue()
-          TableManager.launchJsonEditor(isFirstElement ? defaultKey : name, newName, JSON.parse(jsonStr))
+          var originalJson = Util.shallowCopy(savedJson)
+          originalJson.temp = JSON.parse(jsonStr)
+          TableManager.launchJsonEditor(isFirstElement ? defaultKey : name, newName, originalJson)
         })
 
         $(`#viewquery_${index}`).click(function(){
@@ -304,8 +313,10 @@ var TableForm = (function() {
             $(`#name_${index}`).val("")
             $(`#type_${index}`).val(`tabs_unknown_${index}`).change()
             $(`#editor_${index}`).data("current_es_table_name", "")
-            globalEditor.session.setValue(JSON.stringify(json, null, 3))
             $(`#dropdown_${index}`).attr('disabled', true)
+            Util.updateRawJsonNow(globalEditor, function(currJson) {
+              return savedJson
+            }, /*updateDisplay*/ true)
             TableManager.clearTempConfig(defaultKey)
           })
         } else { // query, move - edit name - update, reset, delete
@@ -341,7 +352,9 @@ var TableForm = (function() {
           })
           $(`#reset_${index}`).click(function(){
             $(`#name_${index}`).val(name)
-            globalEditor.session.setValue(JSON.stringify(json, null, 3))
+            Util.updateRawJsonNow(globalEditor, function(currJson) {
+              return savedJson
+            }, /*updateDisplay*/ true)
             TableManager.clearTempConfig(name)
           })
           $(`#update_${index}`).click(function(){

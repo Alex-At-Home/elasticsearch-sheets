@@ -11,6 +11,7 @@ var TableManager = (function() {
 
   /** Clears the saved config for this table element server-side */
   function clearTempConfig(tableName) {
+    TableListManager.clearCachedTempConfig(tableName)
     return google.script.run.clearTempConfig(tableName)
   }
 

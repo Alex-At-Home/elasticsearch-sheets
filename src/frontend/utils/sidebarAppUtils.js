@@ -69,7 +69,9 @@ var Util = (function(){
     eventQueues_[editorId] = list
   }
 
-  /** Update the raw JSON in the ACE code editor - asynchronously, eg when typing */
+  /** Update the raw JSON in the ACE code editor - asynchronously, eg when typing
+  * updateFn can either mutate the input JSON or return a new object
+  */
   function updateRawJson(editor, updateFn) {
     if (!tempDisableJsonChange_) {
       var editorId = editor.container.id
@@ -77,16 +79,19 @@ var Util = (function(){
       jsonUpdateTimerId_ = setTimeout(function() { updateRawJsonNow_() } , jsonUpdateTimerInterval_)
     }
   }
-  /** Update the raw JSON in the ACE code editor - synchronously, eg on control */
-  function updateRawJsonNow(editor, updateFn) {
+  /** Update the raw JSON in the ACE code editor - synchronously, eg on control
+   * updateFn can either mutate the input JSON or return a new object
+   * set updateDisplay to true if this update comes from the backend being updated
+  */
+  function updateRawJsonNow(editor, updateFn, updateDisplay) {
     if (!tempDisableJsonChange_) {
       addToEventQueue_(editor, updateFn)
-      updateRawJsonNow_()
+      updateRawJsonNow_(updateDisplay)
     }
   }
 
   /** Update the raw JSON in the ACE code editor - handle and empty the aysnc queue */
-  function updateRawJsonNow_() {
+  function updateRawJsonNow_(updateDisplay) {
     if (!tempDisableJsonChange_) {
       Object.entries(eventQueues_).forEach(function(kv) {
         var list = kv[1]
@@ -101,11 +106,12 @@ var Util = (function(){
           }
           list.forEach(function(el) {
             var updateFn = el.updateFn
-            updateFn(jsonBody)
+            var updateByRetVal = updateFn(jsonBody)
+            if (updateByRetVal) jsonBody = updateByRetVal
           })
           var newJsonStr = JSON.stringify(jsonBody, null, 3)
           if (newJsonStr != jsonStr) { // nothing to do if the strings are the same
-            tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
+            if (!updateDisplay) tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
             try {
               editor.session.setValue(newJsonStr)
               var saveTimer = saveTimers_[editorId]
@@ -117,14 +123,14 @@ var Util = (function(){
                TableListManager.stashCurrentTableConfig(editorId, jsonBody)
               }, saveTimerInterval_)
             } catch (err) {
-              tempDisableJsonChange_ = false
+              if (!updateDisplay) tempDisableJsonChange_ = false
               throw err
             }
           }
         }
       })
       eventQueues_ = {}
-      tempDisableJsonChange_ = false
+      if (!updateDisplay) tempDisableJsonChange_ = false
     }
   }
 

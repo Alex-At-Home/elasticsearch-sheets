@@ -121,8 +121,12 @@ var SqlEditor = (function(){
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
 
+    //(ensures all the elements are redrawn as we change the display settings)
     $(`#accordion_edit_sql_${index}`).on('shown.bs.collapse', function () {
-      onSelect(index, /*selected*/ true, globalEditor) //(ensures all the elements are redrawn as we change the display settings)
+      onSelect(index, /*selected*/ true, globalEditor)
+    })
+    $(`#accordion_fields_sql_${index}`).on('shown.bs.collapse', function () {
+      FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'sql')
     })
 
     sqlEditor.session.on('change', function(delta) {

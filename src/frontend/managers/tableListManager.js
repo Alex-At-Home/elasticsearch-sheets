@@ -8,10 +8,7 @@ var TableListManager = (function() {
       function(obj) {
         if (obj) {
           // Update the state: add new entry and clear any stashed data
-          var originalTableConfig = State_.getEntryByName(defaultKey)
-          if (originalTableConfig) {
-            delete originalTableConfig.temp
-          }
+          clearCachedTempConfig(defaultKey)
           State_.addEntry(name, json)
           rebuildAccordion(name)
         } //(else request silently failed)
@@ -110,6 +107,14 @@ var TableListManager = (function() {
       google.script.run.stashTempConfig( //(fire and forget)
         originalName, currentName, jsonBody
       )
+    }
+  }
+
+  /** Ensures the local cache of the temp is removed when the remote end is purged */
+  function clearCachedTempConfig(name) {
+    var originalTableConfig = State_.getEntryByName(name)
+    if (originalTableConfig) {
+      delete originalTableConfig.temp
     }
   }
 
@@ -271,6 +276,7 @@ var TableListManager = (function() {
     deleteAccordionElement: deleteAccordionElement,
 
     stashCurrentTableConfig: stashCurrentTableConfig,
+    clearCachedTempConfig: clearCachedTempConfig,
 
     buildAccordionTableFromSource: buildAccordionTableFromSource,
 
