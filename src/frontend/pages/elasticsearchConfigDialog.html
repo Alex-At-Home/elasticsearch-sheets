@@ -81,7 +81,13 @@
         }
         google.script.run.withSuccessHandler(
             function(obj) {
-               google.script.host.close()
+               if ("true" == launchBuilderOnCompletion) {
+                 google.script.run.withSuccessHandler(function(obj) {
+                   google.script.host.close()
+                 }).launchElasticsearchTableBuilder()
+               } else {
+                 google.script.host.close()
+               }
             }
         ).withFailureHandler(
             function(msg) {
@@ -95,6 +101,8 @@
 
      var currentAuthType = "<?= currentAuthType ?>"
      $("#auth_type").val(currentAuthType).change()
+
+     var launchBuilderOnCompletion = "<?= launchBuilderOnCompletion ?>"
 
   </script>
 </html>

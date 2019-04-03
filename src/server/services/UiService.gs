@@ -34,7 +34,7 @@ var UiService_ = (function(){
   function launchElasticsearchTableBuilder(tableNameToSelect) {
     // If necessary, initialize the management service
     if (!ManagementService_.isManagementServiceCreated()) {
-      launchElasticsearchConfig()
+      launchElasticsearchConfig(/*launchBuilderOnCompletion*/true)
     }
     // We get to here when the modal gets stopped, so the management service should now be populated
     if (!ManagementService_.isManagementServiceCreated()) {
@@ -59,7 +59,7 @@ var UiService_ = (function(){
   }
 
   /** Launches the ES configuration dialog */
-  function launchElasticsearchConfig() {
+  function launchElasticsearchConfig(launchBuilderOnCompletion) {
     var html = HtmlService.createTemplateFromFile('elasticsearchConfigDialog')
     if (!ManagementService_.isManagementServiceCreated()) {
        html.currentUrl = ""
@@ -78,6 +78,11 @@ var UiService_ = (function(){
        } else {
           html.currentAuthType = esMeta.auth_type
        }
+    }
+    if (launchBuilderOnCompletion) {
+      html.launchBuilderOnCompletion = true
+    } else {
+      html.launchBuilderOnCompletion = false      
     }
     if (TestService_.inTestMode()) {
        TestService_.triggerUiEvent("elasticsearchConfigDialog", {
