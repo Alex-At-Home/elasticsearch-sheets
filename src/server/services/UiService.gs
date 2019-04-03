@@ -97,7 +97,7 @@ var UiService_ = (function(){
       return
     }
     var nameOrNotation = LookupService_.getNamedRangeOrNotation(ss.getActiveRange())
-    html.lookupJson = LookupService_.getJsonLookup(nameOrNotation)
+    html.lookupJson = JSON.stringify(LookupService_.getJsonLookup(nameOrNotation), null, 3)
     html.lookupReference = "$$lookupMap(" + nameOrNotation + ")"
     if (TestService_.inTestMode()) {
       TestService_.triggerUiEvent("launchLookupViewer", {

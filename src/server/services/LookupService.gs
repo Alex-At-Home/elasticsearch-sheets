@@ -63,7 +63,7 @@ var LookupService_ = (function(){
     }
 
     var json = {}
-    var lookupRange = range.offset(1, 0).getValues()
+    var lookupRange = range.offset(1, 0, range.getNumRows() - 1).getValues()
     lookupRange.forEach(function(row) {
       var jsonRow = {}
       Object.keys(headers).forEach(function(headerName, ii) {

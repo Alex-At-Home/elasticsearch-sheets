@@ -50,13 +50,16 @@ var TestLookupService_ = (function(){
 
         var a1Notation1 = "D4:G7"
         var a1Notation2 = testSheet.getName() + "!" + a1Notation1
+        var inputNotation = testSheet.getName() + "!" + "D4:G8"
         var range = testSheet.setActiveSelection(a1Notation1)
         ss.setNamedRange(rangeName, range)
-        range.setValues([
+        var range2 = testSheet.setActiveSelection(inputNotation)
+        range2.setValues([
           [ "test1", "", "test2", "test3" ],
           [ "a", "b", false, "c"],
           [ "", "ignore", "ignore", "" ],
           [ "x", "ignore", "d", 3],
+          [ "line", "at", "end", 1 ] //(ignored because outside the range)
         ])
         var expected = {
           "a": {
