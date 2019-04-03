@@ -2,9 +2,6 @@
  * Code.gs - The interface between the Server App and the Spreadsheet UI
  */
 
-//TODO: build a method that uses XmlService or XML to convert pure scripts to text so can re-use the same files
-// https://stackoverflow.com/questions/53587951/decode-html-escape-character-in-app-script
-
 // 1] Interface with main UI
 
 /** Allows the UI to launch a full-screen-aligned YES/NO prompt, returns true iff YES */

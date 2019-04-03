@@ -2,26 +2,6 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
-//TODO: -------- short term: -------------------
-
-//TODO: -------- Longer term: -------------------
-
-//TODO: one time the expand editor didn't appear to save my changes (I hit update immediately, not sure if that's related)
-
-//TODO: if MR has nested set/map (?list), then it doesn't get rendered...
-
-//TODO: memory leak might be a problem?
-
-//TODO: handleRowColResponse _badly_ needs some unit tests :(
-
-//TODO: offload more processing into browser via shared files
-
-//TODO: once the mapping is pulled from non-SQL, can use it to create cols without needing ~2 passes over the data
-
-//TODO: allow specification of data type per col (including JSON, prettyJSON)
-
-//TODO: stash for at least the build new table should be user metadata not in the spreadsheet
-
 var ElasticsearchService_ = (function() {
 
   ////////////////////////////////////////////////////////
