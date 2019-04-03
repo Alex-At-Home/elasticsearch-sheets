@@ -102,6 +102,10 @@ var AggregationInfo = { "bucket": {
       "field": "FIELDNAME"
     }
   },
+  "sum": {
+    "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-sum-aggregation.html",
+    "field": "FIELDNAME"
+  },
   //TODO...
   "median_absolute_deviation": {
     "url__": "https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-median-absolute-deviation-aggregation.html",
