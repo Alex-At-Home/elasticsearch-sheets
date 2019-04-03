@@ -27,7 +27,7 @@ var GeneralEditor = (function(){
     `
     <form>
     <div class="form-group">
-    <label>Query Bar</label>
+    <label>Refresh Trigger</label>
     <select class="input-small form-control" id="trigger_${tableType}_${index}">
     <option value='disabled'>Disabled</option>
     <option value='manual'>Manual</option>
