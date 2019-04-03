@@ -57,7 +57,7 @@ var ElasticsearchService_ = (function() {
         if (tableRange) {
           var range = tableRange.getRange()
           var statusInfo = "AWAITING REFRESH [" + TableRangeUtils_.formatDate() + "]"
-          var tableMeta = ElasticsearchUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
+          var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
         }
       }
     } catch (err) {} //(fire and forget, just for display)
@@ -111,7 +111,7 @@ var ElasticsearchService_ = (function() {
      // Build table outline and add pending
 
      var statusInfo = "PENDING [" + TableRangeUtils_.formatDate() + "]"
-     var tableMeta = ElasticsearchUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, testMode)
+     var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, testMode)
 
      // We've not set the status to pending, so clear any triggers:
      if (!testMode && (null != tableRange)) {
@@ -134,88 +134,7 @@ var ElasticsearchService_ = (function() {
 
   /** Builds an aggregation query from the UI focused config model */
   function buildAggregationQuery(config, querySubstitution) {
-     /* Here's the model:
-        {
-           "name": "string", //(also used as the header - ignore any element with no name)
-           "agg_type": "string", //"__map_reduce__" or any ES aggregation, ignore any element with no agg_type
-           "location": "string" // "automatic" (all the buckets follow each other, all the metrics/pipelines at the bottom), "
-                                // disabled" (ignore), or under a specified "name"
-           "field_filter": "string" // (not used in the query building, controls the display)
-           "config": { .. } // the aggregation config
-     */
-
-     // (Stores elements with a custom position)
-     var elsByCustomPosition = {}
-     // (All the elements by name so we can add to them if they have custom position)
-     var elementsByName = {}
-     var aggList = []
-
-     var getOrPutJsonField = function(json, field) {
-       return json[field] || (json[field] = {})
-     }
-
-     var aggTable = TableRangeUtils_.getJson(config || {}, [ "aggregation_table" ]) || {}
-
-     var queryString = JSON.stringify(aggTable.query || { "query": { "match_all": {} } })
-     var jsonEscapedStr = function(str) {
-        var escapedInQuotes = JSON.stringify(str)
-        return escapedInQuotes.substring(1, escapedInQuotes.length - 1)
-     }
-     queryString = queryString.replace("$$query", jsonEscapedStr(querySubstitution || "*"))
-     var postBody = JSON.parse(queryString)
-     postBody.size = 0 //(never have any interest in returning docs)
-     var aggregationsLocation = getOrPutJsonField(postBody, 'aggregations')
-
-     var insertElementsFrom = function(listName, nestEveryTime, noDupCheck) {
-        var configArray = aggTable[listName] || []
-        configArray
-           .filter(function(el) {
-              return el.name && el.agg_type && ("disabled" || el.location)
-           })
-           .forEach(function(el) {
-              // (do some quick validation)
-              if ('buckets' == el) {
-                 throw new Exception("Not allowed to call any of the table elements [buckets]")
-              } else if (noDupCheck.hasOwnProperty(el)) {
-                throw new Exception("Duplicate table element [" + el + "]")
-              }
-
-              var configEl = transformConfig_(config, el)
-              elementsByName[el.name] = configEl
-              if (!el.location || ("automatic" == el.location)) {
-                 aggregationsLocation[el.name] = configEl
-                 if (nestEveryTime) {
-                    aggregationsLocation = getOrPutJsonField(configEl, 'aggregations')
-                 }
-              } else { // (we'll stash it and sort it out later)
-                 var storedEl = {}
-                 storedEl[el.name] = configEl
-                 var currArray = elsByCustomPosition[el.location] || []
-                 if (0 == currArray.length) {
-                    elsByCustomPosition[el.location] = currArray
-                 }
-                 currArray.push(storedEl)
-              }
-           })
-     }
-     //(state aggregationsLocation preserved between these calls)
-     var noDupCheck = {}
-     insertElementsFrom('buckets', true, noDupCheck)
-     insertElementsFrom('metrics', false, noDupCheck)
-     insertElementsFrom('pipelines', false, noDupCheck)
-
-     // Now inject any elements with a custom position
-     for (var k in elsByCustomPosition) {
-       var insertInto = elementsByName[k] || {}
-       aggregationsLocation = getOrPutJsonField(insertInto, 'aggregations')
-       var toInsertArray = elsByCustomPosition[k] || []
-       toInsertArray.forEach(function(el) {
-           Object.keys(el).forEach(function(name) {
-              aggregationsLocation[name] = el[name]
-           })
-       })
-     }
-     return postBody
+    return ElasticsearchRequestUtils_.buildAggregationQuery(config, querySubstitution)
   }
 
   // 3] Post request logic
@@ -232,7 +151,7 @@ var ElasticsearchService_ = (function() {
         })
         rows = json.response.rows
      }
-     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/false)
+     ElasticsearchResponseUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/false)
   }
 
   /** Populates the data table range with the given "_cat" response (context comes from "getElasticsearchMetadata") */
@@ -245,7 +164,7 @@ var ElasticsearchService_ = (function() {
           cols = Object.keys(rows[0]).map(function(x) { return { name: x } })
         }
      }
-     ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/true)
+     ElasticsearchResponseUtils_.handleRowColResponse(tableName, tableConfig, context, json, rows, cols, /*supportsSize*/true)
   }
 
   /** Populates the data table range with the given aggregation response (context comes from "getElasticsearchMetadata") */
@@ -253,7 +172,7 @@ var ElasticsearchService_ = (function() {
     var rowsCols = { rows: [], cols: [] }
     try {
        if (null != json.response) {
-          rowsCols = ElasticsearchUtils_.buildRowColsFromAggregationResponse(
+          rowsCols = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse(
             tableName, tableConfig, context, json, aggQueryJson
           )
       }
@@ -262,7 +181,7 @@ var ElasticsearchService_ = (function() {
       json.error_message = err.message
       json.query_string = JSON.stringify(aggQueryJson)
     }
-    ElasticsearchUtils_.handleRowColResponse(tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
+    ElasticsearchResponseUtils_.handleRowColResponse(tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true)
   }
 
   /** Populates the data table range with the given query response (context comes from "getElasticsearchMetadata") */
@@ -272,7 +191,7 @@ var ElasticsearchService_ = (function() {
     try {
        if (null != json.response) {
           numHits =  TableRangeUtils_.getJson(json.response || {}, [ "hits", "total" ]) || 0
-          rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
+          rowsCols = ElasticsearchResponseUtils_.buildRowColsFromDataResponse(
             tableName, tableConfig, context, json, queryJson
           )
       }
@@ -281,7 +200,7 @@ var ElasticsearchService_ = (function() {
       json.error_message = err.message
       json.query_string = JSON.stringify(queryJson)
     }
-    ElasticsearchUtils_.handleRowColResponse(
+    ElasticsearchResponseUtils_.handleRowColResponse(
       tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true,
       numHits
     )
@@ -338,13 +257,13 @@ var ElasticsearchService_ = (function() {
         break
       }
     }
-    var rowsCols = ElasticsearchUtils_.buildRowColsFromDataResponse(
+    var rowsCols = ElasticsearchResponseUtils_.buildRowColsFromDataResponse(
       tableName, tableConfig, {}, mockResponse, {}
     )
     // Convert to a 2d array
     var rows = []
     var headerConfig = TableRangeUtils_.getJson(tableConfig, [ "common", "headers" ]) || {}
-    var filteredCols = ElasticsearchUtils_.calculateFilteredCols(
+    var filteredCols = ElasticsearchResponseUtils_.calculateFilteredCols(
       rowsCols.cols, headerConfig
     )
     var addedHeaders = headerConfig.position == "none"
@@ -412,33 +331,6 @@ var ElasticsearchService_ = (function() {
   ////////////////////////////////////////////////////////
 
   // Internal utils:
-
-  /** Converts the __map_reduce__ custom type into a scripted_metric, otherwise just embeds into its own object */
-  function transformConfig_(globalConfig, configEl) {
-    var retVal = {}
-    if ("__map_reduce__" == configEl.agg_type) {
-       var aggTable = globalConfig.aggregation_table || {}
-       var mapReduce = aggTable.map_reduce || {}
-       var lib = (mapReduce.lib || "") + "\n\n"
-       // Combine the 2 params
-       var combinedParams = configEl.config || {}
-       combinedParams['_name_'] = configEl.name //(can use the same script boxes for different jobs)
-       var params = mapReduce.params || {}
-       for (var k in params) {
-          combinedParams[k] = params[k]
-       }
-       retVal.scripted_metric = {
-          params: combinedParams,
-          init_script: lib + (mapReduce.init || ""),
-          map_script: lib + (mapReduce.map || ""),
-          combine_script: lib + (mapReduce.combine || ""),
-          reduce_script: lib + (mapReduce.reduce || "")
-       }
-    } else {
-       retVal[configEl.agg_type] = configEl.config || {}
-    }
-    return retVal
-  }
 
   /** Finds table lookups and returns them in an associative array */
   function findLookups_(tableConfig) {

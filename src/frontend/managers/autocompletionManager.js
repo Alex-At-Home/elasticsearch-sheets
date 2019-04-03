@@ -338,7 +338,7 @@ var AutocompletionManager = (function() {
 
   ////////////////////////////////////////////////////
 
-  // Some internal utils, duplicated from ElasticsearchUtils.gs
+  // Some internal utils, duplicated from ElasticsearchResponseUtils.gs
 
   function isFieldWanted_(field, filterFieldArray) {
     var negativeOnly = true

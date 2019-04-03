@@ -327,7 +327,7 @@ var ElasticsearchManager = (function(){
       includes: [],
       excludes: []
     }
-    //(see also ElasticsearchUtils_ and AutocompletionManager .buildFilterFieldRegex_)
+    //(see also ElasticsearchResponseUtils_ and AutocompletionManager .buildFilterFieldRegex_)
     var tidiedUp = fieldFilters
       .map(function(el) { return el.trim() })
       .filter(function(el) { return el && ('#' != el[0]) })

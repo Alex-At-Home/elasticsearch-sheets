@@ -1,13 +1,13 @@
 /*
- * Sort-of-Unit/Sort-of-Integration tests for ElasticsearchUtils.gs
+ * Sort-of-Unit/Sort-of-Integration tests for ElasticsearchResponseUtils.gs
  */
 
- function testElasticsearchUtilsRunner() {
-    TestService_.testRunner("ElasticsearchUtils_", /*deleteTestSheets*/true)
+ function testElasticsearchResponseUtilsRunner() {
+    TestService_.testRunner("ElasticsearchResponseUtils_", /*deleteTestSheets*/true)
  }
-var TestElasticsearchUtils_ = (function() {
+var TestElasticsearchResponseUtils_ = (function() {
 
-  /** (PRIVATE) ElasticsearchUtils_.buildFilterFieldRegex */
+  /** (PRIVATE) ElasticsearchResponseUtils_.buildFilterFieldRegex */
   function buildFilterFieldRegex_(testSheet, testResults) {
     TestService_.Utils.performTest(testResults, "various_usages", function() {
        var filterFieldTests = {
@@ -30,19 +30,19 @@ var TestElasticsearchUtils_ = (function() {
          var expectedOut = filterFieldTests[testInStr]
          expectedAllOut = expectedAllOut.concat(expectedOut)
          TestService_.Utils.assertEquals(
-           expectedOut, ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_([testInStr]), testInStr
+           expectedOut, ElasticsearchResponseUtils_.TESTONLY.buildFilterFieldRegex_([testInStr]), testInStr
          )
        })
        //(check can dump an array of nested regexes in)
        TestService_.Utils.assertEquals(
          expectedAllOut,
-         ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_(Object.keys(filterFieldTests)),
+         ElasticsearchResponseUtils_.TESTONLY.buildFilterFieldRegex_(Object.keys(filterFieldTests)),
          "all_fields"
        )
     })
   }
 
-  /** (PRIVATE) ElasticsearchUtils_.isFieldWanted_ */
+  /** (PRIVATE) ElasticsearchResponseUtils_.isFieldWanted_ */
   function isFieldWanted_(testSheet, testResults) {
     TestService_.Utils.performTest(testResults, "various_usages", function() {
       var fieldFilters = {
@@ -71,10 +71,10 @@ var TestElasticsearchUtils_ = (function() {
       }
       Object.keys(fieldFilters).forEach(function(testInStr) {
         var testIn = testInStr.split(",")
-        var transformedTestIn = ElasticsearchUtils_.TESTONLY.buildFilterFieldRegex_(testIn)
+        var transformedTestIn = ElasticsearchResponseUtils_.TESTONLY.buildFilterFieldRegex_(testIn)
         var inOut = fieldFilters[testInStr] || { inList: [], outList: [] }
         var out = inOut.inList.filter(function(el){
-          return ElasticsearchUtils_.TESTONLY.isFieldWanted_(el, transformedTestIn)
+          return ElasticsearchResponseUtils_.TESTONLY.isFieldWanted_(el, transformedTestIn)
         })
         TestService_.Utils.assertEquals(
           inOut.outList, out, testInStr
@@ -83,7 +83,7 @@ var TestElasticsearchUtils_ = (function() {
     })
   }
 
-  /** (PRIVATE) ElasticsearchUtils_.calculateFilteredCols */
+  /** (PRIVATE) ElasticsearchResponseUtils_.calculateFilteredCols */
   function calculateFilteredCols_(testSheet, testResults) {
     TestService_.Utils.performTest(testResults, "various_usages", function() {
       var filters1 = [
@@ -113,8 +113,8 @@ var TestElasticsearchUtils_ = (function() {
       ]
       var testCols1 = TestService_.Utils.deepCopyJson(testCols)
       var reorderedList = [ 5, 3, 2, 1, 0 ]
-      var result = ElasticsearchUtils_.calculateFilteredCols(testCols1, headerMeta)
-      var renamed = testCols1.map(function(el) { return el.name })
+      var result = ElasticsearchResponseUtils_.calculateFilteredCols(testCols1, headerMeta)
+      var renamed = testCols1.map(function(el) { return el.alias || el.name })
 
       TestService_.Utils.assertEquals(
         reorderedList, result, "column order (+ve and -ve)"
@@ -127,8 +127,8 @@ var TestElasticsearchUtils_ = (function() {
       headerMeta.field_filters = [ "#" ]
       var testCols2 = TestService_.Utils.deepCopyJson(testCols)
       var defaultReorderedList = [ 5, 2, 1, 0, 3, 4 ]
-      var result = ElasticsearchUtils_.calculateFilteredCols(testCols2, headerMeta)
-      var renamed = testCols2.map(function(el) { return el.name })
+      var result = ElasticsearchResponseUtils_.calculateFilteredCols(testCols2, headerMeta)
+      var renamed = testCols2.map(function(el) { return el.alias || el.name })
 
       TestService_.Utils.assertEquals(
         defaultReorderedList, result, "column order (no field filters)"
@@ -143,8 +143,8 @@ var TestElasticsearchUtils_ = (function() {
 
       var testCols3 = TestService_.Utils.deepCopyJson(testCols)
       var noAliasesReorderedList = [ 3, 5, 0, 1, 2 ]
-      var result = ElasticsearchUtils_.calculateFilteredCols(testCols3, headerMeta)
-      var renamed = testCols3.map(function(el) { return el.name })
+      var result = ElasticsearchResponseUtils_.calculateFilteredCols(testCols3, headerMeta)
+      var renamed = testCols3.map(function(el) { return el.alias || el.name })
       var expectedRenamed = testCols.map(function(el) { return el.name })
 
       TestService_.Utils.assertEquals(
@@ -156,7 +156,7 @@ var TestElasticsearchUtils_ = (function() {
     })
   }
 
-  /** (PUBLIC) ElasticsearchUtils_.buildRowColsFromAggregationResponse */
+  /** (PUBLIC) ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse */
   function buildRowColsFromAggregationResponse_(testSheet, testResults) {
 
     var configBuilder = function(config) {
@@ -318,10 +318,10 @@ var TestElasticsearchUtils_ = (function() {
       var tableConfig = configBuilder(requestConfig)
       var mockResults = { response: { aggregations: { "m1": { "v1": 1, "v2": 2 } } } }
       var expectedOutput = { cols: [ { name: "m1.v1", index: 0 }, { name: "m1.v2", index: 1 } ], rows: [ [ 1, 2 ]  ]}
-      var testOutput = ElasticsearchUtils_.buildRowColsFromAggregationResponse("no_buckets", tableConfig, {}, mockResults, {})
+      var testOutput = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse("no_buckets", tableConfig, {}, mockResults, {})
       TestService_.Utils.assertEquals(expectedOutput, testOutput, "simple_input")
 
-      var testOutput = ElasticsearchUtils_.buildRowColsFromAggregationResponse("no_buckets", tableConfig, {}, { response: { aggregations: {} } }, {})
+      var testOutput = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse("no_buckets", tableConfig, {}, { response: { aggregations: {} } }, {})
       TestService_.Utils.assertEquals({ rows: [], cols: [] }, testOutput, "empty_input")
     })
 
@@ -332,7 +332,7 @@ var TestElasticsearchUtils_ = (function() {
         var mockResults = responseBuilder(requestConfig, {mr_atomic: false, mr_array: mrEnabled})
         var expectedPath = mrEnabled ? "[.b1.b2.mr1]" : "[.b1.b2]"
         try {
-          var retVal = ElasticsearchUtils_.buildRowColsFromAggregationResponse("bad_branch", tableConfig, {}, mockResults, {})
+          var retVal = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse("bad_branch", tableConfig, {}, mockResults, {})
           TestService_.Utils.assertEquals({}, retVal, "buildRowColsFromAggregationResponse_(...) should throw, not return a result")
         } catch (err) {
           TestService_.Utils.assertEquals(true, err.message.indexOf("[.b1.bad_branch]") > 0, "Error [" + err.message + "] should include right conflict path (mr=[" + mrEnabled + "])")
@@ -346,7 +346,7 @@ var TestElasticsearchUtils_ = (function() {
       var tableConfig = configBuilder(requestConfig)
       var mockResults = responseBuilder(requestConfig, {})
       var expectedOutput = resultsBuilder(requestConfig, {})
-      var testOutput = ElasticsearchUtils_.buildRowColsFromAggregationResponse("buckets", tableConfig, {}, mockResults, {})
+      var testOutput = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse("buckets", tableConfig, {}, mockResults, {})
       TestService_.Utils.assertEquals(expectedOutput, testOutput)
     })
 
@@ -362,7 +362,7 @@ var TestElasticsearchUtils_ = (function() {
       testCases.forEach(function(caseJson) {
         var mockResults = responseBuilder(requestConfig, caseJson)
         var expectedOutput = resultsBuilder(requestConfig, caseJson)
-        var testOutput = ElasticsearchUtils_.buildRowColsFromAggregationResponse("map_reduce", tableConfig, {}, mockResults, {})
+        var testOutput = ElasticsearchResponseUtils_.buildRowColsFromAggregationResponse("map_reduce", tableConfig, {}, mockResults, {})
         TestService_.Utils.assertEquals(expectedOutput, testOutput, JSON.stringify(caseJson, null, 3))
       })
     })
