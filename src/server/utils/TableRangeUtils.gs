@@ -71,6 +71,9 @@
      mutableConfigJson.range = rangeNotation
      mutableConfigJson.sheet = sheetName
 
+     // Convert "select-all" ranges
+     range = TableRangeUtils_.fixSelectAllRanges(mutableConfigJson, range)
+
      // Validate and build range if possible
      if (!validateNewRange(ss, mutableConfigJson)) {
         return false
@@ -288,6 +291,22 @@
     )
    }
 
+   /** Fix notations like A:A, 1:10, etc */
+   function fixSelectAllRanges(tableConfig, inRange) {
+     var range = inRange
+     if (!range.getA1Notation() && (range.getNumRows() > 0)) {
+       tableConfig.range = "A1:Z50"
+       range = range.getSheet().getRange("A1:Z50")
+     } else if (range.getA1Notation().match(/[0-9]+:[0-9]+/)) {
+       range = range.getSheet().getRange(1, 1, range.getNumRows(), 26)
+       tableConfig.range = range.getA1Notation()
+     } else if (range.getA1Notation().match(/[a-z]+:[a-z]+/i)) {
+       range = range.getSheet().getRange(1, 1, 50, range.getNumColumns())
+       tableConfig.range = range.getA1Notation()
+     }
+     return range
+   }
+
    /** Returns true if 2 ranges have a non-empty intersection */
    function doRangesIntersect(r1, r2) {
      return (r1.getLastRow() >= r2.getRow()) && (r2.getLastRow() >= r1.getRow()) &&
@@ -363,6 +382,7 @@
      getJson: getJson,
      shallowCopy: shallowCopy,
      formatDate: formatDate,
+     fixSelectAllRanges: fixSelectAllRanges,
      doRangesIntersect: doRangesIntersect,
 
      TESTONLY: {

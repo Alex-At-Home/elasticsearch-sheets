@@ -43,7 +43,7 @@ var ElasticsearchRequestUtils_ = (function() {
      }
 
      var specialRows = TableRangeUtils_.buildSpecialRowInfo(tableConfig)
-     convertSpecialRows_(specialRows, rangeRows)
+     convertSpecialRows(specialRows, rangeRows)
 
      // How we handle formatting:
      // none - complately manual
@@ -312,18 +312,30 @@ var ElasticsearchRequestUtils_ = (function() {
 
      var insertElementsFrom = function(listName, nestEveryTime, noDupCheck) {
         var configArray = aggTable[listName] || []
-        configArray
+        var filteredConfigArray = configArray
            .filter(function(el) {
-              return el.name && el.agg_type && ("disabled" || el.location)
+              return el.name && el.agg_type && ("disabled" != el.location)
            })
-           .forEach(function(el) {
-              // (do some quick validation)
-              if ('buckets' == el) {
-                 throw new Exception("Not allowed to call any of the table elements [buckets]")
-              } else if (noDupCheck.hasOwnProperty(el)) {
-                throw new Exception("Duplicate table element [" + el + "]")
-              }
 
+        filteredConfigArray.forEach(function(el, ii) {
+            if (!el.config) el.config = {} // (some data hygiene to make life easier below)
+            // (do some quick validation)
+            if ('buckets' == el) {
+               throw new Exception("Not allowed to call any of the table elements [buckets]")
+            } else if (noDupCheck.hasOwnProperty(el)) {
+              throw new Exception("Duplicate table element [" + el + "]")
+            }
+
+            if ("easy_composite" == el.agg_type) {
+              var buildFrom = []
+              var max_size = el.config.children || -1
+              for (var jj = ii + 1; jj < filteredConfigArray.length; jj++) {
+                buildFrom.push(filteredConfigArray[jj])
+                if (buildFrom.length == max_size) break
+              }
+              el = buildEasyComposite_(el, buildFrom, config)
+            }
+            if (!el.already_processed) {
               var configEl = transformConfig_(config, el)
               elementsByName[el.name] = configEl
               if (!el.location || ("automatic" == el.location)) {
@@ -340,7 +352,8 @@ var ElasticsearchRequestUtils_ = (function() {
                  }
                  currArray.push(storedEl)
               }
-           })
+            }
+         })
      }
      //(state aggregationsLocation preserved between these calls)
      var noDupCheck = {}
@@ -364,10 +377,10 @@ var ElasticsearchRequestUtils_ = (function() {
 
   ////////////////////////////////////////////////////////
 
-  // Internal utils:
+  // Public utils:
 
   /** Turns logical rows into actual rows */
-  function convertSpecialRows_(specialRows, numTableRows) {
+  function convertSpecialRows(specialRows, numTableRows) {
      var getRow = function(n) {
         if (n >= 0) {
            return n
@@ -380,6 +393,10 @@ var ElasticsearchRequestUtils_ = (function() {
      specialRows.pagination = getRow(specialRows.pagination)
      specialRows.query_bar = getRow(specialRows.query_bar)
   }
+
+  ////////////////////////////////////////////////////////
+
+  // Internal utils:
 
   /** Infers the data row formats and copies over possible ex-special row formats */
   function resetExSpecialRowFormats_(activeRange, specialRows, formatTheme) {
@@ -422,7 +439,38 @@ var ElasticsearchRequestUtils_ = (function() {
         }
      }
   }
-  
+
+  /** Converts a set of aggregations into a single composite */
+  function buildEasyComposite_(controlEl, buildFrom, globalConfig) {
+    var composite = {
+      name: controlEl.name,
+      agg_type: "composite",
+      config: {
+        sources: [
+        ]
+      }
+    }
+    if (controlEl.config.size) composite.config.size = controlEl.config.size
+    if (controlEl.config.after) composite.config.after = controlEl.config.after
+    buildFrom.forEach(function(el) {
+      el.already_processed = true
+      var config = transformConfig_(globalConfig, el)
+      // (remove any known fields not supported in composite):
+      delete config[el.agg_type].size
+
+      if (controlEl.config.extra_params) {
+        var extraParams = controlEl.config.extra_params[el.name] || {}
+        Object.keys(extraParams).forEach(function(extraParamKey) {
+          config[el.agg_type][extraParamKey] = extraParams[extraParamKey]
+        })
+      }
+      var subAgg = {}
+      subAgg[el.name] = config
+      composite.config.sources.push(subAgg)
+    })
+    return composite
+  }
+
   /** Converts the __map_reduce__ custom type into a scripted_metric, otherwise just embeds into its own object */
   function transformConfig_(globalConfig, configEl) {
     var retVal = {}
@@ -455,6 +503,8 @@ var ElasticsearchRequestUtils_ = (function() {
   return {
     buildTableOutline: buildTableOutline,
     buildAggregationQuery: buildAggregationQuery,
+
+    convertSpecialRows: convertSpecialRows,
 
     TESTONLY: {
     }

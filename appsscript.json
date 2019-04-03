@@ -5,9 +5,13 @@
   "exceptionLogging": "STACKDRIVER",
   "sheets": {
     "macros": [{
+      "menuName": "launchElasticsearchTableBuilder",
+      "functionName": "launchElasticsearchTableBuilder",
+      "defaultShortcut": "Ctrl+Alt+Shift+1"
+    },{
       "menuName": "refreshSelectedTable",
       "functionName": "refreshSelectedTable",
-      "defaultShortcut": "Ctrl+Alt+Shift+1"
+      "defaultShortcut": "Ctrl+Alt+Shift+2"
     }]
   }
 }

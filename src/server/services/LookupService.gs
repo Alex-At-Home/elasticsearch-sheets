@@ -32,14 +32,18 @@ var LookupService_ = (function(){
       return (candidates.length > 0) ? candidates[0] : null
     }
 
-    var range = isNotation ?
-      (isFullNotation ?
-        ss.getRange(rangeOrNotation)
+    try {
+      var range = isNotation ?
+        (isFullNotation ?
+          ss.getRange(rangeOrNotation)
+          :
+          ss.getActiveSheet().getRange(rangeOrNotation)
+        )
         :
-        ss.getActiveSheet().getRange(rangeOrNotation)
-      )
-      :
-      findRange()
+        findRange()
+    } catch (err) {
+        //(do nothing, captured below)
+    }
 
     if (!range || (range.getNumColumns() < 1) || (range.getNumRows() < 1)) {
       return { error: "Named range [" + rangeOrNotation + "] not found (or A1 notation invalid)" }

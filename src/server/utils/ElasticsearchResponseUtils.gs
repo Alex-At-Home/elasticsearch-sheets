@@ -366,7 +366,7 @@ var ElasticsearchResponseUtils_ = (function() {
            dataRowOffset = (context.table_meta.page - 1)*context.table_meta.data_size
         }
 
-        convertSpecialRows_(specialRows, numTableRows)
+        ElasticsearchRequestUtils_.convertSpecialRows(specialRows, numTableRows)
 
         // Write data
         var rowArray = []
@@ -661,6 +661,11 @@ var ElasticsearchResponseUtils_ = (function() {
       })
     }
     partialFlattenRecurse(inObj, outObj, "")
+  }
+
+  /** Adds the error info the status, if necessary */
+  function setQueryResponseInStatus_(range, statusLocation, errorString) {
+     range.getCell(statusLocation.row, statusLocation.col).setValue(errorString)
   }
 
   ////////////////////////////////////////////////////////

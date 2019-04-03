@@ -6,9 +6,24 @@ var AggregationEditor = (function(){
   function buildHtmlStr(index, standaloneEdit) {
     var groupCollapse = standaloneEdit ? '' : `data-parent="#accordion_agg_${index}"`
 
+    var showBuildFromTemplate = (0 != index) ? "" :
+    `
+    <div class="panel-body">
+    <div class="btn-toolbar">
+    <div class="btn-group">
+    <button type="button" data-toggle="dropdown" class="btn btn-default dropdown-toggle">Build From Template <span class="caret"></span></button>
+    <ul class="dropdown-menu">
+        <li><a id="dataexplorer_template_${index}">Data Explorer</a></li>
+    </ul>
+    </div>
+    </div>
+    </div>
+    `
+
     var accordion =
     `
     <div id="accordion_agg_${index}" class="panel-group">
+
     <div class="panel panel-default">
     <div class="panel-heading">
     <h4 class="panel-title">
@@ -162,6 +177,9 @@ var AggregationEditor = (function(){
     </div>
     </div>
     </div>
+
+    ${showBuildFromTemplate}
+
     </div>
     `
     return accordion
@@ -304,7 +322,7 @@ var AggregationEditor = (function(){
         aggTable.index_pattern = thisValue
       })
     })
-    $(`#index_sql_${index}`).on("focusout", function(e) {
+    $(`#index_agg_${index}`).on("focusout", function(e) {
       AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
     })
     //(also initialize this on build)
@@ -351,6 +369,13 @@ var AggregationEditor = (function(){
         ace.edit(`${field}_agg_${index}`).resize()
       })
     })
+
+    // Build from template:
+    if (0 == index) {
+      $(`#dataexplorer_template_${index}`).click(function(){
+        globalEditor.session.setValue(JSON.stringify(DataExplorerTemplate, null, 3))
+      })
+    }
   }
 
   return {

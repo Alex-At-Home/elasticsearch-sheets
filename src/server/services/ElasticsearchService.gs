@@ -2,15 +2,13 @@
  * Handles service-level calls as part of  the integration between the client application and the ES configuration
  */
 
- //TODO: -------- short term: -------------------
+//TODO: -------- short term: -------------------
 
-//TODO: would be nice to have a "easy_composite" element that takes the next N terms and adds them to a composite
+//TODO: -------- Longer term: -------------------
 
 //TODO: one time the expand editor didn't appear to save my changes (I hit update immediately, not sure if that's related)
 
 //TODO: if MR has nested set/map (?list), then it doesn't get rendered...
-
-//TODO: -------- Longer term: -------------------
 
 //TODO: memory leak might be a problem?
 
@@ -19,8 +17,6 @@
 //TODO: offload more processing into browser via shared files
 
 //TODO: once the mapping is pulled from non-SQL, can use it to create cols without needing ~2 passes over the data
-
-//TODO: would be nice to have a data summary table, 1 row per field with stats
 
 //TODO: allow specification of data type per col (including JSON, prettyJSON)
 
@@ -92,16 +88,7 @@ var ElasticsearchService_ = (function() {
 
      // Special case, full selection from partial selections:
      if (null == tableRange) {
-       if (!range.getA1Notation() && (range.getNumRows() > 0)) {
-         tableConfig.range = "A1:Z50"
-         range = range.getSheet().getRange("A1:Z50")
-       } else if (range.getA1Notation().match(/[0-9]+:[0-9]+/)) {
-         range = range.getSheet().getRange(1, 1, range.getNumRows(), 26)
-         tableConfig.range = range.getA1Notation()
-       } else if (range.getA1Notation().match(/[a-z]+:[a-z]+/i)) {
-         range = range.getSheet().getRange(1, 1, 50, range.getNumColumns())
-         tableConfig.range = range.getA1Notation()
-       }
+       range = TableRangeUtils_.fixSelectAllRanges(tableConfig, range)
      }
 
      if (!TableRangeUtils_.validateNewRange(ss, tableConfig)) {
@@ -335,7 +322,7 @@ var ElasticsearchService_ = (function() {
   /** Finds table lookups and returns them in an associative array */
   function findLookups_(tableConfig) {
     var tableConfigStr = JSON.stringify(tableConfig)
-    var lookupMapRegex = /(['"])[$][$]lookupMap[(]['"]?(.*?)['"]?[)]\1/g
+    var lookupMapRegex = /(['"])[$][$]lookupMap[(]['"]?([^"')]+?)['"]?[)]\1/g
     var lookups = {}
     for (;;) {
       var lookup = lookupMapRegex.exec(tableConfigStr)

@@ -14,12 +14,20 @@ An experimental Google Sheets add-on to view and interact with Elasticsearch ind
    * Autocomplete for both the DSL and the data fields
    * Includes an integrated "MapReduce" UI with `painless` autocompletion
       * Use cell ranges as lookup tables for the `MapReduce` logic
+   * A `"Data Explorer"` template that provides a summary for each field in the dataset
 * `SQL table` providing an interface to `elasticsearch-sql`
    * SQL and data field autocompletion
 * `Management table`
    * Gives access to the `cat` endpoints
 * Safe sharing of the spreadsheet
    * password or anonymous access to Elasticsearch from the browser
+
+## Getting started
+
+After installation (see below), simply:
+* select a range in one of the sheets, pick a table type from `Build New Table...`,
+* add the index/indices to search to `Query > Indices` or `SQL > Indices`
+* perform any other configuration (eg uncomment a SQL command, choose some aggregations, pick some fields), and `Create` or `Test` it
 
 ## Installation
 
