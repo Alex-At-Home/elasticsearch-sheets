@@ -167,7 +167,7 @@ function summarizeEsSubTable(args) {
  * Builds a sub-table out of an array of JSON objects stored in a single cell of an
  * Elasticsearch "data table" as represented by "=summarizeEsSubTable(...)"
  *
- * @param {Sheet!E1} subTableCell The range of a single cell containing a complex array that was generated
+ * @param {range} subTableCell The range of a single cell containing a complex array that was generated
  *                              by a Data Table, eg is in the format "=summarizeEsSubTable(...)"
  * @param {} configOverride (Optional - for advanced users only)
  *                                 A stringified JSON object containing a config object
