@@ -29,6 +29,8 @@ After installation (see below), simply:
 * add the index/indices to search to `Query > Indices` or `SQL > Indices`
 * perform any other configuration (eg uncomment a SQL command, choose some aggregations, pick some fields), and `Create` or `Test` it
 
+More demos can be found [here](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md)
+
 ![elastic-sheets](https://user-images.githubusercontent.com/17573856/55447647-8e26bb80-5592-11e9-81e9-335d59d43879.gif)
 
 ## Installation
