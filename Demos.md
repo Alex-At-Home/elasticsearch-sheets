@@ -1,33 +1,33 @@
 This page contains some gifs demonstrating some of the key features of the tool.
 
-* [Demo A](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#demo-a)
+* [Demo A](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#demo-a)
    * I create a Data Table for one of my indices  and discover it has hundreds of columns. I use the `Data Explorer` 
    Map/Reduce template to build a summary of the data and then the Google Sheets filter to filter out boring fields.
    Finally I paste the filtered column into the Table's `Fields` filter and refresh, to make the table useful.
-* [Demo B](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#demo-b)
+* [Demo B](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#demo-b)
    * I create a Data Table for a different index, and notice it has medium-sized arrays of (~30) complex objects. 
    I use the custom function `buildEsSubTable` to turn one the nested arrays into a table of its own.
-* [Demo C](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#demo-c)
+* [Demo C](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#demo-c)
    * The first index contains lineup statistics from basketball games. I use SQL to generate some simple
      aggregations grouped by the lineup. I want to filter the statistics to be over only a certain class of opponent,
      but that's ~30 teams so cumbersome to type by hand. So I build another `GROUP BY` SQL table just listing the teams,
      use an adjacent column to specify the opponent class, turn that into a SQL query with Google Sheets' `CONCATENATE` 
      , `TEXTJOIN`, and `FILTER` functions, and then inject that query into the Table.
-* [Demo D](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#demo-d)
+* [Demo D](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#demo-d)
    * There's a lot happening here, so I've split it into 3 parts:
-   * [Part 1](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#part-1)
+   * [Part 1](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#part-1)
       * I duplicate `Demo C` but using a combination of standard Elasticsearch aggregations (`terms` grouping, `sum` metric) 
       and Map/Reduce (a UI over the top of `scripted_metric`)
-   * [Part 2](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#part-2)
+   * [Part 2](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#part-2)
       * The reason for using a more complex Map/Reduce in `Part 1` was to be able to adjust the statistics based on 
       the strength of opponent. So I first use a Data Table on the advanced statistics index (from `Demo B`) to
       list last year's opponents' strength. Then I use `VLOOKUP` on the teams actually faced (from `Demo C`) to check
       the 2 data sources match (they don't for a couple of teams, so I fix that). This allows me to build a lookup table
       for the offensive and defensive strength of each opponent.
-   * [Part 3](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#part-3)
+   * [Part 3](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#part-3)
       * Now I edit the Aggregation Table from `Part 1` to add the lookup table, and then change the Map/Reduce job to
         incorportate it
-* [Demo E](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/README.md#demo-e)
+* [Demo E](https://github.com/Alex-At-Home/elasticsearch-sheets/blob/master/Demos.md#demo-e)
    * In this simple demo, I add a pagination feature to the table from `Demo D` so that I can scroll through the data.       
       
 # Demo A
