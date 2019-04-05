@@ -427,7 +427,7 @@ var ElasticsearchRequestUtils_ = (function() {
                     (ii != specialRows.headers) && (ii != specialRows.query_bar) && ((ii + 1) != dataFormatRowSampleOffset))
                 {
                    var offset = activeRange.offset(ii - 1, 0, 1)
-                   dataFormatRowSample.copyTo(offset, {formatOnly:true})
+                   if (!testMode) dataFormatRowSample.copyTo(offset, {formatOnly:true})
                 }
              }
              for (var ii = 1; ii <= 4; ++ii) { // top 4

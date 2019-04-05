@@ -165,9 +165,9 @@ var ManagementService_ = (function(){
               trigger = "manual" //nothing can overwrite manual (except "")
               break
             case "config_change": //(everything except data_change overwrites)
-              trigger = ("content_change" == trigger) ? curr : trigger
+              trigger = ("control_change" == trigger) ? curr : trigger
               break
-            default: //("" or "content_change" - always update)
+            default: //("" or "control_change" - always update)
               break
           }
         }

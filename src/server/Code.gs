@@ -17,7 +17,7 @@ function onInstall() { return UiService_.onOpen() }
 
 /** Edit trigger */
 function onEdit(e) {
-  return ElasticsearchService_.handleContentUpdates(e.range, /*triggerOverride*/null)
+  return ElasticsearchService_.handleContentUpdates(event, /*triggerOverride*/null)
 }
 
 /** Allows for UI to launch a full screen dialog showing the query that would be launched */
@@ -184,5 +184,6 @@ function buildEsSubTable(subTableCell, configOverride) {
 
 /** Triggers a refresh of the table that is currently "under the cursor" */
 function refreshSelectedTable() {
-  return ElasticsearchService_.handleContentUpdates(SpreadsheetApp.getActiveRange(), "manual")
+  var event = { range: SpreadsheetApp.getActiveRange() }
+  return ElasticsearchService_.handleContentUpdates(event, "manual")
 }

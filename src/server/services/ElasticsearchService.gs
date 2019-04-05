@@ -20,7 +20,9 @@ var ElasticsearchService_ = (function() {
   // 2] Pre-request logic
 
   /** Update the status field of tables that have changed */
-  function markTableAsPending(tableName) {
+  function markTableAsPending(tableName, var message) {
+    //TODO: this did a weird reformat thing on the data?
+    // Looked like it had called resetExSpecialRowFormats_?!
     try {
       var savedObjects = ManagementService_.listSavedObjects(/*discardRange*/false)
       var tableConfig = savedObjects[tableName]
@@ -32,7 +34,8 @@ var ElasticsearchService_ = (function() {
         var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
         if (tableRange) {
           var range = tableRange.getRange()
-          var statusInfo = "AWAITING REFRESH [" + TableRangeUtils_.formatDate() + "]"
+          var statusMessage = message || "AWAITING REFRESH"
+          var statusInfo = statusMessage + " [" + TableRangeUtils_.formatDate() + "]"
           var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
         }
       }
@@ -262,35 +265,58 @@ var ElasticsearchService_ = (function() {
   }
 
   /** Trigger for edit */
-  function handleContentUpdates(range, triggerOverride) {
+  function handleContentUpdates(event, triggerOverride) {
     //(copy paste from ElasticsearchManager.isTriggerEnabled_)
     var isTriggerEnabled = function(tableConfig, trigger) {
-      var tableTrigger = tableConfig.trigger || "content_change"
+      var tableTrigger = tableConfig.trigger || "control_change"
       switch(trigger) {
         case "manual":
           return (tableTrigger != "disabled")
         case "config_change":
           return (tableTrigger != "disabled") && (tableTrigger != "manual")
-        case "content_change":
-          return (tableTrigger == "content_change")
+        case "control_change":
+          return (tableTrigger == "control_change")
         default:
           return true
       }
     }
-    var trigger = triggerOverride || "content_change"
+    var trigger = triggerOverride || "control_change"
     var triggerPolicy = ManagementService_.getEsTriggerPolicy()
     if (!triggerOverride && ("timed_content" != triggerPolicy)) {
       return
     }
-    var matchingTables = TableService_.findTablesIntersectingRange(range)
+    var matchingTables = TableService_.findTablesIntersectingRange(event.range, /*includeActiveRange*/true)
     Object.keys(matchingTables).forEach(function(matchingTableName) {
       var tableConfig = matchingTables[matchingTableName]
       tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
       if (isTriggerEnabled(tableConfig, trigger)) {
-        markTableAsPending(matchingTableName)
-        ManagementService_.setSavedObjectTrigger(
-          matchingTableName, trigger
-        )
+
+        // Check metadata to see if it's a control or content change
+        var activeRange = tableConfig.activeRange
+        var retVal = buildTableOutline(matchingTableName, tableConfig, activeRange, "", /*testMode*/true)
+        var controlEdits = []
+        if (retVal.page_info_offset) {
+          controlEdits.push(activeRange.offset(
+            retVal.page_info_offset.rows, retVal.page_info_offset.cols, 1, 1
+          ))
+        }
+        if (retVal.status_offset) {
+          controlEdits.push(activeRange.offset(
+            retVal.status_offset.rows, retVal.status_offset.cols, 1, 1
+          ))
+        }
+        var isControlEdit = controlEdits.reduce(function(acc, val) {
+          return acc || TableRangeUtils_.doRangesIntersect(event.range, val)
+        }, false)
+
+        if (isControlEdit) {
+          markTableAsPending(matchingTableName)
+          ManagementService_.setSavedObjectTrigger(
+            matchingTableName, trigger
+          )
+        } else { //TODO for 2-way sync, add an element to the message queue
+          markTableAsPending(matchingTableName, "HAND EDITED")
+        }
       }
     })
   }

@@ -117,7 +117,7 @@ var DataExplorerTemplate =
          }
       }
    },
-   "trigger": "content_change",
+   "trigger": "control_change",
    "sql_table": {
       "enabled": false,
       "query": "--SHOW TABLES\n--DESCRIBE $$index\n--SELECT * FROM $$index WHERE $$query $$pagination"

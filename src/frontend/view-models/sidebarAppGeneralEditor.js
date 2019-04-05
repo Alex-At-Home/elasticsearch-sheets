@@ -32,7 +32,7 @@ var GeneralEditor = (function(){
     <option value='disabled'>Disabled</option>
     <option value='manual'>Manual</option>
     <option value='config_change'>Config Change</option>
-    <option value='content_change'>Content Change</option>
+    <option value='control_change'>Control Change</option>
     </select>
     </div>
 
@@ -100,7 +100,7 @@ var GeneralEditor = (function(){
   function populate(index, name, json, tableType) {
 
     // Trigger:
-    var trigger = json.trigger || "content_change"
+    var trigger = json.trigger || "control_change"
     $(`#trigger_${tableType}_${index}`).val(trigger)
 
     // Query bar
