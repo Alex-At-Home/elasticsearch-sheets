@@ -15,7 +15,7 @@ An experimental Google Sheets add-on to view and interact with Elasticsearch ind
    * Includes an integrated "MapReduce" UI with `painless` autocompletion
       * Use cell ranges as lookup tables for the `MapReduce` logic
    * A `"Data Explorer"` template that provides a summary for each field in the dataset
-* `SQL table` providing an interface to `elasticsearch-sql`
+* `SQL table` providing an interface to `Elasticsearch SQL`
    * SQL and data field autocompletion
 * `Management table`
    * Gives access to the `cat` endpoints
@@ -49,4 +49,13 @@ Alternatively, the following steps allow it to be built and used from source:
 * Visit [script.google.com](https://script.google.com) - there should now be a project `Elastic-sheets-project`
    * (Taken from the directory name, see below)
 * Click on the `Open Container` project to open a spreadsheet with the script attached (requires clicking through a bunch of permissions/disclaimers first time)
-* _To create multiple spreadsheets, rename the `elastic-sheets-project` multiple times, delete the `.clasp.json` inside the dir, and repeat the `clasp create <projectname>` and `sh build-elastic-sheets-project.sh` steps_
+* _To create multiple spreadsheets, rename the `elastic-sheets-project` multiple times, delete the `.clasp.json` inside the dir, and repeat the `clasp create <projectname>` and `sh build-elastic-sheets-project.sh` steps. Or just create copies of an existing spreadsheet._
+
+## Testing
+
+To run the unit/integration tests:
+* Front-end: navigate to `file://<path>/elasticsearch-sheets/test/frontend/testFramework.html`
+  in any browser
+* Server-side: from any spreadsheet with the scripts directly attached (as described above),
+  launch the script editor, open `TestService.gs` and execute `testRunner`.
+  The results will appear in a sheet called `__ES_SHEETS_TEST__`
