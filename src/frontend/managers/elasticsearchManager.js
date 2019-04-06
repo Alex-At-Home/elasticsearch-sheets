@@ -285,17 +285,17 @@ var ElasticsearchManager = (function(){
   function handlePossibleError_(err, response, status, queryString, complexResponse) {
     var result = {}
     if (err) {
-      if (complexResponse && response.error) {
+      if (complexResponse && response && response.error) {
         result.error_message = err.message
         result.error_object = response.error
       } else {
-        result.error_message = err.message
-        result.query_string = queryString
+        result.error_message = err.message || JSON.stringify(err)
+        result.query_string = queryString || ""
       }
     } else {
       result.response = response
     }
-    if (status) { result.status = status || "unknown" }
+    result.status = status || "unknown"
     return result
   }
 

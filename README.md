@@ -39,7 +39,7 @@ The intention is for this project to be consumable as a Google Sheets add-on
 
 In the meantime, if you trust me (general disclaimer: please don't unless you have some reason to!), request a share of [this spreadsheet](https://docs.google.com/spreadsheets/d/1b-6Ut21fmGHNdUWLtmJNRZkRiOBOjFNaMyYBxae4dyk/edit#gid=0), and make a copy of it.
 The menu options will be available under `Add-ons > Elastic-sheets-share`.
-(It may be necessary to open/close the `Add-Ons` dialog, and/or open close the `Tools > Script Editor`).
+(It may be necessary to open/close the `Add-Ons` dialog before the menu item appears).
 To use the functionality you will have to grant it whatever permissions it wants. The original spreadsheet lists the current release status.
 
 Alternatively, the following steps allow it to be built and used from source:
