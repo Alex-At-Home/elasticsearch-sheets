@@ -117,8 +117,8 @@ var defaultTableConfig_ = {
     "enabled": false,
     //"index_pattern": "string"
     "query": "--SHOW TABLES\n" +
-              "--DESCRIBE $$index\n" +
-              "--SELECT * FROM $$index WHERE $$query $$pagination"
+              "--DESCRIBE \"$$index\"\n" +
+              "--SELECT * FROM \"$$index\" WHERE $$query $$pagination"
   },
   "cat_table": {
     "enabled": false,

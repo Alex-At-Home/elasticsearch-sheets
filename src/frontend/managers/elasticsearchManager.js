@@ -37,7 +37,7 @@ var ElasticsearchManager = (function(){
 
         //TODO write a non-SQL version
         var endpoint = "/_xpack/sql?format=json"
-        var body = { "query": `DESCRIBE ${indexPattern}` }
+        var body = { "query": `DESCRIBE "${indexPattern}"` }
         esClient.transport.request({
            method: "POST",
            path: endpoint,
