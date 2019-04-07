@@ -159,6 +159,9 @@ var TableListManager = (function() {
     // Get tables in need of refresh:
     google.script.run.withSuccessHandler(function(obj) {
       try {
+//TODO: if entries non-empty, check ES and schedule a longeer timeout if not configured
+
+
         Object.entries(obj).map(function(kv) {
           var tableConfig = State_.getEntryByName(kv[0])
           if (tableConfig) {

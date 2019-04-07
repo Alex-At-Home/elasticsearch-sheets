@@ -9,6 +9,7 @@ var ElasticsearchRequestUtils_ = (function() {
    * { "query": string, "data_size": int, "page": int, <- these are used by the client to build the query
    *    status_offset: { row: int, col: int }, <- passed back post query completion to avoid double calling
    *    page_info_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
+   *    query_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
    * (page starts at 1)
    */
   function buildTableOutline(tableName, tableConfig, activeRange, statusInfo, testMode) {
@@ -102,6 +103,7 @@ var ElasticsearchRequestUtils_ = (function() {
               queryCells.merge()
               break
         }
+        retVal.query_offset = { row: queryRow, col: 2 }
      }
 
      // Status (if not merged)
@@ -427,7 +429,7 @@ var ElasticsearchRequestUtils_ = (function() {
                     (ii != specialRows.headers) && (ii != specialRows.query_bar) && ((ii + 1) != dataFormatRowSampleOffset))
                 {
                    var offset = activeRange.offset(ii - 1, 0, 1)
-                   if (!testMode) dataFormatRowSample.copyTo(offset, {formatOnly:true})
+                   dataFormatRowSample.copyTo(offset, {formatOnly:true})
                 }
              }
              for (var ii = 1; ii <= 4; ++ii) { // top 4

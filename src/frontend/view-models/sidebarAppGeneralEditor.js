@@ -33,6 +33,7 @@ var GeneralEditor = (function(){
     <option value='manual'>Manual</option>
     <option value='config_change'>Config Change</option>
     <option value='control_change'>Control Change</option>
+    <option value='content_change'>Content Change</option>
     </select>
     </div>
 

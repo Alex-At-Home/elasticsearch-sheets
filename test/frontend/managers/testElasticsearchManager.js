@@ -35,4 +35,28 @@ var TestElasticsearchManager = (function() {
 
   })
 
+  /** Add new aggregation forms to an empty list */
+  QUnit.test(`[${testSuiteRoot}] test trigger check`, function(assert) {
+    var options = [
+      "disabled", "manual", "config_change", "control_change", "content_change"
+    ]
+    var expected = [
+      [ 1, 0, 0, 0, 0],
+      [ 1, 1, 0, 0, 0],
+      [ 1, 1, 1, 0, 0],
+      [ 1, 1, 1, 1, 0],
+      [ 1, 1, 1, 1, 1],
+    ]
+    var actual = []
+    options.forEach(function(ii) {
+      var actualRow = []
+      options.forEach(function(jj) {
+        var config = { trigger: ii }
+        actualRow.push(ElasticsearchManager.TESTONLY.isTriggerEnabled_(config, jj) ? 1 : 0)
+      })
+      actual.push(actualRow)
+    })
+    assert.deepEqual(actual, expected, "Trigger matrix")
+  })
+
 }())

@@ -20,9 +20,7 @@ var ElasticsearchService_ = (function() {
   // 2] Pre-request logic
 
   /** Update the status field of tables that have changed */
-  function markTableAsPending(tableName, var message) {
-    //TODO: this did a weird reformat thing on the data?
-    // Looked like it had called resetExSpecialRowFormats_?!
+  function markTableAsPending(tableName, message) {
     try {
       var savedObjects = ManagementService_.listSavedObjects(/*discardRange*/false)
       var tableConfig = savedObjects[tableName]
@@ -36,7 +34,9 @@ var ElasticsearchService_ = (function() {
           var range = tableRange.getRange()
           var statusMessage = message || "AWAITING REFRESH"
           var statusInfo = statusMessage + " [" + TableRangeUtils_.formatDate() + "]"
-          var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
+          var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(
+            tableName, tableConfig, range, statusInfo, /*testMode*/false
+          )
         }
       }
     } catch (err) {} //(fire and forget, just for display)
@@ -275,50 +275,69 @@ var ElasticsearchService_ = (function() {
         case "config_change":
           return (tableTrigger != "disabled") && (tableTrigger != "manual")
         case "control_change":
-          return (tableTrigger == "control_change")
+          return (tableTrigger == "control_change") || (tableTrigger == "content_change")
+        case "content_change":
+          return (tableTrigger == "content_change")
         default:
           return true
       }
     }
-    var trigger = triggerOverride || "control_change"
+    var trigger = triggerOverride || "control_change" //(ie assume page/query changed)
     var triggerPolicy = ManagementService_.getEsTriggerPolicy()
-    if (!triggerOverride && ("timed_content" != triggerPolicy)) {
-      return
+    var canBeTriggeredByContentChange =
+      ("timed_control" == triggerPolicy) || ("timed_content" == triggerPolicy)
+    if (!triggerOverride && !canBeTriggeredByContentChange) {
+      return -1
     }
-    var matchingTables = TableService_.findTablesIntersectingRange(event.range, /*includeActiveRange*/true)
+    var updatedTables = 0
+    var matchingTables = TableService_.findTablesIntersectingRange(event.range, /*addRange*/true)
     Object.keys(matchingTables).forEach(function(matchingTableName) {
       var tableConfig = matchingTables[matchingTableName]
-      tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
-      if (isTriggerEnabled(tableConfig, trigger)) {
+      var activeRange = tableConfig.activeRange
+      delete tableConfig.activeRange //(remove extra non-standard field)
+      tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig //(use current version, not saved)
+      if (isTriggerEnabled(tableConfig, trigger)) { //TODO: or if 2 way sync
 
         // Check metadata to see if it's a control or content change
-        var activeRange = tableConfig.activeRange
-        var retVal = buildTableOutline(matchingTableName, tableConfig, activeRange, "", /*testMode*/true)
-        var controlEdits = []
-        if (retVal.page_info_offset) {
-          controlEdits.push(activeRange.offset(
-            retVal.page_info_offset.rows, retVal.page_info_offset.cols, 1, 1
-          ))
-        }
-        if (retVal.status_offset) {
-          controlEdits.push(activeRange.offset(
-            retVal.status_offset.rows, retVal.status_offset.cols, 1, 1
-          ))
-        }
-        var isControlEdit = controlEdits.reduce(function(acc, val) {
-          return acc || TableRangeUtils_.doRangesIntersect(event.range, val)
-        }, false)
+        var retVal = ElasticsearchRequestUtils_.buildTableOutline(
+          matchingTableName, tableConfig, activeRange, "", /*testMode*/true
+        )
+        var offsets = [ "query_offset", "page_info_offset" ]
+        var modifiedOffsets = offsets
+          .filter(function(offset) {
+            return retVal.hasOwnProperty(offset)
+          })
+          .filter(function(offset) {
+            var newRange = activeRange.offset(
+              retVal[offset].row - 1, retVal[offset].col - 1, 1, 1
+            )
+            return TableRangeUtils_.doRangesIntersect(event.range, newRange)
+          })
 
-        if (isControlEdit) {
+        if (modifiedOffsets.length > 0) {
+          if (modifiedOffsets.indexOf("query_offset") >= 0) { //query has changed...
+            //...if the page is hand specified, reset to 1
+            if (retVal.page_info_offset) {
+              var pageRange = activeRange.offset(
+                retVal.page_info_offset.row - 1, retVal.page_info_offset.col - 1, 1, 1
+              )
+              if (!pageRange.getFormulaR1C1()) {
+                pageRange.setValue(1)
+              }
+            }
+          }
           markTableAsPending(matchingTableName)
           ManagementService_.setSavedObjectTrigger(
             matchingTableName, trigger
           )
-        } else { //TODO for 2-way sync, add an element to the message queue
+          updatedTables++
+        } else {
+          //TODO for 2-way sync, add an element to the message queue
           markTableAsPending(matchingTableName, "HAND EDITED")
         }
       }
     })
+    return updatedTables
   }
 
   ////////////////////////////////////////////////////////

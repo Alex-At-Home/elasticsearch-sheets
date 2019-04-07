@@ -392,7 +392,9 @@ var ElasticsearchManager = (function(){
       case "config_change":
         return (tableTrigger != "disabled") && (tableTrigger != "manual")
       case "control_change":
-        return (tableTrigger == "control_change")
+        return (tableTrigger == "control_change") || (tableTrigger == "content_change")
+      case "content_change":
+        return (tableTrigger == "content_change")
       default:
         return true
     }
@@ -405,7 +407,8 @@ var ElasticsearchManager = (function(){
     retrieveIndexPatternFields: retrieveIndexPatternFields,
 
     TESTONLY: {
-      convertFieldFilterToSource_: convertFieldFilterToSource_
+      convertFieldFilterToSource_: convertFieldFilterToSource_,
+      isTriggerEnabled_: isTriggerEnabled_
     }
   }
 
