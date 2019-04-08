@@ -56,6 +56,21 @@ var ElasticsearchManager = (function(){
     }).getElasticsearchMetadata()
   }
 
+  /** Util method to check if ES is configured to make requests */
+  function getEsReadiness(esMeta, onReadyCallback, onNotReadyCallback) {
+    var esEnabled = esMeta.hasOwnProperty("enabled") ? esMeta.enabled : true
+    esMeta.enabled = esEnabled //(ensure always present)
+    var esConfigured = esMeta.url ? true : false
+    var esUnauthorized = esEnabled &&
+      (("password" == esMeta.auth_type) && ("" == esMeta.password))
+
+    if (esEnabled && esConfigured && !esUnauthorized) {
+      onReadyCallback(esMeta)
+    } else {
+      onNotReadyCallback(esMeta)
+    }
+  }
+
   ////////////////////////////////////////////////////////
 
   // Internals
@@ -100,15 +115,32 @@ var ElasticsearchManager = (function(){
 
   /** Launches an ES client operation */
   function performGenericOperation(tableName, tableConfig, operationLogicFn, trigger, testMode) {
+     var onReady = function(obj) {
+       operationLogicFn(tableName, tableConfig, obj, ClientState_.getOrBuildClient(obj.es_meta), testMode)
+     }
      google.script.run.withSuccessHandler(function(obj) {
-        if (obj && (obj.es_meta.enabled || true)) { //(null used to return error which server has already handled)
-           //TODO: all sorts of works still to be done on auth
-           if (("password" == obj.es_meta.auth_type) && ("" == obj.es_meta.password)) {
-              google.script.run.launchElasticsearchConfig()
+       if (obj) getEsReadiness(obj.es_meta || {},
+         function(esMeta) { // ready
+           onReady(obj)
+         },
+         function(esMeta) { // not ready
+           if (testMode) { // this is fine, carry on
+             onReady(obj)
            } else {
-              operationLogicFn(tableName, tableConfig, obj, ClientState_.getOrBuildClient(obj.es_meta), testMode)
+             if ("manual" == trigger) {
+               if (esMeta.enabled) { //(password or URL missing)
+                 google.script.run.launchElasticsearchConfig()
+               } else {
+                 Util.showStatus("This table's ES connection is disabled")
+               }
+             } else {
+               delete esMeta.password //(eg if URL removed but password present)
+               //(will only happen if user unsets authentication after launching table builder)
+               console.log("Authorization not configured for ES: [" + JSON.stringify(esMeta) + "]")
+             }
            }
-        }
+         }
+       ) //(if obj is null, there's been a server-side error which has already been reported)
      }).withFailureHandler(function(obj) {
        if ("manual" == trigger) { //TODO: move this into Util.showStatus
          Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
@@ -405,6 +437,8 @@ var ElasticsearchManager = (function(){
   return {
     populateTable: populateTable,
     retrieveIndexPatternFields: retrieveIndexPatternFields,
+
+    getEsReadiness: getEsReadiness,
 
     TESTONLY: {
       convertFieldFilterToSource_: convertFieldFilterToSource_,

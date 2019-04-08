@@ -17,7 +17,7 @@ function onInstall() { return UiService_.onOpen() }
 
 /** Edit trigger */
 function onEdit(e) {
-  return ElasticsearchService_.handleContentUpdates(event, /*triggerOverride*/null)
+  return ElasticsearchService_.handleContentUpdates(e, /*triggerOverride*/null)
 }
 
 /** Allows for UI to launch a full screen dialog showing the query that would be launched */

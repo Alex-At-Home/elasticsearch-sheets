@@ -224,7 +224,7 @@
          var includePagination = testName.indexOf("pagination") >= 0
          var includeStatus = testName.indexOf("status") >= 0
 
-         //TODO: also runs some test where this is true
+         //TODO: also runs some test where this is true, including by unsetting enabled/URL
          var testMode = false
 
          var expectedDataSize = 10
@@ -452,11 +452,11 @@
      // Utils:
 
      var resetTables = function() {
-       testSheet.getRange("B2").setValue("test_status")
+       testSheet.getRange("B2").setValue("test status")
        testSheet.getRange("B5").setValue(2)
        ManagementService_.updateTempSavedObject("testa", "testa", null)
        ManagementService_.setSavedObjectTrigger("testa", "")
-       testSheet.getRange("G2").setValue("test_status")
+       testSheet.getRange("G2").setValue("test status")
        testSheet.getRange("G5").setValue(2)
        ManagementService_.updateTempSavedObject("testb", "testb", null)
        ManagementService_.setSavedObjectTrigger("testb", "")
@@ -475,6 +475,12 @@
      var noPagination = TestService_.Utils.deepCopyJson(baseTableConfig)
      noPagination.common.pagination.source = "none"
 
+     var disabledConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+     disabledConfig.trigger = "disabled"
+
+     var contentConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+     contentConfig.trigger = "content_change"
+
      // Now check triggers:
 
     // page of table 1
@@ -488,6 +494,7 @@
        TestService_.Utils.assertEquals(
          { p: 2, s: "AWAITING REFRESH", t: "control_change"}, results[0], "page=[" + results[1] + "]"
        )
+
        //(Add a temp object with pagination turned off)
        resetTables()
        ManagementService_.updateTempSavedObject("testa", "testa", noPagination)
@@ -497,6 +504,17 @@
        var results = getResults("testa", "A1:E5", "B2", "B5")
        TestService_.Utils.assertEquals(
          { p: 2, s: "HAND EDITED", t: ""}, results[0], "nopage=[" + results[1] + "]"
+       )
+
+       // Nothing should happen if it's disabled
+       resetTables()
+       ManagementService_.updateTempSavedObject("testa", "testa", disabledConfig)
+
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(0, retVal, "retval (nopage)")
+       var results = getResults("testa", "A1:E5", "B2", "B5")
+       TestService_.Utils.assertEquals(
+         { p: 2, s: "test status", t: ""}, results[0], "nopage=[" + results[1] + "]"
        )
      })
 
@@ -529,20 +547,34 @@
      })
 
      // content intersecting range across both tables
-     TestService_.Utils.performTest(testResults, "Content intersection", function() {
-       resetTables()
-       var changeEvent = { range: testSheet.getRange("A3:Z3") }
-       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
-       TestService_.Utils.assertEquals(0, retVal, "check handleContentUpdates return value")
+     var contentEnabledCases = [ false, true ]
+     contentEnabledCases.forEach(function(contentEnabled) {
+       TestService_.Utils.performTest(testResults, "Content intersection vs [" + contentEnabled + "]", function() {
+         resetTables()
+         if (contentEnabled) {
+           ManagementService_.updateTempSavedObject("testb", "testb", contentConfig)
+         }
+         var changeEvent = { range: testSheet.getRange("A3:Z3") }
+         var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+         TestService_.Utils.assertEquals(
+           contentEnabled ? 1 : 0, retVal, "check handleContentUpdates return value"
+         )
 
-       var resultsA = getResults("testa", "A1:E5", "B2", "B5")
-       var resultsB = getResults("testb", "F1:J5", "G2", "G5")
-       TestService_.Utils.assertEquals(
-         { p: 2, s: "HAND EDITED", t: ""}, resultsA[0], "tableA=[" + resultsA[1] + "]"
-       )
-       TestService_.Utils.assertEquals(
-         { p: 2, s: "HAND EDITED", t: ""}, resultsB[0], "tableB=[" + resultsB[1] + "]"
-       )
+         var resultsA = getResults("testa", "A1:E5", "B2", "B5")
+         var resultsB = getResults("testb", "F1:J5", "G2", "G5")
+         TestService_.Utils.assertEquals(
+           { p: 2, s: "HAND EDITED", t: ""}, resultsA[0], "tableA=[" + resultsA[1] + "]"
+         )
+         if (contentEnabled) {
+           TestService_.Utils.assertEquals(
+             { p: 2, s: "AWAITING REFRESH", t: "content_change"}, resultsB[0], "tableB=[" + resultsB[1] + "]"
+           )
+         } else {
+           TestService_.Utils.assertEquals(
+             { p: 2, s: "HAND EDITED", t: ""}, resultsB[0], "tableB=[" + resultsB[1] + "]"
+           )
+         }
+       })
      })
    }
 
@@ -563,7 +595,7 @@
          "test_key_client": "test_value_client"
       }, //(passed directly to ES client)
       "enabled": true,
-      "query_trigger": "test-trigger", //"none", "timed_config", "timed_content"
+      "query_trigger": "test-trigger", //"none", "timed_config", "timed_control", "timed_content"
       "query_trigger_interval_s": 10
    }
 

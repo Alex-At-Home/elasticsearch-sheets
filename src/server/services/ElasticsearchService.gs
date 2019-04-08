@@ -53,6 +53,11 @@ var ElasticsearchService_ = (function() {
         return { "es_meta": esInfo }
      }
 
+     // If ES is enavled we're not going to do anything to the table:
+     if ((false == esInfo.enabled) || !esInfo.url) {
+       testMode = true
+     }
+
      // Table metadata/validation
 
      // Revalidate range:
@@ -282,7 +287,6 @@ var ElasticsearchService_ = (function() {
           return true
       }
     }
-    var trigger = triggerOverride || "control_change" //(ie assume page/query changed)
     var triggerPolicy = ManagementService_.getEsTriggerPolicy()
     var canBeTriggeredByContentChange =
       ("timed_control" == triggerPolicy) || ("timed_content" == triggerPolicy)
@@ -292,12 +296,14 @@ var ElasticsearchService_ = (function() {
     var updatedTables = 0
     var matchingTables = TableService_.findTablesIntersectingRange(event.range, /*addRange*/true)
     Object.keys(matchingTables).forEach(function(matchingTableName) {
+      //TODO: also need to handle 2-way sync regardless of table trigger
       var tableConfig = matchingTables[matchingTableName]
       var activeRange = tableConfig.activeRange
       delete tableConfig.activeRange //(remove extra non-standard field)
       tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig //(use current version, not saved)
-      if (isTriggerEnabled(tableConfig, trigger)) { //TODO: or if 2 way sync
 
+      // Logic to determine if a table edit hits the control cells (query/page)
+      var isControlEvent = function() {
         // Check metadata to see if it's a control or content change
         var retVal = ElasticsearchRequestUtils_.buildTableOutline(
           matchingTableName, tableConfig, activeRange, "", /*testMode*/true
@@ -326,17 +332,25 @@ var ElasticsearchService_ = (function() {
               }
             }
           }
-          markTableAsPending(matchingTableName)
-          ManagementService_.setSavedObjectTrigger(
-            matchingTableName, trigger
-          )
-          updatedTables++
+          return true
         } else {
-          //TODO for 2-way sync, add an element to the message queue
-          markTableAsPending(matchingTableName, "HAND EDITED")
+          return false
         }
       }
-    })
+      var triggerToUse = triggerOverride ?
+        triggerOverride :
+        (isControlEvent() ? "control_change" : "content_change")
+
+      if (isTriggerEnabled(tableConfig, triggerToUse)) {
+        markTableAsPending(matchingTableName)
+        ManagementService_.setSavedObjectTrigger(
+          matchingTableName, triggerToUse
+        )
+        updatedTables++
+      } else if ("disabled" != tableConfig.trigger) { // Just note the table has been changed
+        markTableAsPending(matchingTableName, "HAND EDITED")
+      }//(if the table is disabled, do nothing)
+    })//(end loop over intersecting tables)
     return updatedTables
   }
 
