@@ -163,8 +163,10 @@ var TableService_ = (function(){
      }
   }
 
-  /** Returns a map of tables intersecting the given range */
-  function findTablesIntersectingRange(range) {
+  /** Returns a map of tables intersecting the given range
+  * if addRange is set to true then inject the range as activeRange
+  */
+  function findTablesIntersectingRange(range, addRange) {
     var ss = SpreadsheetApp.getActive()
     var currRange = ss.getActiveRange()
     var tableMap = ManagementService_.listSavedObjects()
@@ -173,7 +175,10 @@ var TableService_ = (function(){
     Object.keys(namedRangeMap).forEach(function(tableName) {
       var namedRange = namedRangeMap[tableName]
       if (TableRangeUtils_.doRangesIntersect(range, namedRange.getRange())) {
-        retVal[tableName] = tableMap[tableName]
+        retVal[tableName] = TableRangeUtils_.shallowCopy(tableMap[tableName])
+        if (addRange) {
+          retVal[tableName].activeRange = namedRange.getRange()
+        }
       }
     })
     return retVal

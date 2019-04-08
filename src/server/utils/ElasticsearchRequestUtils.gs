@@ -9,6 +9,7 @@ var ElasticsearchRequestUtils_ = (function() {
    * { "query": string, "data_size": int, "page": int, <- these are used by the client to build the query
    *    status_offset: { row: int, col: int }, <- passed back post query completion to avoid double calling
    *    page_info_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
+   *    query_offset: { row: int, col: int } }  <- passed back post query completion to avoid double calling
    * (page starts at 1)
    */
   function buildTableOutline(tableName, tableConfig, activeRange, statusInfo, testMode) {
@@ -102,6 +103,7 @@ var ElasticsearchRequestUtils_ = (function() {
               queryCells.merge()
               break
         }
+        retVal.query_offset = { row: queryRow, col: 2 }
      }
 
      // Status (if not merged)

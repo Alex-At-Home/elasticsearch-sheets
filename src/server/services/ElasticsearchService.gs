@@ -20,7 +20,7 @@ var ElasticsearchService_ = (function() {
   // 2] Pre-request logic
 
   /** Update the status field of tables that have changed */
-  function markTableAsPending(tableName) {
+  function markTableAsPending(tableName, message) {
     try {
       var savedObjects = ManagementService_.listSavedObjects(/*discardRange*/false)
       var tableConfig = savedObjects[tableName]
@@ -32,8 +32,11 @@ var ElasticsearchService_ = (function() {
         var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
         if (tableRange) {
           var range = tableRange.getRange()
-          var statusInfo = "AWAITING REFRESH [" + TableRangeUtils_.formatDate() + "]"
-          var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(tableName, tableConfig, range, statusInfo, /*testMode*/false)
+          var statusMessage = message || "AWAITING REFRESH"
+          var statusInfo = statusMessage + " [" + TableRangeUtils_.formatDate() + "]"
+          var tableMeta = ElasticsearchRequestUtils_.buildTableOutline(
+            tableName, tableConfig, range, statusInfo, /*testMode*/false
+          )
         }
       }
     } catch (err) {} //(fire and forget, just for display)
@@ -48,6 +51,11 @@ var ElasticsearchService_ = (function() {
      var esInfo = ManagementService_.getEsMeta()
      if (null == tableConfig) { // All I want is the ES metadata
         return { "es_meta": esInfo }
+     }
+
+     // If ES is enavled we're not going to do anything to the table:
+     if ((false == esInfo.enabled) || !esInfo.url) {
+       testMode = true
      }
 
      // Table metadata/validation
@@ -262,37 +270,88 @@ var ElasticsearchService_ = (function() {
   }
 
   /** Trigger for edit */
-  function handleContentUpdates(range, triggerOverride) {
+  function handleContentUpdates(event, triggerOverride) {
     //(copy paste from ElasticsearchManager.isTriggerEnabled_)
     var isTriggerEnabled = function(tableConfig, trigger) {
-      var tableTrigger = tableConfig.trigger || "content_change"
+      var tableTrigger = tableConfig.trigger || "control_change"
       switch(trigger) {
         case "manual":
           return (tableTrigger != "disabled")
         case "config_change":
           return (tableTrigger != "disabled") && (tableTrigger != "manual")
+        case "control_change":
+          return (tableTrigger == "control_change") || (tableTrigger == "content_change")
         case "content_change":
           return (tableTrigger == "content_change")
         default:
           return true
       }
     }
-    var trigger = triggerOverride || "content_change"
     var triggerPolicy = ManagementService_.getEsTriggerPolicy()
-    if (!triggerOverride && ("timed_content" != triggerPolicy)) {
-      return
+    var canBeTriggeredByContentChange =
+      ("timed_control" == triggerPolicy) || ("timed_content" == triggerPolicy)
+    if (!triggerOverride && !canBeTriggeredByContentChange) {
+      return -1
     }
-    var matchingTables = TableService_.findTablesIntersectingRange(range)
+    var updatedTables = 0
+    var matchingTables = TableService_.findTablesIntersectingRange(event.range, /*addRange*/true)
     Object.keys(matchingTables).forEach(function(matchingTableName) {
+      //TODO: also need to handle 2-way sync regardless of table trigger
       var tableConfig = matchingTables[matchingTableName]
-      tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
-      if (isTriggerEnabled(tableConfig, trigger)) {
+      var activeRange = tableConfig.activeRange
+      delete tableConfig.activeRange //(remove extra non-standard field)
+      tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig //(use current version, not saved)
+
+      // Logic to determine if a table edit hits the control cells (query/page)
+      var isControlEvent = function() {
+        // Check metadata to see if it's a control or content change
+        var retVal = ElasticsearchRequestUtils_.buildTableOutline(
+          matchingTableName, tableConfig, activeRange, "", /*testMode*/true
+        )
+        var offsets = [ "query_offset", "page_info_offset" ]
+        var modifiedOffsets = offsets
+          .filter(function(offset) {
+            return retVal.hasOwnProperty(offset)
+          })
+          .filter(function(offset) {
+            var newRange = activeRange.offset(
+              retVal[offset].row - 1, retVal[offset].col - 1, 1, 1
+            )
+            return TableRangeUtils_.doRangesIntersect(event.range, newRange)
+          })
+
+        if (modifiedOffsets.length > 0) {
+          if (modifiedOffsets.indexOf("query_offset") >= 0) { //query has changed...
+            //...if the page is hand specified, reset to 1
+            if (retVal.page_info_offset) {
+              var pageRange = activeRange.offset(
+                retVal.page_info_offset.row - 1, retVal.page_info_offset.col - 1, 1, 1
+              )
+              if (!pageRange.getFormulaR1C1()) {
+                pageRange.setValue(1)
+              }
+            }
+          }
+          return true
+        } else {
+          return false
+        }
+      }
+      var triggerToUse = triggerOverride ?
+        triggerOverride :
+        (isControlEvent() ? "control_change" : "content_change")
+
+      if (isTriggerEnabled(tableConfig, triggerToUse)) {
         markTableAsPending(matchingTableName)
         ManagementService_.setSavedObjectTrigger(
-          matchingTableName, trigger
+          matchingTableName, triggerToUse
         )
-      }
-    })
+        updatedTables++
+      } else if ("disabled" != tableConfig.trigger) { // Just note the table has been changed
+        markTableAsPending(matchingTableName, "HAND EDITED")
+      }//(if the table is disabled, do nothing)
+    })//(end loop over intersecting tables)
+    return updatedTables
   }
 
   ////////////////////////////////////////////////////////
