@@ -147,6 +147,12 @@ var TableListManager = (function() {
   /** Timer interval */
   var timerInterval_ = 5000 //(ms)
 
+  /** Latched when ES is seen to have been configured */
+  var esAuthConfigured_ = false
+
+  /** Latched first time we log that ES isn't configured */
+  var esAuthConfiguredLog_ = false
+
   /** At desired interval, checks if any tables need refreshing */
   function onTableRefresh_() {
 
@@ -157,23 +163,50 @@ var TableListManager = (function() {
     }
 
     // Get tables in need of refresh:
-    google.script.run.withSuccessHandler(function(obj) {
-      try {
-        Object.entries(obj).map(function(kv) {
-          var tableConfig = State_.getEntryByName(kv[0])
-          if (tableConfig) {
-            tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
-            ElasticsearchManager.populateTable(kv[0], tableConfig, kv[1], /*testMode*/false)
-          }
-        })
-      } catch (err) {
-        throw err
-      } finally {
+    var lookForTriggeredTables = function() {
+      google.script.run.withSuccessHandler(function(obj) {
+        try {
+          Object.entries(obj).map(function(kv) {
+            var tableConfig = State_.getEntryByName(kv[0])
+            if (tableConfig) {
+              tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig
+              ElasticsearchManager.populateTable(kv[0], tableConfig, kv[1], /*testMode*/false)
+            }
+          })
+        } catch (err) {
+          throw err
+        } finally {
+          scheduleNextRefresh()
+        }
+      }).withFailureHandler(function(err) {
         scheduleNextRefresh()
-      }
-    }).withFailureHandler(function(err) {
-      scheduleNextRefresh()
-    }).listTriggeredTables()
+      }).listTriggeredTables()
+    }
+
+    if (esAuthConfigured_) {
+      lookForTriggeredTables()
+    } else {
+      // Very simple logic to stop unconfigured ES from stealing triggers
+      //(of course it's still very easy to steal triggers, just not quite as inadvertently)
+      google.script.run.withSuccessHandler(function(obj) {
+        if (obj) ElasticsearchManager.getEsReadiness(obj.es_meta || {},
+          function(esMeta) { // ready
+            esAuthConfigured_ = true //(no longer check until table builder reloaded)
+            lookForTriggeredTables()
+          },
+          function(esMeta) { // not ready
+            if (!esAuthConfiguredLog_) {
+              delete esMeta.password //(avoid leaking to logs if URL is not configured)
+              console.log(`ES not configured [${JSON.stringify(esMeta)}], will keep checking until it is`)
+              esAuthConfiguredLog_ = true
+            }
+            scheduleNextRefresh()
+          }
+        )
+      }).withFailureHandler(function(obj) {
+        console.log("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+      }).getElasticsearchMetadata()
+    }
   }
 
   var State_ = (function() {

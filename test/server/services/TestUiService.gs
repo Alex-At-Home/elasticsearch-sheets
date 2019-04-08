@@ -135,7 +135,7 @@ var TestUiService_ = (function(){
         "test_key_client": "test_value_client"
      }, //(passed directly to ES client)
      "enabled": true,
-     "query_trigger": "test-trigger", //"none", "timed_config", "timed_content"
+     "query_trigger": "test-trigger", //"none", "timed_config", "timed_control", "timed_content"
      "query_trigger_interval_s": 10
   }
 

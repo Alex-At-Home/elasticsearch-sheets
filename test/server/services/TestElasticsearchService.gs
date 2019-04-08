@@ -224,12 +224,13 @@
          var includePagination = testName.indexOf("pagination") >= 0
          var includeStatus = testName.indexOf("status") >= 0
 
-         //TODO: also runs some test where this is true
+         //TODO: also runs some test where this is true, including by unsetting enabled/URL
          var testMode = false
 
          var expectedDataSize = 10
          var numTestCases = 1
          var testCaseInfoArray = []
+         var queryPosition = { col: 2 , row: 1 }
          if (includeQueryBar) {
             expectedDataSize--
             numTestCases *= Object.keys(queryTestCases).length
@@ -297,6 +298,9 @@
            var retVal = ElasticsearchService_.getElasticsearchMetadata("use_named_range", tableConfig, testMode)
 
            var expectedTableConfig = { data_size: expectedDataSize, page: expectedPage, query: expectedQuery }
+           if (includeQueryBar) {
+              expectedTableConfig.query_offset = queryPosition
+           }
            if (includePagination) {
               expectedTableConfig.page_info_offset = pagePosition
            }
@@ -394,6 +398,186 @@
       // - clears rest of data
    }
 
+   /** (PUBLIC) ElasticsearchService.handleContentUpdates */
+   function handleContentUpdates_(testSheet, testResults) {
+
+     // Create management service, with trigger on "manual"
+
+     ManagementService_.deleteManagementService()
+
+     var testConfig = TestService_.Utils.deepCopyJson(baseEsConfig_)
+     testConfig.query_trigger = "none"
+     ElasticsearchService_.configureElasticsearch(testConfig)
+     TableService_.listTableConfigs() //<- adds the default table config
+
+     // Check if the trigger isn't set then insta-exits
+
+     TestService_.Utils.performTest(testResults, "Quick exit if disabled", function() {
+       var retVal = ElasticsearchService_.handleContentUpdates({}, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(-1, retVal)
+     })
+
+     testConfig.query_trigger = "timed_control"
+     ElasticsearchService_.configureElasticsearch(testConfig)
+
+     // Create 2 tables and then:
+
+     var baseTableConfig = TestService_.Utils.deepCopyJson(defaultTableConfig_)
+     baseTableConfig.common.query.source = "local"
+     baseTableConfig.common.pagination.source = "local"
+     // ie B1 is query, B2 is status, B5 is pagination
+
+     // table1:
+     testSheet.setActiveRange(testSheet.getRange("A1:E5"))
+     TableService_.createTable("testa", TableRangeUtils_.shallowCopy(baseTableConfig))
+
+     // table2:
+     testSheet.setActiveRange(testSheet.getRange("F1:J5"))
+     TableService_.createTable("testb", TableRangeUtils_.shallowCopy(baseTableConfig))
+
+     //(external page)
+     testSheet.getRange("A10").setValue(10)
+
+     TestService_.Utils.performTest(testResults, "(table build worked)", function() {
+       //(get context of UI)
+       var uiInfo = JSON.stringify(TestService_.getTestUiEvents())
+       //(quickly check that worked)
+       var tables = ManagementService_.listSavedObjects()
+       TestService_.Utils.assertEquals(
+         [ ManagementService_.getDefaultKeyName(), "testa", "testb"], Object.keys(tables),
+         uiInfo
+       )
+     })
+
+     // Utils:
+
+     var resetTables = function() {
+       testSheet.getRange("B2").setValue("test status")
+       testSheet.getRange("B5").setValue(2)
+       ManagementService_.updateTempSavedObject("testa", "testa", null)
+       ManagementService_.setSavedObjectTrigger("testa", "")
+       testSheet.getRange("G2").setValue("test status")
+       testSheet.getRange("G5").setValue(2)
+       ManagementService_.updateTempSavedObject("testb", "testb", null)
+       ManagementService_.setSavedObjectTrigger("testb", "")
+     }
+
+     var getResults = function(name, rangeA1, statusA1, pageA1) {
+       var newStatus = /(\w+ \w+)/.exec(testSheet.getRange(statusA1).getValue())[1]
+       var newPage = testSheet.getRange(pageA1).getValue()
+       var allValues = JSON.stringify(testSheet.getRange(rangeA1).getValues())
+       var checkResults = ManagementService_.listSavedObjects()
+       return [
+        { p: newPage, s: newStatus, t: checkResults[name].temp_trigger || "" },
+        allValues
+       ]
+     }
+     var noPagination = TestService_.Utils.deepCopyJson(baseTableConfig)
+     noPagination.common.pagination.source = "none"
+
+     var disabledConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+     disabledConfig.trigger = "disabled"
+
+     var contentConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+     contentConfig.trigger = "content_change"
+
+     // Now check triggers:
+
+    // page of table 1
+     TestService_.Utils.performTest(testResults, "Page changes", function() {
+       resetTables()
+       var changeEvent = { range: testSheet.getRange("B5") }
+
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(1, retVal, "retval (page)")
+       var results = getResults("testa", "A1:E5", "B2", "B5")
+       TestService_.Utils.assertEquals(
+         { p: 2, s: "AWAITING REFRESH", t: "control_change"}, results[0], "page=[" + results[1] + "]"
+       )
+
+       //(Add a temp object with pagination turned off)
+       resetTables()
+       ManagementService_.updateTempSavedObject("testa", "testa", noPagination)
+
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(0, retVal, "retval (nopage)")
+       var results = getResults("testa", "A1:E5", "B2", "B5")
+       TestService_.Utils.assertEquals(
+         { p: 2, s: "HAND EDITED", t: ""}, results[0], "nopage=[" + results[1] + "]"
+       )
+
+       // Nothing should happen if it's disabled
+       resetTables()
+       ManagementService_.updateTempSavedObject("testa", "testa", disabledConfig)
+
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(0, retVal, "retval (nopage)")
+       var results = getResults("testa", "A1:E5", "B2", "B5")
+       TestService_.Utils.assertEquals(
+         { p: 2, s: "test status", t: ""}, results[0], "nopage=[" + results[1] + "]"
+       )
+     })
+
+     // query of table 2 (no pagination, page is formula, page gets changed)
+     TestService_.Utils.performTest(testResults, "Query changes", function() {
+       var tests = [
+         { temp: null, formula: false, expectedPage: 1 },
+         { temp: null, formula: true, expectedPage: 10 },
+         { temp: noPagination, formula: false, expectedPage: 2 }
+       ]
+       tests.forEach(function(testConfig) {
+         resetTables()
+         if (testConfig.temp) {
+           ManagementService_.updateTempSavedObject("testb", "testb", noPagination)
+         }
+         if (testConfig.formula) {
+           testSheet.getRange("G5").setFormula("=A10")
+         }
+
+         var changeEvent = { range: testSheet.getRange("G1") }
+         var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+         TestService_.Utils.assertEquals(1, retVal, "check handleContentUpdates return value")
+
+         var resultsB = getResults("testb", "F1:J5", "G2", "G5")
+         TestService_.Utils.assertEquals(
+           { p: testConfig.expectedPage, s: "AWAITING REFRESH", t: "control_change"}, resultsB[0],
+           "in=[" + JSON.stringify(testConfig) + "], tableB=[" + resultsB[1] + "]"
+         )
+       })
+     })
+
+     // content intersecting range across both tables
+     var contentEnabledCases = [ false, true ]
+     contentEnabledCases.forEach(function(contentEnabled) {
+       TestService_.Utils.performTest(testResults, "Content intersection vs [" + contentEnabled + "]", function() {
+         resetTables()
+         if (contentEnabled) {
+           ManagementService_.updateTempSavedObject("testb", "testb", contentConfig)
+         }
+         var changeEvent = { range: testSheet.getRange("A3:Z3") }
+         var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+         TestService_.Utils.assertEquals(
+           contentEnabled ? 1 : 0, retVal, "check handleContentUpdates return value"
+         )
+
+         var resultsA = getResults("testa", "A1:E5", "B2", "B5")
+         var resultsB = getResults("testb", "F1:J5", "G2", "G5")
+         TestService_.Utils.assertEquals(
+           { p: 2, s: "HAND EDITED", t: ""}, resultsA[0], "tableA=[" + resultsA[1] + "]"
+         )
+         if (contentEnabled) {
+           TestService_.Utils.assertEquals(
+             { p: 2, s: "AWAITING REFRESH", t: "content_change"}, resultsB[0], "tableB=[" + resultsB[1] + "]"
+           )
+         } else {
+           TestService_.Utils.assertEquals(
+             { p: 2, s: "HAND EDITED", t: ""}, resultsB[0], "tableB=[" + resultsB[1] + "]"
+           )
+         }
+       })
+     })
+   }
+
    ////////////////////////////////////////////////////////
 
    /** A handy base ES config for use in testing */
@@ -411,7 +595,7 @@
          "test_key_client": "test_value_client"
       }, //(passed directly to ES client)
       "enabled": true,
-      "query_trigger": "test-trigger", //"none", "timed_config", "timed_content"
+      "query_trigger": "test-trigger", //"none", "timed_config", "timed_control", "timed_content"
       "query_trigger_interval_s": 10
    }
 
@@ -428,6 +612,7 @@
 
    return {
      configureElasticsearch_: configureElasticsearch_,
-     getElasticsearchMetadata_: getElasticsearchMetadata_
+     getElasticsearchMetadata_: getElasticsearchMetadata_,
+     handleContentUpdates_: handleContentUpdates_
    }
  }())
