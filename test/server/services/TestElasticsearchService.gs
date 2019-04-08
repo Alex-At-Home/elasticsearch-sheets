@@ -230,6 +230,7 @@
          var expectedDataSize = 10
          var numTestCases = 1
          var testCaseInfoArray = []
+         var queryPosition = { col: 2 , row: 1 }
          if (includeQueryBar) {
             expectedDataSize--
             numTestCases *= Object.keys(queryTestCases).length
@@ -297,6 +298,9 @@
            var retVal = ElasticsearchService_.getElasticsearchMetadata("use_named_range", tableConfig, testMode)
 
            var expectedTableConfig = { data_size: expectedDataSize, page: expectedPage, query: expectedQuery }
+           if (includeQueryBar) {
+              expectedTableConfig.query_offset = queryPosition
+           }
            if (includePagination) {
               expectedTableConfig.page_info_offset = pagePosition
            }
