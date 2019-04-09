@@ -102,26 +102,30 @@ var TableForm = (function() {
     }//(endif standaloneEdit)
 
     var panelHeader = ''
-    var panelInOrOut = 'in'
+    var panelHeader = ''
+    var panelInOrOut = standaloneEdit ? 'in' : 'out'
     if (!standaloneEdit) {
       panelHeader = `
+      <div class="panel-default sticky">
       <div class="panel-heading clearfix">
       ${tableTools}
       <h4 class="panel-title" ${tableToolsStyle}>
       <a id="toggleCollapse${index}" data-parent="#accordion"><b>${name}</b></a>
       </h4>
       </div>
+
+      <div id="collapseButtonBar${index}" class="padding-sticky panel-collapse collapse ${panelInOrOut}">
+      ${buttons}
+      </div>
+      </div>
       `
-      panelInOrOut = 'out'
     }
+
     var page =
     `<div id="accordion_${index}" class="panel panel-default table_form_element">
     ${panelHeader}
     <div id="collapse${index}" class="panel-collapse collapse ${panelInOrOut}">
     <div class="panel-body form-horizontal">
-    <div class="form-group">
-    ${buttons}
-    </div>
     ${nameEditor}
     <div class="form-group">
     <select class="input-small form-control" id="type_${index}">
@@ -229,11 +233,15 @@ var TableForm = (function() {
 
       if (isSelectedOnLoad) {
         $(`#collapse${index}`).collapse('toggle')
+        if (!standaloneEdit) {
+          $(`#collapseButtonBar${index}`).collapse('toggle')
+        }
         selectTableType()
       }
       if (!standaloneEdit) { // Add handler
         $(`#toggleCollapse${index}`).click(function(){
           $(`#collapse${index}`).collapse('toggle')
+          $(`#collapseButtonBar${index}`).collapse('toggle')
 
           // Activate the right type
           selectTableType()

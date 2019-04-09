@@ -37,17 +37,30 @@
           overflow: scroll;
           max-height: 100%
        }
-    </style>
+       .padding-sticky {
+         padding-top: 0.5em;
+         padding-bottom: 0.5em;
+       }
+       div.sticky {
+         background-color: white;
+         position: -webkit-sticky;
+         position: sticky;
+         top: 0;
+         z-index:777;
+       }
+      </style>
     <base target="_top">
 </head>
 
 <body>
 
     <!-- TODO maybe add buttons here -->
-    <div class="btn-toolbar">
-      <button id="stash_close" type="button" class="btn btn-primary">Return to sidebar</button>
-      <button id="reset" type="button" class="btn btn-warning">Reset</button>
-      <button id="reset_close" type="button" class="btn btn-warning">Reset and Close</button>
+    <div class="padding-sticky sticky">
+      <div class="btn-toolbar">
+        <button id="stash_close" type="button" class="btn btn-primary">Return to sidebar</button>
+        <button id="reset" type="button" class="btn btn-warning">Reset</button>
+        <button id="reset_close" type="button" class="btn btn-warning">Reset and Close</button>
+      </div>
     </div>
     <div class="panel-group use-all-space" id="accordion"></div>
 
