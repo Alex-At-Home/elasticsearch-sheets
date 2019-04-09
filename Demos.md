@@ -77,7 +77,7 @@ _The reason for using a more complex Map/Reduce in `Part 1` was to be able to ad
 ## Part 3
 
 _Now I edit the Aggregation Table from `Part 1` to add the lookup table, and then change the Map/Reduce job to
-        incorportate it_
+        incorporate it_
 
 ![elastic-sheets-demo-Dc](https://user-images.githubusercontent.com/17573856/55519990-38ace600-5648-11e9-9185-466d1baf872f.gif)
 
