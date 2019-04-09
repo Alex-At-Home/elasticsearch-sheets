@@ -55,6 +55,7 @@ var defaultTableConfig_ = {
         ] //(# to ignore, format is '<field-path>=Alias')
      },
      "formatting": {
+        "include_note": true, //(adds a note to the top left of each table with the name)
         "theme": "minimal" //(or "none", in the future: "default", etc)
      },
      "skip": {

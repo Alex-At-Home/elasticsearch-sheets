@@ -208,10 +208,11 @@
          "F": { format: true }
       }
       var tests = {
-        "query_pagination": {},
-        "query_status_pagination": { status: "top", merge: true },
-        "pagination_status": { status: "bottom", merge: true },
-        "query_status_pagination_nomerge": { status: "bottom", merge: false }
+        "query_pagination": { noteMode: 1 },
+        "query_status_pagination": { status: "top", merge: true, noteMode: 2 },
+        "pagination_status": { status: "bottom", merge: true, noteMode: 3 },
+        "pagination_status_test": { status: "bottom", merge: true, testMode: true, noteMode: 3 },
+        "query_status_pagination_nomerge": { status: "bottom", merge: false, noteMode: 4 }
       }
 
       var testRunner = function(testName, testConfig) { TestService_.Utils.performTest(testResults, testName, function() {
@@ -220,17 +221,38 @@
          // (use named range)
          var range = buildNamedRange(testName, defaultA1Notation)
 
+         var testMode = testConfig.testMode
+
          var includeQueryBar = testName.indexOf("query") >= 0
          var includePagination = testName.indexOf("pagination") >= 0
          var includeStatus = testName.indexOf("status") >= 0
 
-         //TODO: also runs some test where this is true, including by unsetting enabled/URL
-         var testMode = false
+         // Note tests:
+         // 1: add note, replaces no note
+         // 2: add note, ignored because of annotated note
+         // 3: no note, replaces old "managed note"
+         // 4: no note, leave user note
+         var includeNote = (1 == testConfig.noteMode) || (2 == testConfig.noteMode)
+         var noteToWrite = (function() { switch(testConfig.noteMode) {
+           case 1: return null
+           case 2: return "ES Table: use_named_range\nPlus user notes"
+           case 3: return "ES Table: use_named_range\n"
+           case 4: return "User added note"
+           default: return null
+         }}())
+         var expectedNote = (function() { switch(testConfig.noteMode) {
+           case 1: return testMode ? "" : "ES Table: use_named_range\n"
+           case 2: return "ES Table: use_named_range\nPlus user notes"
+           case 3: return testMode ? "ES Table: use_named_range\n" : ""
+           case 4: return "User added note"
+           default: return ""
+         }}())
 
          var expectedDataSize = 10
          var numTestCases = 1
          var testCaseInfoArray = []
          var queryPosition = { col: 2 , row: 1 }
+         tableConfig.common.formatting.include_note = includeNote
          if (includeQueryBar) {
             expectedDataSize--
             numTestCases *= Object.keys(queryTestCases).length
@@ -287,6 +309,9 @@
                  range.getCell(pagePosition.row, pagePosition.col).setValue("")
               }
            }
+           if (noteToWrite) {
+             range.getCell(1, 1).setNote(noteToWrite)
+           }
            if (!testCaseConfig.format) {
               tableConfig.common.formatting.theme = "none"
            } else {
@@ -319,28 +344,46 @@
            var expectedMerges = []
            if (includeQueryBar) {
               TestService_.Utils.assertEquals("Query:", range.getCell(1, 1).getValue(), "query text" + extraTestCaseConfig)
-              TestService_.Utils.assertEquals(cellFontWeight, range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
-              TestService_.Utils.assertEquals(expectedQuery, range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
-              if (("top" == testConfig.status) && testConfig.merge) {
-                 expectedMerges.push("B1:C1")
+              if (testMode) {
+                TestService_.Utils.assertEquals("normal", range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals("", range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
               } else {
-                 expectedMerges.push("B1:E1")
+                TestService_.Utils.assertEquals(cellFontWeight, range.getCell(1, 1).getFontWeight(), "query text format" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals(expectedQuery, range.getCell(1, 2).getValue(), "query value" + extraTestCaseConfig)
+                if (("top" == testConfig.status) && testConfig.merge) {
+                   expectedMerges.push("B1:C1")
+                } else {
+                   expectedMerges.push("B1:E1")
+                }
               }
            }
+
+           TestService_.Utils.assertEquals(expectedNote, range.getCell(1, 1).getNote() || "", "note text" + extraTestCaseConfig)
            if (includePagination) {
-              TestService_.Utils.assertEquals("Page (of ???):", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
-              TestService_.Utils.assertEquals(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
-              TestService_.Utils.assertEquals(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
+              if (testMode) {
+                TestService_.Utils.assertEquals("Page (test)", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals("normal", range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
+              } else {
+                TestService_.Utils.assertEquals("Page (of ???):", range.getCell(pagePosition.row, pagePosition.col - 1).getValue(), "page text" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
+              }
            }
            if (includeStatus) {
-              TestService_.Utils.assertEquals("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
-              TestService_.Utils.assertEquals(cellFontWeight, range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
-              var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
-              TestService_.Utils.assertEquals(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
-              if (!testConfig.merge) {
-                 expectedMerges.push("B9:E9")
-              } else if ("bottom" == testConfig.status) {
-                 expectedMerges.push("D10:E10")
+             var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
+             if (testMode) {
+               TestService_.Utils.assertEquals("", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
+               TestService_.Utils.assertEquals("normal", range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
+               TestService_.Utils.assertEquals("", statusShouldBePending, "status value: " + statusShouldBePending + extraTestCaseConfig)
+             } else {
+                TestService_.Utils.assertEquals("Status:", range.getCell(statusPosition.row, statusPosition.col - 1).getValue(), "status text" + extraTestCaseConfig)
+                TestService_.Utils.assertEquals(cellFontWeight, range.getCell(statusPosition.row, statusPosition.col - 1).getFontWeight(), "status text format + extraTestCaseConfig")
+                TestService_.Utils.assertEquals(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
+                if (!testConfig.merge) {
+                   expectedMerges.push("B9:E9")
+                } else if ("bottom" == testConfig.status) {
+                   expectedMerges.push("D10:E10")
+                }
               }
            }
            // Check formatting:
