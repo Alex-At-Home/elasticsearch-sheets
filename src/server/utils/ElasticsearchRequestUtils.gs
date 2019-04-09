@@ -43,6 +43,24 @@ var ElasticsearchRequestUtils_ = (function() {
         }
      }
 
+     if (!testMode) {
+       var formatJson = TableRangeUtils_.getJson(tableConfig, [ "common", "formatting" ])
+       var includeNote = formatJson.hasOwnProperty("include_note") ?
+          formatJson.include_note : true
+       var noteLocation = activeRange.getCell(1, 1)
+       var noteName = "ES Table: " + tableName + "\n"
+       var currentNote = noteLocation.getNote()
+       if (includeNote) {
+         if (!currentNote || (0 != currentNote.indexOf(noteName))) {
+           //(ie leave it alone if it hasn't changed, or user has added extra info)
+           noteLocation.setNote(noteName)
+         }
+       } else if (currentNote == noteName) { //else remove
+         //(if it's been edited leave it alone)
+         noteLocation.clearNote()
+       }
+     }
+
      var specialRows = TableRangeUtils_.buildSpecialRowInfo(tableConfig)
      convertSpecialRows(specialRows, rangeRows)
 
