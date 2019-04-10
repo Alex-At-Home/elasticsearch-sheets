@@ -106,7 +106,7 @@ var TableForm = (function() {
     var panelInOrOut = standaloneEdit ? 'in' : 'out'
     if (!standaloneEdit) {
       panelHeader = `
-      <div class="panel-default sticky">
+      <div class="panel-default sticky" style="z-index: ${1000 - index}">
       <div class="panel-heading clearfix">
       ${tableTools}
       <h4 class="panel-title" ${tableToolsStyle}>
