@@ -86,12 +86,15 @@
    <!-- Data Models -->
    <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchQueryInfo').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchAggregationInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchSqlInfo').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchPainlessInfo').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('ElasticsearchPainlessApi').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('DataExplorerTemplate').getContent(); ?>
 
    <!-- Misc utils -->
    <?!= HtmlService.createHtmlOutputFromFile('autocompletionManager').getContent(); ?>
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppUtils').getContent(); ?>
+   <?!= HtmlService.createHtmlOutputFromFile('elasticsearchUtils').getContent(); ?>
 
    <!-- HTML and jquery code for the general editors in the top level accordion -->
    <?!= HtmlService.createHtmlOutputFromFile('sidebarAppGeneralEditor').getContent(); ?>
