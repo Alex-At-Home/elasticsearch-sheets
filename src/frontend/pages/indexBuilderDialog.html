@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <base target="_top">
+    <style type="text/css" media="screen">
+	   .ace_editor {
+        height: 580px;
+		      width: 95%%;
+	   }
+     .small_ace_editor {
+          height: 300px;
+		      width: 95%%;
+	   }
+     .padding-sticky {
+       padding-top: 0.5em;
+       padding-bottom: 0.5em;
+     }
+     div.sticky {
+       background-color: white;
+       position: -webkit-sticky;
+       position: sticky;
+       top: 0;
+       z-index:777;
+     }
+    </style>
+  </head>
+  <body>
+
+    <div class="padding-sticky sticky">
+      <div class="btn-toolbar">
+        <button id="update" class="btn btn-primary" type="button">Build</button>
+        <button id="cancel" class="btn btn-warning" type="button">Cancel</button>
+      </div>
+    </div>
+
+    <hr>
+
+     <form class="form-horizontal" id="top_level">
+       <div class="form-group">
+          <div class="col-xs-7">
+             <input class="form-control" id="range" placeholder="Cell Range" type="text">
+          </div>
+             <button id="view" class="btn btn-outline btn-default" type="button" data-toggle="tooltip" title="Activate the specified range">View</button>
+             <button id="reset" class="btn btn-outline btn-warning" type="button" data-toggle="tooltip" title="Resets the edited range back to the saved range">Reset</button>
+             <button id="copy" class="btn btn-outline btn-info" type="button" data-toggle="tooltip" title="Copies the current selection">Copy</button>
+      </div>
+      <div class="form-group">
+        <div class="checkbox col-xs-7">
+          <label><input type="checkbox" id="specify_type">Row below header specifies types</label>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="form-group">
+        <div class="col-xs-2 control-label" for="index_name">
+          <label>Index:</label>
+        </div>
+        <div class="col-xs-7">
+           <input class="form-control" id="index_name" placeholder="Index Name" type="text">
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-xs-offset-2 checkbox">
+          <label><input type="checkbox" id="clear_index">Clear index before inserting</label>
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-xs-2 control-label" for="index_name">
+          <label>Table Name:</label>
+        </div>
+
+        <div class="col-xs-7">
+           <input class="form-control" id="table_name" placeholder="New Data Table name" type="text">
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-xs-offset-2 checkbox">
+          <label><input type="checkbox" id="create_table">Create Data Table after inserting</label>
+        </div>
+      </div>
+
+      <hr>
+
+      <label>
+      <a data-toggle="collapse" href="#collapse_advanced">Advanced</a>
+      </label>
+      <div id="collapse_advanced" class="panel-collapse collapse">
+        <div class="form-group">
+          <div class="col-xs-2 control-label" for="id_name">
+            <label>Id field:</label>
+          </div>
+          <div class="col-xs-7">
+             <input class="form-control" id="id_name" placeholder="Id field (defaults to _id)" type="text">
+          </div>
+        </div>
+      <!-- TODO: advanced ... specify mapping with default -->
+      </div>
+
+      <hr>
+      <label>Data Preview</label>
+      <div class="form-group">
+        <div class="ace_editor" id="viewer" readonly></div>
+      </div>
+
+     <!-- TODO refresh button floating over preview -->
+
+    </form>
+  </body>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+
+  <script>
+      var savedRange = {}
+
+      /** Status/error display */
+      function showStatus(message, summary) {
+         google.script.run.showStatus(message, summary)
+      }
+
+      /** Create return object from A1 notation */
+      function notationToSheetRange(notation) {
+        var sheetRange = notation.split("!", 2)
+        var sheet = (sheetRange.length > 1) ? sheetRange[0] : null
+        var range = sheet ? sheetRange[1] : sheetRange[0]
+        return { sheet: sheet, range: range }
+      }
+
+      // Event handlers
+
+      $(`#view`).click(function(){
+        var sheetRangeObj = notationToSheetRange($(`#range`).val())
+        google.script.run.activateSelection(sheetRangeObj)
+      });
+      $(`#reset`).click(function(){
+          $(`#range`).val(`${savedRange.sheet}!${savedRange.range}`)
+          google.script.run.activateSelection(savedRange)
+      });
+      $(`#copy`).click(function(){
+         google.script.run.withSuccessHandler(function(obj) {
+            if (obj) {
+              $(`#range`).val(`${obj.sheet}!${obj.range}`)
+            }
+         }).withFailureHandler(function(msg) {
+            console.log("getCurrentSelection: error: [" + JSON.stringify(msg) + "]")
+            showStatus(JSON.stringify(msg, 3), 'Move Error')
+         }).getCurrentSelection()
+      });
+      $(`#update`).click(function(){
+        //TODO
+      });
+      $(`#cancel`).click(function(){
+         google.script.host.close()
+      });
+
+      //TODO: disable table if not building a table
+
+      // Build JSON:
+      var jsonViewer = ace.edit('viewer')
+      jsonViewer.session.setMode("ace/mode/javascript")
+      jsonViewer.session.setUseWrapMode(true)
+
+      $("#top_level :input").prop("disabled", true);
+      //TODO: different function
+      google.script.run.withSuccessHandler(function(obj) {
+         savedRange = obj
+         $(`#range`).val(`${obj.sheet}!${obj.range}`)
+         jsonViewer.session.setValue("{}")
+
+         $("#top_level :input").prop("disabled", false);
+      }).withFailureHandler(function(msg) {
+         console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
+         showStatus(JSON.stringify(msg, 3), 'Move Error')
+      }).previewBulkInsert()
+
+  </script>
+</html>

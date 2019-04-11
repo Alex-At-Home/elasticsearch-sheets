@@ -7,25 +7,16 @@ var UiService_ = (function(){
 
   /** A special function that inserts a custom menu when the spreadsheet opens. */
   function onOpen() {
-    // Try both add-on and normal menu - one will work
-    /*
-    try {
-      var menu = [
-        {name: 'Launch Elasticsearch Table Builder', functionName: 'launchElasticsearchTableBuilder'},
-        {name: 'Configure Elasticsearch...', functionName: 'launchElasticsearchConfig'},
-        {name: 'View range\'s lookup map', functionName: 'launchLookupViewer'},
-        {name: 'Refresh active table', functionName: 'refreshSelectedTable'},
-      ]
-      SpreadsheetApp.getActive().addMenu('Elasticsearch', menu)
-    } catch (err) {}
-    */
     try {
       SpreadsheetApp.getUi()
         .createAddonMenu()
         .addItem('Launch Elasticsearch Table Builder', 'launchElasticsearchTableBuilder')
-        .addItem('Configure Elasticsearch...', 'launchElasticsearchConfig')
         .addItem('View range\'s lookup map', 'launchLookupViewer')
         .addItem('Refresh active table', 'refreshSelectedTable')
+        .addSeparator()
+        .addItem('Launch Elasticsearch Index Builder', 'launchIndexBuilder')
+        .addSeparator()
+        .addItem('Configure Elasticsearch...', 'launchElasticsearchConfig')
         .addToUi();
     } catch (err) {}
   }
@@ -82,7 +73,7 @@ var UiService_ = (function(){
     if (launchBuilderOnCompletion) {
       html.launchBuilderOnCompletion = true
     } else {
-      html.launchBuilderOnCompletion = false      
+      html.launchBuilderOnCompletion = false
     }
     if (TestService_.inTestMode()) {
        TestService_.triggerUiEvent("elasticsearchConfigDialog", {
@@ -111,6 +102,24 @@ var UiService_ = (function(){
     } else {
       var ui = SpreadsheetApp.getUi()
       ui.showModalDialog(html.evaluate().setWidth(600).setHeight(600), "Lookup Map Viewer")
+    }
+  }
+
+  /** Launches an Index Builder Dialog with the currently selection */
+  function launchIndexBuilder() {
+    //TODO: move this somewhere
+    var html = HtmlService.createTemplateFromFile('indexBuilderDialog')
+    var ss = SpreadsheetApp.getActive()
+    if (null == ss.getActiveRange()) {
+      showStatus("Must have active range", "Server Error")
+      return
+    }
+    if (TestService_.inTestMode()) {
+      TestService_.triggerUiEvent("launchBulkWriter", {
+      })
+    } else {
+      var ui = SpreadsheetApp.getUi()
+      ui.showModelessDialog(html.evaluate().setWidth(800).setHeight(600), "Index Builder")
     }
   }
 
@@ -209,6 +218,7 @@ var UiService_ = (function(){
     launchElasticsearchConfig: launchElasticsearchConfig,
     launchElasticsearchTableBuilder: launchElasticsearchTableBuilder,
     launchLookupViewer: launchLookupViewer,
+    launchIndexBuilder: launchIndexBuilder,
 
     showStatus: showStatus,
     launchYesNoPrompt: launchYesNoPrompt,

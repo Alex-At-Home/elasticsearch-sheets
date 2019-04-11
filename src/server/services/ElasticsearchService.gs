@@ -362,6 +362,22 @@ var ElasticsearchService_ = (function() {
 
   ////////////////////////////////////////////////////////
 
+  // Write logic:
+
+  /** Creates a preview of the docs that will be bulk written */
+  function previewBulkInsert(writeConfigOverride) {
+    //TODO move this somewhere
+    writeConfigOverride = writeConfigOverride || {}
+    var range = SpreadsheetApp.getActiveRange()
+    return {
+      //TODO: JSON from ElasticsearchWriteUtils
+      sheet: writeConfigOverride.sheet || SpreadsheetApp.getActiveSheet().getName(),
+      range: writeConfigOverride.range || range.getA1Notation()
+    }
+  }
+
+  ////////////////////////////////////////////////////////
+
   // Internal utils:
 
   /** Finds table lookups and returns them in an associative array */
@@ -399,6 +415,8 @@ var ElasticsearchService_ = (function() {
     summarizeEsSubTable: summarizeEsSubTable,
     buildEsSubTable: buildEsSubTable,
     handleContentUpdates: handleContentUpdates,
+
+    previewBulkInsert: previewBulkInsert,
 
     TESTONLY: {
     }

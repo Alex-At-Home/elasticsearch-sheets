@@ -7,12 +7,10 @@
   <body>
      <div id="top_level">
        <div class="form-group row">
-          <div class="col-xs-3">
-             <input class="form-control" id="sheet" placeholder="Sheet Name" type="text">
-          </div>
-          <div class="col-xs-4">
+          <div class="col-xs-7">
              <input class="form-control" id="range" placeholder="Cell Range" type="text">
           </div>
+             <button id="view" class="btn btn-outline btn-default" type="button" data-toggle="tooltip" title="Activate the specified range">View</button>
              <button id="reset" class="btn btn-outline btn-warning" type="button" data-toggle="tooltip" title="Resets the edited range back to the saved range">Reset</button>
              <button id="copy" class="btn btn-outline btn-info" type="button" data-toggle="tooltip" title="Copies the current selection">Copy</button>
       </div>
@@ -31,17 +29,28 @@
          google.script.run.showStatus(message, summary)
       }
 
+      /** Create return object from A1 notation */
+      function notationToSheetRange(notation) {
+        var sheetRange = notation.split("!", 2)
+        var sheet = (sheetRange.length > 1) ? sheetRange[0] : null
+        var range = sheet ? sheetRange[1] : sheetRange[0]
+        return { sheet: sheet, range: range }
+      }
+
       // Event handlers
 
+      $(`#view`).click(function(){
+        var sheetRangeObj = notationToSheetRange($(`#range`).val())
+        google.script.run.activateSelection(sheetRangeObj)
+      });
       $(`#reset`).click(function(){
-         $(`#sheet`).val(savedRange.sheet)
-         $(`#range`).val(savedRange.range)
+          $(`#range`).val(`${savedRange.sheet}!${savedRange.range}`)
+          google.script.run.activateSelection(savedRange)
       });
       $(`#copy`).click(function(){
          google.script.run.withSuccessHandler(function(obj) {
             if (obj) {
-              $(`#sheet`).val(obj.sheet)
-              $(`#range`).val(obj.range)
+              $(`#range`).val(`${obj.sheet}!${obj.range}`)
             }
          }).withFailureHandler(function(msg) {
             console.log("getCurrentSelection: error: [" + JSON.stringify(msg) + "]")
@@ -49,8 +58,7 @@
          }).getCurrentSelection()
       });
       $(`#update`).click(function(){
-         var sheet = $(`#sheet`).val()
-         var range = $(`#range`).val()
+         var sheetRangeObj = notationToSheetRange($(`#range`).val())
 
          $("#top_level :input").prop("disabled", true)
          google.script.run.withSuccessHandler(function(obj) {
@@ -65,7 +73,7 @@
            $("#top_level :input").prop("disabled", false)
             console.log("setCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
             showStatus(JSON.stringify(msg, 3), 'Move Error')
-         }).setCurrentTableRange(tableName, { sheet: sheet, range: range })
+         }).setCurrentTableRange(tableName, sheetRangeObj)
 
       });
       $(`#cancel`).click(function(){
@@ -75,8 +83,8 @@
       $("#top_level :input").prop("disabled", true)
       google.script.run.withSuccessHandler(function(obj) {
          savedRange = obj
-         $(`#sheet`).val(savedRange.sheet)
-         $(`#range`).val(savedRange.range)
+         $(`#range`).val(`${obj.sheet}!${obj.range}`)
+
          $("#top_level :input").prop("disabled", false)
       }).withFailureHandler(function(msg) {
          console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")

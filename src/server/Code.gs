@@ -69,6 +69,11 @@ function activateTableRange(tableName) {
   return TableService_.activateTableRange(tableName)
 }
 
+/** Activates the specified range  */
+function activateSelection(newRange) {
+  return TableService_.activateSelection(newRange)
+}
+
 /** Moves the range for the specified table */
 function setCurrentTableRange(tableName, newRange) {
   return TableService_.setCurrentTableRange(tableName, newRange)
@@ -149,7 +154,19 @@ function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
   return ElasticsearchService_.handleDataResponse(tableName, tableConfig, context, json, queryJson)
 }
 
-// 5] User defined function
+// 5] Elasticsearch index writer
+
+/** Launches an Index Builder Dialog with the currently selection */
+function launchIndexBuilder() {
+  return UiService_.launchIndexBuilder()
+}
+
+/** Creates a preview of the docs that will be bulk written */
+function previewBulkInsert(writeConfigOverride) {
+  return ElasticsearchService_.previewBulkInsert(writeConfigOverride)
+}
+
+// 6] User defined function
 
 /**
  * Displays a simple summary of the JSON array represented as a variable number

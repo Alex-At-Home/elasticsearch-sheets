@@ -31,10 +31,21 @@ var TableService_ = (function(){
     }
   }
 
+  /** Activates the specified range  */
+  function activateSelection(newRange) {
+    var ss = SpreadsheetApp.getActive()
+    if (!newRange.sheet) {
+      newRange.sheet = ss.getActiveSheet().getName()
+    }
+    ss.getRange(newRange.sheet + "!" + newRange.range).activate()
+  }
 
   /** Moves the range for the specified table */
   function setCurrentTableRange(tableName, newRange) {
     var ss = SpreadsheetApp.getActive()
+    if (!newRange.sheet) {
+      newRange.sheet = ss.getActiveSheet().getName()
+    }
     var retVal = TableRangeUtils_.moveTableRange(ss, tableName, newRange)
     if (retVal) {
       ManagementService_.setSavedObjectTrigger(tableName, "config_change")
@@ -220,6 +231,7 @@ var TableService_ = (function(){
   return {
     getCurrentTableRange: getCurrentTableRange,
     activateTableRange: activateTableRange,
+    activateSelection: activateSelection,
     setCurrentTableRange: setCurrentTableRange,
     getCurrentSelection: getCurrentSelection,
 
