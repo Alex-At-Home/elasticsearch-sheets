@@ -54,8 +54,7 @@
 
 <body>
 
-    <!-- TODO maybe add buttons here -->
-    <div class="padding-sticky sticky">
+    <div id="button_bar" class="padding-sticky sticky">
       <div class="btn-toolbar">
         <button id="stash_close" type="button" class="btn btn-primary">Return to sidebar</button>
         <button id="reset" type="button" class="btn btn-warning">Reset</button>
@@ -134,9 +133,14 @@
       TableForm.buildAccordionElement(0, tableName, configJson, /*isFirstElement=*/false, /*standaloneEdit=*/true)
 
       $("#stash_close").click(function(){
+        $(":input").prop("disabled", true)
          var globalEditor = ace.edit(`editor_0`)
          google.script.run.withSuccessHandler(function(obj) {
             google.script.host.close()
+         }).withFailureHandler(function(msg) {
+           $(":input").prop("disabled", false)
+            console.log("stashJsonFromEditor: error: [" + JSON.stringify(msg) + "]")
+            showStatus(JSON.stringify(msg, 3), 'Move Error')
          }).stashJsonFromEditor(tableName, currName, JSON.parse(globalEditor.session.getValue()))
       })
       $("#reset").click(function(){

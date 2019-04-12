@@ -220,7 +220,7 @@ var ManagementService_ = (function(){
         var range = mgmtService
            .getRange('c' + matchingRow) //(col 'c' saves temp objects)
         if (configJson) {
-           if (tempName) {
+           if (tempName && (defaultTableConfigKey_ != tempName)) {
               configJson.name = tempName //(insert name in case it's different)
            }
            range.setValue(jsonOrEncoded_(name, configJson))
