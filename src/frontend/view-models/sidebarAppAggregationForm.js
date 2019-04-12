@@ -141,7 +141,7 @@ var AggregationForm = (function(){
         var insertPath = getAggFormPath_(aggregationType)
         Util.updateRawJsonNow(globalEditor, function(currJson) {
           var arrayToAppend = Util.getOrPutJsonArray(currJson, insertPath)
-          arrayToAppend.push({})
+          arrayToAppend.push(json)
         })
       }
 

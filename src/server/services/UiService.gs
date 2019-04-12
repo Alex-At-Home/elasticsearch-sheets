@@ -82,7 +82,7 @@ var UiService_ = (function(){
     if (launchBuilderOnCompletion) {
       html.launchBuilderOnCompletion = true
     } else {
-      html.launchBuilderOnCompletion = false      
+      html.launchBuilderOnCompletion = false
     }
     if (TestService_.inTestMode()) {
        TestService_.triggerUiEvent("elasticsearchConfigDialog", {
@@ -162,7 +162,7 @@ var UiService_ = (function(){
 
   /** Allows for UI to launch a full screen dialog showing the query that would be launched */
   function launchJsonEditor(tableName, currName, jsonConfig) {
-    ManagementService_.updateTempSavedObject(tableName, currName, jsonConfig) //(save current contents)
+    ManagementService_.updateTempSavedObject(tableName, currName, jsonConfig.temp) //(save current contents)
     if (TestService_.inTestMode()) {
        TestService_.triggerUiEvent("launchJsonEditor", {
           table_name: tableName, config: jsonConfig
