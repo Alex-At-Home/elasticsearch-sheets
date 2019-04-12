@@ -86,7 +86,7 @@ var ScriptFieldsForm = (function(){
         var insertPath = getScriptFieldFormPath_(tableType)
         Util.updateRawJsonNow(globalEditor, function(currJson) {
           var arrayToAppend = Util.getOrPutJsonArray(currJson, insertPath)
-          arrayToAppend.push({})
+          arrayToAppend.push(json)
         })
       }
 

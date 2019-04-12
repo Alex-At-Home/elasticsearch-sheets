@@ -102,7 +102,7 @@ var DataEditor = (function(){
     $(`#script_fields_data_${index}`).empty()
     var scriptFields = Util.getJson(json, [ "data_table", "scripted_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
-      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`, scriptedField)
+      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`, scriptField)
     })
 
   }
