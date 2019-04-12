@@ -108,16 +108,24 @@ var SqlEditor = (function(){
 
     // SQL specific handlers:
 
-    $(`#index_sql_${index}`).on("input", function(e) {
-      var thisValue = this.value
+    var onIndexChange = function(thisValue) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var sqlTable = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
         sqlTable.index_pattern = thisValue
       })
-    })
-    $(`#index_sql_${index}`).on("focusout", function(e) {
-      AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
-    })
+    }
+
+    $(`#index_sql_${index}`)
+      .on("focusout", function(e) {
+        AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
+      })
+      .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
+      .focus(function () {
+        if ("" == $(this).val()) { // only insta-display options if textbox empty
+          $(this).autocomplete("search", "")
+        }
+      })
+
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
 

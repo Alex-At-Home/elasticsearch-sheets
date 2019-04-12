@@ -1,5 +1,26 @@
 var AutocompletionManager = (function() {
 
+  // 0] Common refresh framework, currently only used for indices
+
+  /** Timer id for the refresh */
+  var refreshTimerId_
+
+  /** Timer interval */
+  var timerInterval_ = 5*60000 //(ie every 5 minutes)
+
+  /** At desired interval, checks if any tables need refreshing */
+  function onAutocompleteRefresh_() {
+    try {
+      buildIndexList_()
+    } catch (err) {
+      if (null != refreshTimerId_) { //(ignore first time)
+        console.log("Error building index list: " + err.message)
+      }
+    }
+    refreshTimerId_ = setTimeout(onAutocompleteRefresh_, timerInterval_)
+  }
+  setTimeout(onAutocompleteRefresh_, 500) //(kick off on startup)
+
   // 1] SQL
 
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.6/sql-commands.html
@@ -248,16 +269,15 @@ var AutocompletionManager = (function() {
       ElasticsearchManager.retrieveIndexPatternFields(
         currIndexPatternVal, function(response) {
           var retVal = {} //painless: [], raw: []
-          var rows = response.rows || []
-          retVal.raw = rows.map(function(row) {
+          retVal.raw = response.map(function(row) {
             return {
-              caption: row[0], value: row[0], meta: `data field (${row[2]})`, filter_info: row[0]
+              caption: row.name, value: row.name, meta: `data field (${row.type})`, filter_info: row.name
             }
           })
-          retVal.painless = retVal.raw.concat(rows.map(function(row) {
-            var docField = `doc["${row[0]}"].value`
+          retVal.painless = retVal.raw.concat(response.map(function(row) {
+            var docField = `doc["${row.name}"].value`
             return {
-              caption: docField, value: docField, meta: `document field (${row[2]})`, filter_info: row[0]
+              caption: docField, value: docField, meta: `document field (${row.type})`, filter_info: row.name
             }
           }))
           indexPatternToFields_[currIndexPatternVal] = retVal
@@ -291,6 +311,51 @@ var AutocompletionManager = (function() {
   var filterFieldGroupCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
       callback(null,  commonDocFieldFilters_)
+    }
+  }
+
+  // 5 Indices
+
+  var indexList_ = []
+
+  /** Builds a list of indices from ES */
+  function buildIndexList_() {
+    ElasticsearchManager.retrieveIndices(function(response) {
+      indexList_ = response.map(function(indexInfo) {
+        return indexInfo.index
+      })
+    })
+  }
+
+  /** Returns a list of indices */
+  function getIndexCompleter(onOpenFn) {
+
+    var split = function(val) {
+      return val.split(/,\s*/)
+    }
+    var extractLast = function(term) {
+      return split(term).pop()
+    }
+
+    return {
+      minLength: 0,
+      source: function(request, response) {
+        var term = extractLast(request.term)
+        var data = $.grep(indexList_, function(value) {
+          return value.substring(0, term.length).toLowerCase() == term.toLowerCase()
+        })
+        response(data)
+      },
+      select: function(event, ui) {
+        var terms = split(this.value)
+        terms.pop()
+        terms.push(ui.item.value)
+        this.value = terms.join( "," );
+        return false;
+      },
+      change: function(event, ui) {
+        onOpenFn(this.value)
+      }
     }
   }
 
@@ -375,6 +440,8 @@ var AutocompletionManager = (function() {
     dataFieldCompleter: dataFieldCompleter,
 
     filterFieldGroupCompleter: filterFieldGroupCompleter,
+
+    getIndexCompleter: getIndexCompleter,
 
     TESTONLY: {
       isFieldWanted_: isFieldWanted_,

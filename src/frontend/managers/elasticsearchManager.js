@@ -28,7 +28,7 @@ var ElasticsearchManager = (function(){
      }
   }
 
-  /** Launches a SQL query to retrieve the fields of a table */
+  /** Launches a SQL query to retrieve the fields of a table - old VERSION */
   function retrieveIndexPatternFields(indexPattern, callbackFn) {
     google.script.run.withSuccessHandler(function(obj) {
       try {
@@ -36,23 +36,53 @@ var ElasticsearchManager = (function(){
         var esClient = ClientState_.getOrBuildClient(esMeta)
 
         //TODO write a non-SQL version
-        var endpoint = "/_xpack/sql?format=json"
-        var body = { "query": `DESCRIBE "${indexPattern}"` }
+        var endpoint = `${indexPattern}/_mapping`
         esClient.transport.request({
-           method: "POST",
+           method: "GET",
            path: endpoint,
-           body: body,
+           headers: esMeta.headers
+        }, function(err, response, status) {
+            if (!err) {
+              callbackFn(ElasticsearchUtil.getMappingList(response))
+            } else {
+              console.log("Error retrieving index mapping: " + JSON.stringify(err))
+            }
+        })
+      } catch (err) {
+        console.log("Error retrieving index mapping: " + err.message)
+      }
+    }).withFailureHandler(function(obj) {
+       console.log("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+    }).getElasticsearchMetadata()
+  }
+
+  /** Get the list of indices, together with metadata:
+   ** { health, status, index, uuid, pri, rep, docs.count, docs.deleted, store.size, pri.store.size }
+   */
+  function retrieveIndices(callbackFn) {
+    google.script.run.withSuccessHandler(function(obj) {
+      try {
+        var esMeta = obj.es_meta
+        var esClient = ClientState_.getOrBuildClient(esMeta)
+
+        //TODO write a non-SQL version
+        var endpoint = `_cat/indices?format=json`
+        esClient.transport.request({
+           method: "GET",
+           path: endpoint,
            headers: esMeta.headers
         }, function(err, response, status) {
             if (!err) {
               callbackFn(response)
+            } else {
+              console.log("Error retrieving index list: " + JSON.stringify(err))
             }
         })
       } catch (err) {
-        //(do nothing, fail harmlessly)
+        console.log("Error retrieving index list: " + err.message)
       }
     }).withFailureHandler(function(obj) {
-       Util.showStatus("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
+       console.log("Failed to retrieve ES metadata: [" + JSON.stringify(obj) + "]")
     }).getElasticsearchMetadata()
   }
 
@@ -437,6 +467,7 @@ var ElasticsearchManager = (function(){
   return {
     populateTable: populateTable,
     retrieveIndexPatternFields: retrieveIndexPatternFields,
+    retrieveIndices: retrieveIndices,
 
     getEsReadiness: getEsReadiness,
 

@@ -315,16 +315,24 @@ var AggregationEditor = (function(){
 
     // Now add the handlers:
 
-    $(`#index_agg_${index}`).on("input", function(e) {
-      var thisValue = this.value
+    var onIndexChange = function(thisValue) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var aggTable = Util.getOrPutJsonObj(currJson, [ "aggregation_table" ])
         aggTable.index_pattern = thisValue
       })
-    })
-    $(`#index_agg_${index}`).on("focusout", function(e) {
-      AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
-    })
+    }
+
+    $(`#index_agg_${index}`)
+      .on("focusout", function(e) {
+        AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
+      })
+      .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
+      .focus(function () {
+        if ("" == $(this).val()) { // only insta-display options if textbox empty
+          $(this).autocomplete("search", "")
+        }
+      })
+      
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
 
