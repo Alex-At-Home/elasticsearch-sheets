@@ -49,6 +49,21 @@ var DataEditor = (function(){
     </div>
     </div>
 
+    <div class="panel-heading">
+    <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_script_fields_data_${index}">Scripted Fields</a>
+    </h4>
+    </div>
+
+    <div id="accordion_script_fields_data_${index}" class="panel-collapse collapse out">
+    <div class="panel-body">
+    <div id="script_fields_data_${index}"></div>
+    <div class="btn-toolbar">
+    <button class="btn btn-default" id="add_script_field_data_${index}">Add Scripted Field</button>
+    </div>
+    </div>
+    </div>
+
     </div>
     </div>
     `
@@ -82,6 +97,14 @@ var DataEditor = (function(){
 
     var query = JSON.stringify(Util.getJson(json, [ "data_table", "query" ]) || {}, null, 3)
     queryEditor.session.setValue(query)
+
+    // Clear any existing scripted fields and rebuild
+    $(`#script_fields_data_${index}`).empty()
+    var scriptFields = Util.getJson(json, [ "data_table", "scripted_fields" ]) || []
+    scriptFields.forEach(function(scriptField) {
+      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`, scriptedField)
+    })
+
   }
 
   /** Called once all the HTML elements for this SQL table exist, populates the data and registers event handlers */
@@ -151,6 +174,10 @@ var DataEditor = (function(){
         } catch (err) {}
       })
     });
+
+    $(`#add_script_field_data_${index}`).click(function(){
+      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`)
+    })
   }
 
   return {
