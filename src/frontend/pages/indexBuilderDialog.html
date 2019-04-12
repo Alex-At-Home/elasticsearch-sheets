@@ -6,11 +6,11 @@
     <style type="text/css" media="screen">
 	   .ace_editor {
         height: 580px;
-		      width: 95%%;
+        width: 650px;
 	   }
      .small_ace_editor {
           height: 300px;
-		      width: 95%%;
+		      width: 650px;
 	   }
      .padding-sticky {
        padding-top: 0.5em;
@@ -23,13 +23,13 @@
        top: 0;
        z-index:777;
      }
-    </style>
+   </style>
   </head>
   <body>
 
     <div class="padding-sticky sticky">
       <div class="btn-toolbar">
-        <button id="update" class="btn btn-primary" type="button">Build</button>
+        <button id="build" class="btn btn-primary" type="button">Build</button>
         <button id="cancel" class="btn btn-warning" type="button">Cancel</button>
       </div>
     </div>
@@ -63,7 +63,7 @@
       </div>
       <div class="form-group row">
         <div class="col-xs-offset-2 checkbox">
-          <label><input type="checkbox" id="clear_index">Clear index before inserting</label>
+          <label class="active"><input type="checkbox" checked="checked" id="clear_index">Clear index before inserting</label>
         </div>
       </div>
       <div class="form-group row">
@@ -77,7 +77,7 @@
       </div>
       <div class="form-group row">
         <div class="col-xs-offset-2 checkbox">
-          <label><input type="checkbox" id="create_table">Create Data Table after inserting</label>
+          <label class="active"><input type="checkbox" checked="checked" id="create_table">Create Data Table after inserting</label>
         </div>
       </div>
 
@@ -95,16 +95,31 @@
              <input class="form-control" id="id_name" placeholder="Id field (defaults to _id)" type="text">
           </div>
         </div>
-      <!-- TODO: advanced ... specify mapping with default -->
+        <div class="form-group row">
+          <div class="col-xs-offset-2 checkbox">
+            <label class="active"><input type="checkbox" checked="checked" id="use_id">Auto-generate Id field if none specified</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="checkbox col-xs-7">
+            <label class="active"><input type="checkbox" checked="checked" id="use_index_config">Apply index configuration on new/cleared indices</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="small_ace_editor" id="index_config"></div>
+        </div>
       </div>
 
       <hr>
-      <label>Data Preview</label>
+      <div class="clearfix">
+        <label>Data Preview</label>
+        <div class="btn-group pull-right" role="group" style="margin-right:100px">
+          <button id="refresh" class="btn btn-outline btn-default" type="button" data-toggle="tooltip" title="Recalculate the data to import following external/config changes">Refresh</button>
+        </div>
+      </div>
       <div class="form-group">
         <div class="ace_editor" id="viewer" readonly></div>
       </div>
-
-     <!-- TODO refresh button floating over preview -->
 
     </form>
   </body>
@@ -150,7 +165,7 @@
             showStatus(JSON.stringify(msg, 3), 'Move Error')
          }).getCurrentSelection()
       });
-      $(`#update`).click(function(){
+      $(`#build`).click(function(){
         //TODO
       });
       $(`#cancel`).click(function(){
@@ -163,15 +178,35 @@
       var jsonViewer = ace.edit('viewer')
       jsonViewer.session.setMode("ace/mode/javascript")
       jsonViewer.session.setUseWrapMode(true)
+      jsonViewer.setOptions({
+          readOnly: true,
+          highlightActiveLine: false,
+          highlightGutterLine: false
+      })
 
-      $("#top_level :input").prop("disabled", true);
-      //TODO: different function
+      // Mapping/Setting:
+      var mappingEditor = ace.edit('index_config')
+      mappingEditor.session.setMode("ace/mode/json")
+      mappingEditor.session.setUseWrapMode(true)
+
+      $("#top_level :input").prop("disabled", true)
       google.script.run.withSuccessHandler(function(obj) {
          savedRange = obj
          $(`#range`).val(`${obj.sheet}!${obj.range}`)
-         jsonViewer.session.setValue("{}")
-
-         $("#top_level :input").prop("disabled", false);
+         jsonViewer.session.setValue(
+           JSON.stringify(
+             {}, null, 3
+           )
+         )
+         mappingEditor.session.setValue(
+           JSON.stringify(
+             {mappings: {}, settings: {
+               "number_of_shards" : 1,
+               "number_of_replicas" : 1
+             }}, null, 3
+           )
+         )
+         $("#top_level :input").prop("disabled", false)
       }).withFailureHandler(function(msg) {
          console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
          showStatus(JSON.stringify(msg, 3), 'Move Error')

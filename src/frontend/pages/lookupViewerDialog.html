@@ -5,7 +5,7 @@
     <style type="text/css" media="screen">
 	   .ace_editor {
           height: 580px;
-		  width: 100%;
+		      width: 100%;
 	   }
     </style>
     <base target="_top">
@@ -31,10 +31,15 @@
   <script>
       var lookupJson = "<?= lookupJson ?>"
 
-      var curr_editor = ace.edit('viewer')
-      curr_editor.session.setMode("ace/mode/json")
-      curr_editor.session.setUseWrapMode(true)
-      curr_editor.session.setValue(lookupJson)
+      var jsonViewer = ace.edit('viewer')
+      jsonViewer.session.setMode("ace/mode/json")
+      jsonViewer.session.setUseWrapMode(true)
+      jsonViewer.session.setValue(lookupJson)
+      jsonViewer.setOptions({
+          readOnly: true,
+          highlightActiveLine: false,
+          highlightGutterLine: false
+      })
 
   </script>
 
