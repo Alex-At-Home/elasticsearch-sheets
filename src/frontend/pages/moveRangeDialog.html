@@ -52,11 +52,17 @@
          var sheet = $(`#sheet`).val()
          var range = $(`#range`).val()
 
+         $("#top_level :input").prop("disabled", true)
          google.script.run.withSuccessHandler(function(obj) {
            if (obj) google.script.run.withSuccessHandler(function(obj) {
               google.script.host.close()
+            }).withFailureHandler(function(msg) {
+              $("#top_level :input").prop("disabled", false)
+               console.log("activateTableRange: error: [" + JSON.stringify(msg) + "]")
+               showStatus(JSON.stringify(msg, 3), 'Move Error')
             }).activateTableRange(tableName) // (else should have gotten a toaster containing the error)
          }).withFailureHandler(function(msg) {
+           $("#top_level :input").prop("disabled", false)
             console.log("setCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
             showStatus(JSON.stringify(msg, 3), 'Move Error')
          }).setCurrentTableRange(tableName, { sheet: sheet, range: range })
@@ -66,12 +72,12 @@
          google.script.host.close()
       });
 
-      $("#top_level :input").prop("disabled", true);
+      $("#top_level :input").prop("disabled", true)
       google.script.run.withSuccessHandler(function(obj) {
          savedRange = obj
          $(`#sheet`).val(savedRange.sheet)
          $(`#range`).val(savedRange.range)
-         $("#top_level :input").prop("disabled", false);
+         $("#top_level :input").prop("disabled", false)
       }).withFailureHandler(function(msg) {
          console.log("getCurrentTableRange: error: [" + JSON.stringify(msg) + "]")
          showStatus(JSON.stringify(msg, 3), 'Move Error')

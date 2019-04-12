@@ -83,6 +83,12 @@ var ElasticsearchService_ = (function() {
        return null
      }
 
+     // If this is a test of an uncreated table, no note:
+     if (null == tableRange) {
+       var formatting = TableRangeUtils_.getOrPutJsonObj(tableConfig, [ "common", "formatting" ])
+       formatting.include_note = false
+     }
+
      // Build table outline and add pending
 
      var statusInfo = "PENDING [" + TableRangeUtils_.formatDate() + "]"

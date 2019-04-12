@@ -313,9 +313,10 @@ var TableForm = (function() {
             }
           })
           $(`#test_${index}`).click(function(){
+            var newName = $(`#name_${index}`).val() || "new table"
             var jsonStr = globalEditor.session.getValue()
             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
-            ElasticsearchManager.populateTable(name, jsonBody, "manual", /*testMode*/false)
+            ElasticsearchManager.populateTable(newName, jsonBody, "manual", /*testMode*/false)
           })
           $(`#cancel_${index}`).click(function(){
             $(`#name_${index}`).val("")

@@ -99,6 +99,7 @@
          tableName = buildTableRangeName_(tableName)
       }
       if (null != matchingRange) {
+         matchingRange.getRange().clearNote()
          matchingRange.getRange().clear()
          ss.removeNamedRange(tableName)
       }
@@ -273,6 +274,22 @@
      return tmpJson
    }
 
+   /** Gets a nested JSON element object, creates it if it doesn't exist */
+   function getOrPutJsonObj(json, fieldArray) {
+     var tmpJson = json
+     for (var j in fieldArray) {
+       var key = fieldArray[j]
+       if (tmpJson.hasOwnProperty(key)) {
+         tmpJson = tmpJson[key]
+       } else {
+         var tmp = {}
+         tmpJson[key] = tmp
+         tmpJson = tmp
+       }
+     }
+     return tmpJson
+   }
+
    /** Quick shallow copy of JSON */
    function shallowCopy(json) {
      var retVal = {}
@@ -380,6 +397,7 @@
      buildSpecialRowInfo: buildSpecialRowInfo,
 
      getJson: getJson,
+     getOrPutJsonObj: getOrPutJsonObj,
      shallowCopy: shallowCopy,
      formatDate: formatDate,
      fixSelectAllRanges: fixSelectAllRanges,
