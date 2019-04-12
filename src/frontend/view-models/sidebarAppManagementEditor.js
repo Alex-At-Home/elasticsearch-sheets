@@ -115,7 +115,7 @@ var ManagementEditor = (function(){
       },
       change: function( event, ui ) {
         var endpoint = $(`#endpoint_mgmt_${index}`).val()
-        Util.updateRawJson(globalEditor, function(currJson) {
+        Util.updateRawJsonNow(globalEditor, function(currJson) {
           var cat = Util.getOrPutJsonObj(currJson, [ "cat_table" ])
           cat.endpoint = endpoint
         })
