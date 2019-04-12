@@ -15,9 +15,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
 
   <script src="../../src/frontend/data-models/ElasticsearchAggregationInfo.js"></script>
+  <script src="../../src/frontend/data-models/ElasticsearchSqlInfo.js"></script>
+  <script src="../../src/frontend/data-models/ElasticsearchPainlessInfo.js"></script>
   <script src="../../src/frontend/data-models/ElasticsearchPainlessApi.js"></script>
   <script src="../../src/frontend/data-models/ElasticsearchQueryInfo.js"></script>
   <script src="../../src/frontend/data-models/DataExplorerTemplate.js"></script>
+  <script src="../../src/frontend/utils/elasticsearchUtils.js"></script>
   <script src="../../src/frontend/utils/sidebarAppUtils.js"></script>
   <script src="../../src/frontend/managers/elasticsearchManager.js"></script>
   <script src="../../src/frontend/managers/tableListManager.js"></script>
@@ -50,6 +53,9 @@
     })
   </script>
   <div id="test-pages" style="display:none;"></div>
+
+  <!-- Elasticsearch Util Tests -->
+  <script src="utils/testElasticsearchUtils.js"></script>
 
   <!-- Elasticsearch Manager Tests -->
   <script src="managers/testElasticsearchManager.js"></script>

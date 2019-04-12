@@ -1,51 +1,45 @@
 var AutocompletionManager = (function() {
 
+  // 0] Common refresh framework, currently only used for indices
+
+  /** Timer id for the refresh */
+  var refreshTimerId_
+
+  /** Timer interval */
+  var timerInterval_ = 5*60000 //(ie every 5 minutes)
+
+  /** At desired interval, checks if any tables need refreshing */
+  function onAutocompleteRefresh_() {
+    try {
+      buildIndexList_()
+    } catch (err) {
+      if (null != refreshTimerId_) { //(ignore first time)
+        console.log("Error building index list: " + err.message)
+      }
+    }
+    refreshTimerId_ = setTimeout(onAutocompleteRefresh_, timerInterval_)
+  }
+  setTimeout(onAutocompleteRefresh_, 500) //(kick off on startup)
+
   // 1] SQL
 
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.6/sql-commands.html
-  var sqlMainKeywords_ = [
-    "DESCRIBE TABLE", "LIKE",
-    "SELECT", "FROM", "WHERE", "GROUP BY", "HAVING", "ORDER BY", "ASC", "DESC", "LIMIT",
-    "SHOW COLUMNS", "SHOW FUNCTIONS", "SHOW TABLES", "IN"
-  ].map(function(el) { return { caption: el, value: el, meta: "command keyword"} })
-  var sqlAuxKeywords_ = [
-    "ALL", "AND", "ANY", "AS", "BETWEEN", "BY", "DISTINCT",
-    "EXISTS", "EXPLAIN", "EXTRACT", "FALSE", "FUNCTIONS", "FROM", "FULL",
-    "INNER", "IS", "JOIN", "LEFT", "MATCH", "NATURAL", "NO", "NOT",
-    "NULL", "ON", "OR", "OUTER", "RIGHT", "SESSION", "TABLE", "THEN", "TO",
-    "TABLE", "TABLES", "TRUE", "USING", "WHEN", "WHERE", "WITH"
-  ].map(function(el) { return { caption: el, value: el, meta: "reserved keyword"} })
+  var sqlMainKeywords_ = SqlInfo.mainKeywords
+    .map(function(el) { return { caption: el, value: el, meta: "command keyword"} })
+  var sqlAuxKeywords_ = SqlInfo.auxKeywords
+    .map(function(el) { return { caption: el, value: el, meta: "reserved keyword"} })
 
-  var sqlFunctionsAggregate_ = [
-    "AVG", "COUNT", "MAX", "MIN", "SUM", "KURTOSIS", "PERCENTILE",
-    "PERCENTILE_RANK", "SKEWNESS", "STDDEV_POP", "SUM_OF_SQUARES",
-    "VAR_POP",
-  ].map(function(el) { return { caption: el, snippet: el + "(", meta: "function (aggregate)"} })
+  var sqlFunctionsAggregate_ = SqlInfo.functionsAggregate
+    .map(function(el) { return { caption: el, snippet: el + "(", meta: "function (aggregate)"} })
 
-  var sqlFunctionsGrouping_ = [
-    "HISTOGRAM"
-  ].map(function(el) { return { caption: el, snippet: el + "(", meta: "function (grouping)"} })
+  var sqlFunctionsGrouping_ = SqlInfo.functionsGrouping
+    .map(function(el) { return { caption: el, snippet: el + "(", meta: "function (grouping)"} })
 
-  var sqlFunctionsConditional_ = [
-    "COALESCE", "GREATEST", "IFNULL", "ISNULL", "LEAST", "NULLIF", "NVL"
-  ].map(function(el) { return { caption: el, snippet: el + "(", meta: "function (conditional)"} })
+  var sqlFunctionsConditional_ = SqlInfo.functionsConditional
+    .map(function(el) { return { caption: el, snippet: el + "(", meta: "function (conditional)"} })
 
-  var sqlFunctionsScalar_ = [
-    "CURRENT_TIMESTAMP", "DAY", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
-    "DAYOFYEAR", "DAY_NAME", "DAY_OF_MONTH", "DAY_OF_YEAR", "DOM", "DOW",
-    "DOY", "HOUR", "HOUR_OF_DAY", "IDOW", "ISODAYOFWEEK", "ISODOW", "ISOWEEK",
-    "ISOWEEKOFYEAR", "ISO_DAY_OF_WEEK", "ISO_WEEK_OF_YEAR", "IW", "IWOY",
-    "MINUTE", "MINUTE_OF_DAY", "MINUTE_OF_HOUR", "MONTH", "MONTHNAME", "MONTH_NAME",
-    "MONTH_OF_YEAR", "NOW", "QUARTER", "SECOND", "SECOND_OF_MINUTE", "WEEK",
-    "WEEK_OF_YEAR", "YEAR",
-    "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CBRT", "CEIL", "CEILING", "COS",
-    "COSH", "COT", "DEGREES", "E", "EXP", "EXPM1", "FLOOR", "LOG", "LOG10", "MOD",
-    "PI", "POWER", "RADIANS", "RAND", "RANDOM", "ROUND", "SIGN", "SIGNUM", "SIN",
-    "SINH", "SQRT", "TAN", "TRUNCATE", "ASCII", "BIT_LENGTH", "CHAR", "CHARACTER_LENGTH",
-    "CHAR_LENGTH", "CONCAT", "INSERT", "LCASE", "LEFT", "LENGTH", "LOCATE", "LTRIM",
-    "OCTET_LENGTH", "POSITION", "REPEAT", "RIGHT", "RTRIM", "SPACE", "SUBSTRING",
-    "UCASE", "CAST", "CONVERT", "DATABASE", "USER", "SCORE"
-  ].map(function(el) { return { caption: el, snippet: el + "(", meta: "function (scalar)"} })
+  var sqlFunctionsScalar_ = SqlInfo.functionsScalar
+    .map(function(el) { return { caption: el, snippet: el + "(", meta: "function (scalar)"} })
 
   var sqlSubVariables_ = [
     "$$query", "$$index", "$$pagination"
@@ -189,27 +183,12 @@ var AutocompletionManager = (function() {
     }
   })
 
-  var painlessContext_ = [
-    "params",
-    "params._name_",
-    "params._source",
-    "_score",
-    "state",
-    "states",
-    "doc"
-  ].map(function(el) {
+  var painlessContext_ = PainlessInfo.scriptedMetricContext.map(function(el) {
     return { caption: el, value: el, meta: "context variable" }
   })
   //TODO: all keys from user specified param
 
-  var painlessKeywords_ = [
-    "if", "else", "while", "do", "for",
-    "in", "continue", "break", "return", "new",
-    "try", "catch", "throw", "this", "instanceof",
-
-    "byte", "short", "char", "int", "long", "float", "double",
-    "boolean", "def", "Object", "String", "void"
-  ].map(function(el) {
+  var painlessKeywords_ = PainlessInfo.keywords.map(function(el) {
     return { caption: el, value: el, meta: "painless keyword", score: -50 }
   })
 
@@ -290,16 +269,15 @@ var AutocompletionManager = (function() {
       ElasticsearchManager.retrieveIndexPatternFields(
         currIndexPatternVal, function(response) {
           var retVal = {} //painless: [], raw: []
-          var rows = response.rows || []
-          retVal.raw = rows.map(function(row) {
+          retVal.raw = response.map(function(row) {
             return {
-              caption: row[0], value: row[0], meta: `data field (${row[2]})`, filter_info: row[0]
+              caption: row.name, value: row.name, meta: `data field (${row.type})`, filter_info: row.name
             }
           })
-          retVal.painless = retVal.raw.concat(rows.map(function(row) {
-            var docField = `doc["${row[0]}"].value`
+          retVal.painless = retVal.raw.concat(response.map(function(row) {
+            var docField = `doc["${row.name}"].value`
             return {
-              caption: docField, value: docField, meta: `document field (${row[2]})`, filter_info: row[0]
+              caption: docField, value: docField, meta: `document field (${row.type})`, filter_info: row.name
             }
           }))
           indexPatternToFields_[currIndexPatternVal] = retVal
@@ -333,6 +311,51 @@ var AutocompletionManager = (function() {
   var filterFieldGroupCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
       callback(null,  commonDocFieldFilters_)
+    }
+  }
+
+  // 5 Indices
+
+  var indexList_ = []
+
+  /** Builds a list of indices from ES */
+  function buildIndexList_() {
+    ElasticsearchManager.retrieveIndices(function(response) {
+      indexList_ = response.map(function(indexInfo) {
+        return indexInfo.index
+      })
+    })
+  }
+
+  /** Returns a list of indices */
+  function getIndexCompleter(onOpenFn) {
+
+    var split = function(val) {
+      return val.split(/,\s*/)
+    }
+    var extractLast = function(term) {
+      return split(term).pop()
+    }
+
+    return {
+      minLength: 0,
+      source: function(request, response) {
+        var term = extractLast(request.term)
+        var data = $.grep(indexList_, function(value) {
+          return value.substring(0, term.length).toLowerCase() == term.toLowerCase()
+        })
+        response(data)
+      },
+      select: function(event, ui) {
+        var terms = split(this.value)
+        terms.pop()
+        terms.push(ui.item.value)
+        this.value = terms.join( "," );
+        return false;
+      },
+      change: function(event, ui) {
+        onOpenFn(this.value)
+      }
     }
   }
 
@@ -417,6 +440,8 @@ var AutocompletionManager = (function() {
     dataFieldCompleter: dataFieldCompleter,
 
     filterFieldGroupCompleter: filterFieldGroupCompleter,
+
+    getIndexCompleter: getIndexCompleter,
 
     TESTONLY: {
       isFieldWanted_: isFieldWanted_,

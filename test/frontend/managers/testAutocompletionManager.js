@@ -76,15 +76,12 @@ var TestAutocompletionManager = (function() {
 
     var esOverride = function(indexPattern, callbackFn) {
       if ("clear" == indexPattern) {
-        callbackFn({"cols": [], "rows": []})
+        callbackFn([])
       } else {
-        callbackFn({
-          "cols": [ "ignore1", "ignore2", "ignore3"],
-          "rows": [
-            [ `${indexPattern}_1`, "unused1", "meta1"],
-            [ `${indexPattern}_2`, "unused2", "meta2"]
-          ]
-        })
+        callbackFn([
+          { name: `${indexPattern}_1`, type: "meta1" },
+          { name: `${indexPattern}_2`, type: "meta2" },
+        ])
       }
     }
     var docCaption = function(pattern, index) {

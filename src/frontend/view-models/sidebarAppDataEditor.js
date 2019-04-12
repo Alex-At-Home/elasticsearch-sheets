@@ -113,18 +113,25 @@ var DataEditor = (function(){
     GeneralEditor.register(index, name, json, globalEditor, 'data')
     FieldsEditor.register(index, name, json, globalEditor, 'data')
 
-    // SQL specific handlers:
+    // Data specific handlers:
 
-    $(`#index_data_${index}`).on("input", function(e) {
-      var thisValue = this.value
+    function onIndexChange(thisValue) {
       Util.updateRawJson(globalEditor, function(currJson) {
         var dataTable = Util.getOrPutJsonObj(currJson, [ "data_table" ])
         dataTable.index_pattern = thisValue
       })
-    })
-    $(`#index_data_${index}`).on("focusout", function(e) {
-      AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
-    })
+    }
+
+    $(`#index_data_${index}`)
+      .on("focusout", function(e) {
+        AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
+      })
+      .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
+      .focus(function () {
+        if ("" == $(this).val()) { // only insta-display options if textbox empty
+          $(this).autocomplete("search", "")
+        }
+      })
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
 
