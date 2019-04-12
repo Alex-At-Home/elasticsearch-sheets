@@ -116,7 +116,7 @@ var DataEditor = (function(){
     // Data specific handlers:
 
     function onIndexChange(thisValue) {
-      Util.updateRawJson(globalEditor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var dataTable = Util.getOrPutJsonObj(currJson, [ "data_table" ])
         dataTable.index_pattern = thisValue
       })

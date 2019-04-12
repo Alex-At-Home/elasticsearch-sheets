@@ -316,7 +316,7 @@ var AggregationEditor = (function(){
     // Now add the handlers:
 
     var onIndexChange = function(thisValue) {
-      Util.updateRawJson(globalEditor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var aggTable = Util.getOrPutJsonObj(currJson, [ "aggregation_table" ])
         aggTable.index_pattern = thisValue
       })
@@ -332,7 +332,7 @@ var AggregationEditor = (function(){
           $(this).autocomplete("search", "")
         }
       })
-      
+
     //(also initialize this on build)
     AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
 

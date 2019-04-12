@@ -109,7 +109,7 @@ var SqlEditor = (function(){
     // SQL specific handlers:
 
     var onIndexChange = function(thisValue) {
-      Util.updateRawJson(globalEditor, function(currJson) {
+      Util.updateRawJsonNow(globalEditor, function(currJson) {
         var sqlTable = Util.getOrPutJsonObj(currJson, [ "sql_table" ])
         sqlTable.index_pattern = thisValue
       })
