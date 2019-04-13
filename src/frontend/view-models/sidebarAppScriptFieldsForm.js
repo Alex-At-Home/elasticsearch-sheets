@@ -62,17 +62,17 @@ var ScriptFieldsForm = (function(){
     <div id="editor_${elementIdSuffix}" class="medium_ace_editor">
     </div>
 
-    <!-- Advanced editor placeholder
     <div class="panel-group">
     <div class="panel panel-default">
     <label>
     <a data-toggle="collapse" href="#collapse1_${elementIdSuffix}">Advanced</a>
     </label>
     <div id="collapse1_${elementIdSuffix}" class="panel-collapse collapse">
+    <div id="params_${elementIdSuffix}" class="small_ace_editor">
     </div>
     </div>
     </div>
-    -->
+    </div>
 
     </div>
     </div>
@@ -108,6 +108,20 @@ var ScriptFieldsForm = (function(){
         //TODO: need slightly different painless completer
       ]
 
+      var paramsEditor = ace.edit(`params_${elementIdSuffix}`)
+      paramsEditor.session.setMode("ace/mode/json")
+      paramsEditor.session.setTabSize(3)
+      paramsEditor.session.setUseWrapMode(true)
+      paramsEditor.session.setValue(JSON.stringify(json.params || {}, null, 3))
+      paramsEditor.setOptions({
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+      })
+      paramsEditor.completers = [
+        AutocompletionManager.paramsCompleter
+      ]
+
       // Handle the control buttons
       $(`#move_up_${elementIdSuffix}`).click(function(){
         var subIndex = getCurrScriptFieldFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
@@ -140,12 +154,22 @@ var ScriptFieldsForm = (function(){
 
       // Other change handlers:
 
-      // JSON editor
+      // Painless editor
+//TODO: looks like this isn't working on reload
       formEditor.session.on('change', function(delta) {
         Util.updateRawJson(globalEditor, function(currJson) {
           var currJsonForm = getCurrScriptFieldFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, tableType, currJson)
           try {
             currJsonForm.script = formEditor.session.getValue()
+          } catch (err) {} //(do nothing if it's not valid JSON)
+        })
+      })
+      // Painless editor
+      paramsEditor.session.on('change', function(delta) {
+        Util.updateRawJson(globalEditor, function(currJson) {
+          var currJsonForm = getCurrScriptFieldFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, tableType, currJson)
+          try {
+            currJsonForm.params = JSON.parse(paramsEditor.session.getValue())
           } catch (err) {} //(do nothing if it's not valid JSON)
         })
       })
@@ -178,6 +202,14 @@ var ScriptFieldsForm = (function(){
       })
       $(`#editname_${elementIdSuffix}`).on('mousedown', function() {
         onNameChange($(`#name_${elementIdSuffix}`).val(), /*alwaysReturnTrue*/false)
+      })
+
+      // Fix code editor bugs (TODO also do this for metrics?)
+      $(`#collapse0_${elementIdSuffix}`).on('shown.bs.collapse', function () {
+        ace.edit(`editor_${elementIdSuffix}`).resize()
+      })
+      $(`#collapse1_${elementIdSuffix}`).on('shown.bs.collapse', function () {
+        ace.edit(`params_${elementIdSuffix}`).resize()
       })
     })
   }
