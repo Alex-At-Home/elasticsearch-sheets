@@ -15,6 +15,13 @@ var ElasticsearchResponseUtils_ = (function() {
       var flattenedHit = {}
       partialFlatten_(hitJson, flattenedHit, /*topLevelOnly*/true)
       partialFlatten_(hitJson._source || {}, flattenedHit, /*topLevelOnly*/false)
+
+      // Incorporate extra (eg script) fields:
+      var fields = hitJson.fields || {}
+      Object.keys(fields).forEach(function(field) {
+        flattenedHit[field] = fields[field]
+      })
+
       return flattenedHit
     })
     // Loop over the objects once to get the columns:

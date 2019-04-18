@@ -51,7 +51,7 @@ var DataEditor = (function(){
 
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_script_fields_data_${index}">Scripted Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_script_fields_data_${index}">Script Fields</a>
     </h4>
     </div>
 
@@ -98,9 +98,9 @@ var DataEditor = (function(){
     var query = JSON.stringify(Util.getJson(json, [ "data_table", "query" ]) || {}, null, 3)
     queryEditor.session.setValue(query)
 
-    // Clear any existing scripted fields and rebuild
+    // Clear any existing script fields and rebuild
     $(`#script_fields_data_${index}`).empty()
-    var scriptFields = Util.getJson(json, [ "data_table", "scripted_fields" ]) || []
+    var scriptFields = Util.getJson(json, [ "data_table", "script_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
       ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`, scriptField)
     })
@@ -175,7 +175,7 @@ var DataEditor = (function(){
       })
     });
 
-    // Scripted fields:
+    // Script fields:
     $(`#add_script_field_data_${index}`).click(function(){
       ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`)
     })

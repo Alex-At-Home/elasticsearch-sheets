@@ -210,7 +210,7 @@ var ScriptFieldsForm = (function(){
 
   /** Handy utility for pointing at the right table field array */
   function getScriptFieldFormPath_(tableType) {
-    return [ tableType, "scripted_fields" ]
+    return [ tableType, "script_fields" ]
   }
   /** Removes the JSON element at the specified index */
   function deleteCurrScriptFieldFormJson_(subIndex, tableType, parentJson) {

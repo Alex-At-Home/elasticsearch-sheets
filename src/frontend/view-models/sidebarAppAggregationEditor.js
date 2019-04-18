@@ -65,7 +65,7 @@ var AggregationEditor = (function(){
 
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_script_fields_agg_${index}">Scripted Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_script_fields_agg_${index}">Script Fields</a>
     </h4>
     </div>
     <div id="accordion_script_fields_agg_${index}" class="panel-collapse collapse out">
@@ -266,9 +266,9 @@ var AggregationEditor = (function(){
       ace.edit(`${field}_agg_${index}`).session.setValue(mrCode)
     })
 
-    // Clear any existing scripted fields and rebuild
+    // Clear any existing script fields and rebuild
     $(`#script_fields_agg_${index}`).empty()
-    var scriptFields = Util.getJson(json, [ "aggregation_table", "scripted_fields" ]) || []
+    var scriptFields = Util.getJson(json, [ "aggregation_table", "script_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
       ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`, scriptField)
     })
@@ -403,7 +403,7 @@ var AggregationEditor = (function(){
       FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'agg')
     })
 
-    // Scripted fields:
+    // Script fields:
     $(`#add_script_field_agg_${index}`).click(function(){
       ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`)
     })

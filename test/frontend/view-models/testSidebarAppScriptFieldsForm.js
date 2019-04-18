@@ -17,7 +17,7 @@ var TestSidebarAppScriptFieldsForm = (function(){
       var expectedMr = {}
       var expectedJsonStr = JSON.stringify({
         data_table: {
-          scripted_fields: [ {} ]
+          script_fields: [ {} ]
         }
       }, null, 3)
       //(because no JSON => is new element so gets added to array)
