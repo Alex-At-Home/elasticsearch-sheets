@@ -65,6 +65,20 @@ var AggregationEditor = (function(){
 
     <div class="panel-heading">
     <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_script_fields_agg_${index}">Scripted Fields</a>
+    </h4>
+    </div>
+    <div id="accordion_script_fields_agg_${index}" class="panel-collapse collapse out">
+    <div class="panel-body">
+    <div id="script_fields_agg_${index}"></div>
+    <div class="btn-toolbar">
+    <button class="btn btn-default" id="add_script_field_agg_${index}">Add Scripted Field</button>
+    </div>
+    </div>
+    </div>
+
+    <div class="panel-heading">
+    <h4 class="panel-title">
     <a data-toggle="collapse" ${groupCollapse} href="#accordion_buckets_agg_${index}">Buckets (eg groupings)</a>
     </h4>
     </div>
@@ -251,6 +265,13 @@ var AggregationEditor = (function(){
       }
       ace.edit(`${field}_agg_${index}`).session.setValue(mrCode)
     })
+
+    // Clear any existing scripted fields and rebuild
+    $(`#script_fields_agg_${index}`).empty()
+    var scriptFields = Util.getJson(json, [ "aggregation_table", "scripted_fields" ]) || []
+    scriptFields.forEach(function(scriptField) {
+      ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`, scriptField)
+    })
   }
 
   /** Called once all the HTML elements for this SQL table exist, populates the data and registers event handlers */
@@ -380,6 +401,11 @@ var AggregationEditor = (function(){
     })
     $(`#accordion_fields_agg_${index}`).on('shown.bs.collapse', function () {
       FieldsEditor.onSelect(index, /*selected*/ true, globalEditor, 'agg')
+    })
+
+    // Scripted fields:
+    $(`#add_script_field_agg_${index}`).click(function(){
+      ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`)
     })
 
     // Build from template:

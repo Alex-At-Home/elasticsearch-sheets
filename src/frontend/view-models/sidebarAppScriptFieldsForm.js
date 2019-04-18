@@ -1,12 +1,6 @@
 var ScriptFieldsForm = (function(){
   var scriptFieldFormOneUp_ = 0 //global across all indices - not an index just a uuid
 
-  //TODO: name doesn't get set until i click into and then out of it .. if i just ignore
-  // it then it never gets set
-  // (not sure if this is true also for aggs?)
-  //TODO: extreme weirdness, data is getting saved as temp wtf?!
-  //(haven't checked but might have been when i hit expand editor?!)
-
   /** Builds the UI element that manages data tables (tableType one of `data_table`, `aggergation_table` */
   function build(index, tableType, globalEditor, parentContainerId, json) {
     var subIndex = ++scriptFieldFormOneUp_
@@ -155,7 +149,7 @@ var ScriptFieldsForm = (function(){
       // Other change handlers:
 
       // Painless editor
-//TODO: looks like this isn't working on reload
+
       formEditor.session.on('change', function(delta) {
         Util.updateRawJson(globalEditor, function(currJson) {
           var currJsonForm = getCurrScriptFieldFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, tableType, currJson)
@@ -164,7 +158,7 @@ var ScriptFieldsForm = (function(){
           } catch (err) {} //(do nothing if it's not valid JSON)
         })
       })
-      // Painless editor
+      // Painless parameters
       paramsEditor.session.on('change', function(delta) {
         Util.updateRawJson(globalEditor, function(currJson) {
           var currJsonForm = getCurrScriptFieldFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, tableType, currJson)

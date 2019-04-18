@@ -129,7 +129,7 @@ var DataEditor = (function(){
       AutocompletionManager.queryInsertionCompleter
     ]
 
-    populate(index, name, json, null) //(before we register the handlers - note calls GeneralEditor.populate)
+    populate(index, name, json, globalEditor) //(before we register the handlers - note calls GeneralEditor.populate)
 
     // General handlers
 
@@ -175,6 +175,7 @@ var DataEditor = (function(){
       })
     });
 
+    // Scripted fields:
     $(`#add_script_field_data_${index}`).click(function(){
       ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`)
     })
