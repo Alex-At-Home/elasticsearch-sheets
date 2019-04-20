@@ -329,6 +329,7 @@ var ElasticsearchRequestUtils_ = (function() {
      var postBody = JSON.parse(queryString)
      postBody.size = 0 //(never have any interest in returning docs)
      var aggregationsLocation = getOrPutJsonField(postBody, 'aggregations')
+     elementsByName["__root__"] = postBody
 
      var insertElementsFrom = function(listName, nestEveryTime, noDupCheck) {
         var configArray = aggTable[listName] || []

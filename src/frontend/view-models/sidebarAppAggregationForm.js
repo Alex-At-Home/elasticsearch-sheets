@@ -23,7 +23,10 @@ var AggregationForm = (function(){
     var helpHidden = helpUrl ? "" : "hidden"
 
     var maybeCurrentLocation = ""
-    if (json.location && ("automatic" != json.location) && ("disabled" != json.location)) {
+    if (json.location &&
+      ("automatic" != json.location) && ("disabled" != json.location) && ("__root__" != json.location)
+    )
+      {
       maybeCurrentLocation =
         `<option value="${json.location}" selected>Bucket: ${json.location}</option>`
     }
@@ -128,6 +131,7 @@ var AggregationForm = (function(){
     </div>
     <select class="form-control for-shorter-text" id="location_${elementIdSuffix}">
     <option value="automatic">Automatic</option>
+    <option value="__root__" ${("__root__" == json.location) ? "selected" : ""}>Root</option>
     <option value="disabled" ${("disabled" == json.location) ? "selected" : ""}>Disabled</option>
     ${maybeCurrentLocation}
     </select>
@@ -332,12 +336,17 @@ var AggregationForm = (function(){
       AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index), [ "buckets" ])
         .getCompletions(null, null, null, null, function(unused, bucketList) {
           $(`#location_${elementIdSuffix}`).empty()
-          $(`#location_${elementIdSuffix}`).append(`<option value="automatic">Automatic</option>`)
-          $(`#location_${elementIdSuffix}`).append(`<option value="disabled">Disabled</option>`)
-          bucketList.forEach(function(bucketMeta) {
-            var name = bucketMeta.value
-            $(`#location_${elementIdSuffix}`).append(`<option value="${name}">Bucket: ${name}</option>`)
-          })
+          var defaultElements = [
+            `<option value="automatic">Automatic</option>`,
+            `<option value="disabled">Disabled</option>`,
+            `<option value="__root__">Root</option>`
+          ]
+          $(`#location_${elementIdSuffix}`).append(
+            defaultElements.concat(bucketList.map(function(bucketMeta) {
+              var name = bucketMeta.value
+              return `<option value="${name}">Bucket: ${name}</option>`
+            }))
+          )
           $(`#location_${elementIdSuffix}`).val(currLocationVal).change()
         })
     })
@@ -396,6 +405,7 @@ function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
       }
     })
   })
+  retVal["__root__"] = true
   return retVal
 }
 
