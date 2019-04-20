@@ -274,12 +274,64 @@ var TestAutocompletionManager = (function() {
           assert.deepEqual(wordList, expected, `Agg output + filter matches (${filter})`)
         })
       })
-      //TODO
       AutocompletionManager.clearTableConfigs()
       AutocompletionManager.aggregationOutputCompleter("test_agg_lookup")
         .getCompletions(null, null, null, null, function(unused, wordList) {
           didGetCalled++
           assert.deepEqual(wordList, [], "Agg output list can be cleared")
+        })
+
+    assert.equal(didGetCalled, 6, "completion callback was called")
+  })
+
+  /** Add new script fields to an empty list */
+  QUnit.test(`[${testSuiteRoot}] test script fields auto-complete`, function(assert) {
+    var didGetCalled = 0
+
+    AutocompletionManager.aggregationOutputCompleter("empty")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        assert.deepEqual(wordList, [], "Script field list starts empty")
+      })
+
+      var templateConfig = {
+        TEST: {
+          enabled: true,
+          script_fields: [ { name: "test_field" } ]
+        }
+      }
+      var list = [
+        "data_table",
+        "aggregation_table"
+      ]
+      list.forEach(function(path) {
+        var testConfig = Util.shallowCopy(templateConfig)
+        testConfig[path] = templateConfig.TEST
+        delete testConfig.TEST
+        AutocompletionManager.registerTableConfig("test_script_field_lookup", testConfig)
+
+        var expectedLabel = [
+          { caption: "$$script_field(test_field)", value: "$$script_field(test_field)", meta: `script field` },
+        ]
+        var expectedField = [
+          { caption: "test_field", value: "test_field", meta: `script field` },
+        ]
+        AutocompletionManager.scriptFieldsCompleter("test_script_field_lookup", "labels")
+          .getCompletions(null, null, null, null, function(unused, wordList) {
+            didGetCalled++
+            assert.deepEqual(wordList, expectedLabel, `Script Field label matches`)
+          })
+        AutocompletionManager.scriptFieldsCompleter("test_script_field_lookup", "fields")
+          .getCompletions(null, null, null, null, function(unused, wordList) {
+            didGetCalled++
+            assert.deepEqual(wordList, expectedField, `Script Field matches`)
+          })
+      })
+      AutocompletionManager.clearTableConfigs()
+      AutocompletionManager.scriptFieldsCompleter("test_script_field_lookup")
+        .getCompletions(null, null, null, null, function(unused, wordList) {
+          didGetCalled++
+          assert.deepEqual(wordList, [], "Script Field list can be cleared")
         })
 
     assert.equal(didGetCalled, 6, "completion callback was called")

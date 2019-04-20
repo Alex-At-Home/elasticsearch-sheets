@@ -270,7 +270,7 @@ var AggregationEditor = (function(){
     $(`#script_fields_agg_${index}`).empty()
     var scriptFields = Util.getJson(json, [ "aggregation_table", "script_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
-      ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`, scriptField)
+      ScriptFieldsForm.build(index, `index_agg_${index}`, 'aggregation_table', globalEditor, `script_fields_agg_${index}`, scriptField)
     })
   }
 
@@ -314,7 +314,8 @@ var AggregationEditor = (function(){
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
             AutocompletionManager.paramsCompleter,
             AutocompletionManager.queryCompleter,
-            AutocompletionManager.queryInsertionCompleter
+            AutocompletionManager.queryInsertionCompleter,
+            AutocompletionManager.scriptFieldsCompleter(TableManager.getTableId(index), "labels")
           ]
           break
         default: //painless
@@ -325,7 +326,7 @@ var AggregationEditor = (function(){
           })
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
-            AutocompletionManager.painlessCompleter(TableManager.getTableId(index)),
+            AutocompletionManager.painlessCompleter(TableManager.getTableId(index), "script_metric"),
             AutocompletionManager.userDefinedMapReduceParamsCompleter(TableManager.getTableId(index))
           ]
           break
@@ -405,7 +406,7 @@ var AggregationEditor = (function(){
 
     // Script fields:
     $(`#add_script_field_agg_${index}`).click(function(){
-      ScriptFieldsForm.build(index, 'aggregation_table', globalEditor, `script_fields_agg_${index}`)
+      ScriptFieldsForm.build(index, `index_agg_${index}`, 'aggregation_table', globalEditor, `script_fields_agg_${index}`)
     })
 
     // Build from template:

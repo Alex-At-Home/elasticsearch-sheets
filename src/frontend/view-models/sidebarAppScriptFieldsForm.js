@@ -2,7 +2,7 @@ var ScriptFieldsForm = (function(){
   var scriptFieldFormOneUp_ = 0 //global across all indices - not an index just a uuid
 
   /** Builds the UI element that manages data tables (tableType one of `data_table`, `aggergation_table` */
-  function build(index, tableType, globalEditor, parentContainerId, json) {
+  function build(index, indexPatternId, tableType, globalEditor, parentContainerId, json) {
     var subIndex = ++scriptFieldFormOneUp_
 
     var isJsonCollapsed = json ? "" : "in" // (collapse the JSON if populating from existing data)
@@ -89,7 +89,7 @@ var ScriptFieldsForm = (function(){
       formEditor.session.setMode("ace/mode/java")
       formEditor.session.setTabSize(3)
       formEditor.session.setUseWrapMode(true)
-      var defaultCode = "//TODO some info" //TODO
+      var defaultCode = "// Use doc and params, return the field value"
       formEditor.session.setValue(json.script || defaultCode)
       formEditor.setOptions({
           enableBasicAutocompletion: true,
@@ -97,9 +97,8 @@ var ScriptFieldsForm = (function(){
           enableLiveAutocompletion: true
       })
       formEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
-        AutocompletionManager.painlessCompleter(FieldsEditor.getFilterId())
-        //TODO: need slightly different painless completer
+        AutocompletionManager.dataFieldCompleter(indexPatternId, "painless"),
+        AutocompletionManager.painlessCompleter(TableManager.getTableId(index), "script_fields")
       ]
 
       var paramsEditor = ace.edit(`params_${elementIdSuffix}`)

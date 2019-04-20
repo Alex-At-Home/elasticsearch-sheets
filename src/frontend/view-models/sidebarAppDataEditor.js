@@ -102,7 +102,7 @@ var DataEditor = (function(){
     $(`#script_fields_data_${index}`).empty()
     var scriptFields = Util.getJson(json, [ "data_table", "script_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
-      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`, scriptField)
+      ScriptFieldsForm.build(index, `index_data_${index}`, 'data_table', globalEditor, `script_fields_data_${index}`, scriptField)
     })
 
   }
@@ -126,7 +126,8 @@ var DataEditor = (function(){
       AutocompletionManager.dataFieldCompleter(`index_data_${index}`, "raw"),
       AutocompletionManager.paramsCompleter,
       AutocompletionManager.queryCompleter,
-      AutocompletionManager.queryInsertionCompleter
+      AutocompletionManager.queryInsertionCompleter,
+      AutocompletionManager.scriptFieldsCompleter(TableManager.getTableId(index), "labels")
     ]
 
     populate(index, name, json, globalEditor) //(before we register the handlers - note calls GeneralEditor.populate)
@@ -177,7 +178,7 @@ var DataEditor = (function(){
 
     // Script fields:
     $(`#add_script_field_data_${index}`).click(function(){
-      ScriptFieldsForm.build(index, 'data_table', globalEditor, `script_fields_data_${index}`)
+      ScriptFieldsForm.build(index, `index_data_${index}`, 'data_table', globalEditor, `script_fields_data_${index}`)
     })
   }
 

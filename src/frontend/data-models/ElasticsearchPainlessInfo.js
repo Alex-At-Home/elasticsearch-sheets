@@ -2,13 +2,18 @@
  ** Painless langage constructs
  */
 var PainlessInfo = {
-  scriptedMetricContext: [
+  scriptMetricContext: [
     "params",
     "params._name_",
     "params._source",
     "_score",
     "state",
     "states",
+    "doc"
+  ],
+  scriptFieldContext: [
+    "params",
+    "params._source",
     "doc"
   ],
   keywords: [

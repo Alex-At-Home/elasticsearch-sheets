@@ -140,6 +140,9 @@ var FieldsEditor = (function() {
         ]
         if ('data' == tableType) {
           currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+          currFilterEditor.completers.push(
+            AutocompletionManager.scriptFieldsCompleter(TableManager.getTableId(index), "fields")
+          )
         }
       } else if ('agg' == tableType) {
         currFilterEditor.completers = [

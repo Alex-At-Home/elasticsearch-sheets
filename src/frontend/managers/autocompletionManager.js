@@ -183,27 +183,64 @@ var AutocompletionManager = (function() {
     }
   })
 
-  var painlessContext_ = PainlessInfo.scriptedMetricContext.map(function(el) {
+  var painlessScriptedMetricContext_ = PainlessInfo.scriptMetricContext.map(function(el) {
     return { caption: el, value: el, meta: "context variable" }
   })
-  //TODO: all keys from user specified param
+  var painlessScriptFieldContext_ = PainlessInfo.scriptFieldContext.map(function(el) {
+    return { caption: el, value: el, meta: "context variable" }
+  })
 
   var painlessKeywords_ = PainlessInfo.keywords.map(function(el) {
     return { caption: el, value: el, meta: "painless keyword", score: -50 }
   })
 
-  var allPainless_ = painlessApi_.concat(painlessContext_).concat(painlessKeywords_)
+  var allPainless_ = painlessApi_.concat(painlessKeywords_)
 
-  /** Language completer for painless */
-  var painlessCompleter = function(tableId) { return {
-    getCompletions: function(editor, session, pos, prefix, callback) {
-      callback(null, allPainless_)
+  /** Language completer for painless - path is "script_metric" or "script_fields" */
+  var painlessCompleter = function(tableId, path) {
+    var extraContext = (function() { switch (path) {
+      case "script_metric": return painlessScriptedMetricContext_
+      case "script_fields": return painlessScriptFieldContext_
+      default: return []
+    }}())
+    var completionList = allPainless_.concat(extraContext)
+    return {
+      getCompletions: function(editor, session, pos, prefix, callback) {
+        callback(null, completionList)
+      }
     }
-  }}
+  }
 
   // 4] Aggregations
 
-  //TODO: output params (ie bucket names)
+  /** List of aggregations (bucket/metric) vs table index */
+  var aggregationsMap_ = {}
+
+  /** List of map/reduce parameters vs table index */
+  var mapReduceParamMap_ = {}
+
+  /** ACE code editor completion handler for MR parameters */
+  function userDefinedMapReduceParamsCompleter(editorId) { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null,  mapReduceParamMap_[editorId] || [])
+    }
+  }}
+
+  /** ACE code editor completion handler for aggregation outputs
+   * aggTypeFilter should be a sub-array of [ "buckets", "metrics", "pipelines" ]
+   * (or null to return all 3)
+  */
+  function aggregationOutputCompleter(editorId, aggTypeFilter)  { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      var retArray = []
+      var aggregations = aggregationsMap_[editorId] || {}
+      if (!aggTypeFilter) aggTypeFilter = Object.keys(aggregations)
+      aggTypeFilter.forEach(function(aggType) {
+        retArray = retArray.concat(aggregations[aggType] || [])
+      })
+      callback(null,  retArray)
+    }
+  }}
 
   // 5] Dyanmic data from ES
 
@@ -312,7 +349,7 @@ var AutocompletionManager = (function() {
     }
   }
 
-  // 5 Indices
+  // 6] Indices
 
   var indexList_ = []
 
@@ -357,13 +394,9 @@ var AutocompletionManager = (function() {
     }
   }
 
-  // 6] Table config params
+  // 7] Table config params
 
-  /** List of aggregations (bucket/metric) vs table index */
-  var aggregationsMap_ = {}
-
-  /** List of map/reduce parameters vs table index */
-  var mapReduceParamMap_ = {}
+  var scriptFields_ = {}
 
   /** Handles table config changing */
   function registerTableConfig(editorId, tableConfigJson) {
@@ -392,40 +425,42 @@ var AutocompletionManager = (function() {
           })
         })
       }
+
+      // Script fields
+
+      if (("aggregation_table" == activePath) || ("data_table" == activePath)) {
+        var scriptFields = tableConfigJson[activePath].script_fields || []
+        scriptFields_[editorId] = {}
+        scriptFields_[editorId].labels = scriptFields.map(function(scriptField) {
+          var fieldLabel = `$$script_field(${scriptField.name})`
+          return { caption: fieldLabel, value: fieldLabel, meta: "script field" }
+        })
+        scriptFields_[editorId].fields = scriptFields.map(function(scriptField) {
+          return { caption: scriptField.name, value: scriptField.name, meta: "script field" }
+        })
+      }
+
     } else {
       aggregationsMap_[editorId] = {}
       mapReduceParamMap_[editorId] = []
+      scriptFields_[editorId] = {}
     }
   }
+
+  /** ACE code editor completion handler for MR parameters */
+  function scriptFieldsCompleter(editorId, path) { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      var scriptFields = scriptFields_[editorId] || {}
+      callback(null,  scriptFields[path] || [])
+    }
+  }}
 
   /** Handles the table being rebuilt (which changes all the indices) */
   function clearTableConfigs() {
     aggregationsMap_ = {}
     mapReduceParamMap_ = {}
+    scriptFields_ = {}
   }
-
-  /** ACE code editor completion handler for MR parameters */
-  function userDefinedMapReduceParamsCompleter(editorId) { return {
-    getCompletions: function(editor, session, pos, prefix, callback) {
-      callback(null,  mapReduceParamMap_[editorId] || [])
-    }
-  }}
-
-  /** ACE code editor completion handler for aggregation outputs
-   * aggTypeFilter should be a sub-array of [ "buckets", "metrics", "pipelines" ]
-   * (or null to return all 3)
-  */
-  function aggregationOutputCompleter(editorId, aggTypeFilter)  { return {
-    getCompletions: function(editor, session, pos, prefix, callback) {
-      var retArray = []
-      var aggregations = aggregationsMap_[editorId] || {}
-      if (!aggTypeFilter) aggTypeFilter = Object.keys(aggregations)
-      aggTypeFilter.forEach(function(aggType) {
-        retArray = retArray.concat(aggregations[aggType] || [])
-      })
-      callback(null,  retArray)
-    }
-  }}
 
   ////////////////////////////////////////////////////
 
@@ -515,6 +550,8 @@ var AutocompletionManager = (function() {
     clearTableConfigs: clearTableConfigs,
     userDefinedMapReduceParamsCompleter: userDefinedMapReduceParamsCompleter,
     aggregationOutputCompleter: aggregationOutputCompleter,
+
+    scriptFieldsCompleter: scriptFieldsCompleter,
 
     TESTONLY: {
       isFieldWanted_: isFieldWanted_,

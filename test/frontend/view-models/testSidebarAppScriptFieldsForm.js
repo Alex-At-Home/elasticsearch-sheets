@@ -10,14 +10,14 @@ var TestSidebarAppScriptFieldsForm = (function(){
     <div id="fieldTest"></div>
     `
     Fixtures.withParentDivAndGlobalEditor(testRoot, extraDivs, {}, function(globalEditor) {
-      ScriptFieldsForm.build(0, "data_table", globalEditor, "fieldTest")
+      ScriptFieldsForm.build(0, testRoot, "data_table", globalEditor, "fieldTest")
 
       var formElements = $(`#${testRoot} .aggregation_form_element`)
       assert.equal(formElements.length, 1, "Added script field forms")
       var expectedMr = {}
       var expectedJsonStr = JSON.stringify({
         data_table: {
-          script_fields: [ {} ]
+          script_fields: [ { name: "FIELD1" } ]
         }
       }, null, 3)
       //(because no JSON => is new element so gets added to array)
@@ -36,7 +36,7 @@ var TestSidebarAppScriptFieldsForm = (function(){
         name: "test_name",
         script: "painless_code"
       }
-      ScriptFieldsForm.build(0, "metric", globalEditor, testRoot, jsonForm)
+      ScriptFieldsForm.build(0, testRoot, "metric", globalEditor, testRoot, jsonForm)
 
       var formElements = $(`#${testRoot} .aggregation_form_element`)
       assert.equal(formElements.length, 1, "Added aggregation form")
