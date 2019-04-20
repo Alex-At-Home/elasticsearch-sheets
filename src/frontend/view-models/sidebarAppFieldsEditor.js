@@ -128,17 +128,23 @@ var FieldsEditor = (function() {
     currFilterEditor.session.setTabSize(3)
     currFilterEditor.session.setUseWrapMode(true)
     currFilterEditor.session.setMode("ace/mode/ini")
-    if (autocompleteAndFilterMerged_(tableType)) {
+    if (supportsAutocomplete_(tableType)) {
       currFilterEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
           enableLiveAutocompletion: true
       })
-      currFilterEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
-      ]
-      if ('data' == tableType) {
-        currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+      if (autocompleteAndFilterMerged_(tableType)) {
+        currFilterEditor.completers = [
+          AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
+        ]
+        if ('data' == tableType) {
+          currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+        }
+      } else if ('agg' == tableType) {
+        currFilterEditor.completers = [
+          AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index))
+        ]
       }
     }
 
@@ -147,15 +153,21 @@ var FieldsEditor = (function() {
     currAliasEditor.session.setTabSize(3)
     currAliasEditor.session.setUseWrapMode(true)
     currAliasEditor.session.setMode("ace/mode/ini")
-    if (autocompleteAndFilterMerged_(tableType)) {
+    if (supportsAutocomplete_(tableType)) {
       currAliasEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
           enableLiveAutocompletion: true
       })
-      currAliasEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
-      ]
+      if (autocompleteAndFilterMerged_(tableType)) {
+        currAliasEditor.completers = [
+          AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+        ]
+      } else if ('agg' == tableType) {
+        currAliasEditor.completers = [
+          AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index))
+        ]
+      }
     }
 
     var separateAutocompleteForm =

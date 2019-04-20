@@ -304,7 +304,8 @@ var AggregationEditor = (function(){
           })
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
-            AutocompletionManager.painlessCompleter(TableManager.getTableId())
+            AutocompletionManager.painlessCompleter(TableManager.getTableId(index)),
+            AutocompletionManager.userDefinedMapReduceParamsCompleter(TableManager.getTableId(index))
           ]
           break
       }

@@ -379,7 +379,7 @@ var AutocompletionManager = (function() {
         var params = Util.getJson(aggConfig, [ "map_reduce", "params"]) || {}
         mapReduceParamMap_[editorId] = Object.keys(params).map(function(param) {
           var fullParam = "params." + param
-          return { caption: fullParam, value: fullParam, meta: "user-defined parameters" }
+          return { caption: fullParam, value: fullParam, meta: "user-defined parameter" }
         })
 
         // Buckets/Metrics

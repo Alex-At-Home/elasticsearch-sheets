@@ -213,7 +213,7 @@ var TestAutocompletionManager = (function() {
       .getCompletions(null, null, null, null, function(unused, wordList) {
         didGetCalled++
         var expectedParamList = [
-          { caption: "params.test_param", value: "params.test_param", meta: "user-defined parameters" }
+          { caption: "params.test_param", value: "params.test_param", meta: "user-defined parameter" }
         ]
         assert.deepEqual(wordList, expectedParamList, "Param list can be filled")
       })
