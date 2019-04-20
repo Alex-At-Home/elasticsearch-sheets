@@ -22,6 +22,12 @@ var AggregationForm = (function(){
     var helpHref = helpUrl ? `href='${helpUrl.url__}'` : ""
     var helpHidden = helpUrl ? "" : "hidden"
 
+    var maybeCurrentLocation = ""
+    if (json.location && ("automatic" != json.location) && ("disabled" != json.location)) {
+      maybeCurrentLocation =
+        `<option value="${json.location}" selected>Bucket: ${json.location}</option>`
+    }
+
     var aggregationTypeTemplate = isMapReduce ?
     `
     <div class="input-group">
@@ -120,10 +126,10 @@ var AggregationForm = (function(){
     <div class="input-group-addon for-shorter-text">
     <span class="input-group-text">Location</span>
     </div>
-    <select class="form-control for-shorter-text" value="${json.location || 'automatic'}" id="location_${elementIdSuffix}">
+    <select class="form-control for-shorter-text" id="location_${elementIdSuffix}">
     <option value="automatic">Automatic</option>
-    <option value="disabled">Disabled</option>
-    <!-- TODO fill with other names -->
+    <option value="disabled" ${("disabled" == json.location) ? "selected" : ""}>Disabled</option>
+    ${maybeCurrentLocation}
     </select>
     </div>
     </div>
@@ -318,6 +324,22 @@ var AggregationForm = (function(){
         var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
         currJsonForm.location = thisValue
       })
+    })
+
+    // Whenever we change the state of the advanced, reload the
+    $(`#collapse1_${elementIdSuffix}`).on('shown.bs.collapse', function () {
+      var currLocationVal = $(`#location_${elementIdSuffix}`).val()
+      AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index), [ "buckets" ])
+        .getCompletions(null, null, null, null, function(unused, bucketList) {
+          $(`#location_${elementIdSuffix}`).empty()
+          $(`#location_${elementIdSuffix}`).append(`<option value="automatic">Automatic</option>`)
+          $(`#location_${elementIdSuffix}`).append(`<option value="disabled">Disabled</option>`)
+          bucketList.forEach(function(bucketMeta) {
+            var name = bucketMeta.value
+            $(`#location_${elementIdSuffix}`).append(`<option value="${name}">Bucket: ${name}</option>`)
+          })
+          $(`#location_${elementIdSuffix}`).val(currLocationVal).change()
+        })
     })
   })
 }

@@ -226,7 +226,7 @@ var TableForm = (function() {
           }
         }
         if (typeToActivate != "") {
-          $(`#type_${index}`).val(typeToActivate)
+          $(`#type_${index}`).val(typeToActivate).change()
           onTableSelection(typeToActivate)
         }
       }
