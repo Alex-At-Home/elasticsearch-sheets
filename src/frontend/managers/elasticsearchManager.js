@@ -191,7 +191,9 @@ var ElasticsearchManager = (function(){
          )
        )
      }
-     tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {}, replacementMap)
+     tableConfig = incorporateLookupsAndScriptFields_(
+       "aggregation_table", tableConfig, tableMeta.lookups || {}, replacementMap
+     )
      // Have an extra comms with the backend to build the query
      google.script.run.withSuccessHandler(function(obj) {
 
@@ -244,10 +246,13 @@ var ElasticsearchManager = (function(){
         )
       )
     }
-    tableConfig = incorporateLookups_(tableConfig, tableMeta.lookups || {}, replacementMap)
+    tableConfig = incorporateLookupsAndScriptFields_(
+      "data_table", tableConfig, tableMeta.lookups || {}, replacementMap
+    )
 
     var endpoint = (Util.getJson(tableConfig, [ "data_table", "index_pattern" ]) || "*") + "/_search"
-    var body = Util.getJson(tableConfig, [ "data_table", "query" ]) || {}
+    var rawQuery = Util.getJson(tableConfig, [ "data_table", "query" ]) || {}
+    var body = getQueryIncludingScriptFields_("data_table", rawQuery, tableConfig)
 
     if (testMode) {
       google.script.run.launchQueryViewer('View ES query: ' + tableName,
@@ -367,12 +372,23 @@ var ElasticsearchManager = (function(){
   }
 
   /** Find/replace lookups */
-  function incorporateLookups_(tableConfig, lookups, otherReplacements) {
+  function incorporateLookupsAndScriptFields_(path, tableConfig, lookups, otherReplacements) {
     var tableConfigStr = JSON.stringify(tableConfig)
     Object.entries(lookups).forEach(function(kv) {
       var lookupStr = kv[0]
       var lookupRegex = new RegExp(escapeRegExp_(lookupStr), "g")
       var lookupJsonStr = JSON.stringify(kv[1])
+      tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
+    })
+    var scriptFields = Util.getJson(tableConfig, [ path, "script_fields" ]) || []
+    scriptFields.forEach(function(scriptField) {
+      var lookupStr = `"$$script_field(${scriptField.name})"`
+      var lookupRegex = new RegExp(escapeRegExp_(lookupStr), "g")
+      var lookupJsonStr = JSON.stringify({
+        lang: "painless",
+        source: scriptField.script || "",
+        params: scriptField.params || {}
+      })
       tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
     })
     if (otherReplacements) {
@@ -381,6 +397,25 @@ var ElasticsearchManager = (function(){
       })
     }
     return JSON.parse(tableConfigStr)
+  }
+
+  /** Incorporates script fields into a query */
+  function getQueryIncludingScriptFields_(path, query, tableConfig) {
+    var userScriptFields = Util.getJson(tableConfig, [ path, "script_fields" ]) || []
+    if (userScriptFields) {
+      var currentScriptFields = query.script_fields || {}
+      userScriptFields.forEach(function(scriptField) {
+        currentScriptFields[scriptField.name] = {
+          script: {
+            lang: "painless",
+            source: scriptField.script || "",
+            params: scriptField.params || {}
+          }
+        }
+      })
+      query.script_fields = currentScriptFields
+    }
+    return query
   }
 
   /** Converts the field filter into a reduction */

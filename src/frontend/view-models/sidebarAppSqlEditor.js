@@ -99,7 +99,7 @@ var SqlEditor = (function(){
       AutocompletionManager.sqlCompleter
     ]
 
-    populate(index, name, json, null) //(before we register the handlers - note calls GeneralEditor.populate)
+    populate(index, name, json, globalEditor) //(before we register the handlers - note calls GeneralEditor.populate)
 
     // General handlers
 

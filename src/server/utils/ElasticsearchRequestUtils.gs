@@ -497,7 +497,11 @@ var ElasticsearchRequestUtils_ = (function() {
     if ("__map_reduce__" == configEl.agg_type) {
        var aggTable = globalConfig.aggregation_table || {}
        var mapReduce = aggTable.map_reduce || {}
+
        var lib = (mapReduce.lib || "") + "\n\n"
+
+//TODO: incorporate all the script fields into lib
+
        // Combine the 2 params
        var combinedParams = configEl.config || {}
        combinedParams['_name_'] = configEl.name //(can use the same script boxes for different jobs)

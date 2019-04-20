@@ -74,7 +74,7 @@ var QueryInfo = {
     "sort": [ { "FIELD": {"order": "asc" } } ],
     "_source": {   "includes": [ "FIELD_GLOB" ], "excludes": [ "" ] },
     "stored_fields": [ "FIELD1", "FIELD2" ],
-    "script_field": { "FIELDNAME": { "script": { "lang": "painless", "source": "SCRIPT", "params": {} }}},
+    "script_fields": { "FIELDNAME": { "script": { "lang": "painless", "source": "SCRIPT", "params": {} }}},
     "docvalue_fields" : [ { "field": "FIELD", "format": "use_field_mapping" } ],
     "post_filter": {},
     "highlight": {"fields": { "FIELD": {} }},

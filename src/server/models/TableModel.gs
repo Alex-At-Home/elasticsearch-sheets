@@ -85,7 +85,13 @@ var defaultTableConfig_ = {
       "from": "$$pagination_from",
       "size": "$$pagination_size",
       "_source": "$$field_filters"
-    }
+    },
+    "script_fields": [] 
+    // format is {
+    //  name: "string", // the name used in the output column
+    //  source: "string", // the script itself
+    //  params: {...} // the params passed into the script
+    // }
   },
    "aggregation_table": {
       "enabled": false,
@@ -105,6 +111,19 @@ var defaultTableConfig_ = {
         },
         "_source": "$$field_filters"
       },
+      "script_fields": [], // see data_table.script_fields
+      "buckets": [],
+        // format is {
+        //  name: "string", // the name used in the output column
+        //  agg_type: "string", // The ES aggregation type
+        //  config: { ... }, // the config obj corresponding to the agg_type
+        //  location: "string",
+        //  field_filter: "string"  // combined with the top-level field_filter
+        //                          // (except -* removes it from the output builder
+        //                          // which circumvents the restrictions on hierarchy
+        // }
+      "metrics": [], //(same format)
+      "pipelines": [], //(same format)
       "map_reduce": {
          "params": {},
          "init": "//Init \"state\" variable, eg:\n//(list or map)\n//state.collect = [];\n//state.collect = [:];",

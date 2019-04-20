@@ -49,6 +49,21 @@ var DataEditor = (function(){
     </div>
     </div>
 
+    <div class="panel-heading">
+    <h4 class="panel-title">
+    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_script_fields_data_${index}">Script Fields</a>
+    </h4>
+    </div>
+
+    <div id="accordion_script_fields_data_${index}" class="panel-collapse collapse out">
+    <div class="panel-body">
+    <div id="script_fields_data_${index}"></div>
+    <div class="btn-toolbar">
+    <button class="btn btn-default" id="add_script_field_data_${index}">Add Scripted Field</button>
+    </div>
+    </div>
+    </div>
+
     </div>
     </div>
     `
@@ -82,6 +97,14 @@ var DataEditor = (function(){
 
     var query = JSON.stringify(Util.getJson(json, [ "data_table", "query" ]) || {}, null, 3)
     queryEditor.session.setValue(query)
+
+    // Clear any existing script fields and rebuild
+    $(`#script_fields_data_${index}`).empty()
+    var scriptFields = Util.getJson(json, [ "data_table", "script_fields" ]) || []
+    scriptFields.forEach(function(scriptField) {
+      ScriptFieldsForm.build(index, `index_data_${index}`, 'data_table', globalEditor, `script_fields_data_${index}`, scriptField)
+    })
+
   }
 
   /** Called once all the HTML elements for this SQL table exist, populates the data and registers event handlers */
@@ -103,10 +126,11 @@ var DataEditor = (function(){
       AutocompletionManager.dataFieldCompleter(`index_data_${index}`, "raw"),
       AutocompletionManager.paramsCompleter,
       AutocompletionManager.queryCompleter,
-      AutocompletionManager.queryInsertionCompleter
+      AutocompletionManager.queryInsertionCompleter,
+      AutocompletionManager.scriptFieldsCompleter(TableManager.getTableId(index), "labels")
     ]
 
-    populate(index, name, json, null) //(before we register the handlers - note calls GeneralEditor.populate)
+    populate(index, name, json, globalEditor) //(before we register the handlers - note calls GeneralEditor.populate)
 
     // General handlers
 
@@ -151,6 +175,11 @@ var DataEditor = (function(){
         } catch (err) {}
       })
     });
+
+    // Script fields:
+    $(`#add_script_field_data_${index}`).click(function(){
+      ScriptFieldsForm.build(index, `index_data_${index}`, 'data_table', globalEditor, `script_fields_data_${index}`)
+    })
   }
 
   return {
