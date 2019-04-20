@@ -180,7 +180,7 @@ var AggregationForm = (function(){
 
             var selected = newValue
             var newJson = Util.shallowCopy(AggregationInfo[aggregationType][selected])
-            var url = newJson['url__'] //TODO: URL isn't working properly
+            var url = newJson['url__']
             var defaultFieldFilter = newJson['default_filter__']
             if (url) { // set href for "? and show
             $(`#help_agg_type_${elementIdSuffix} a`).attr("href", url)
@@ -189,7 +189,6 @@ var AggregationForm = (function(){
             $(`#help_agg_type_${elementIdSuffix} a`).removeAttr("href")
             $(`#help_agg_type_${elementIdSuffix}`).addClass('hidden')
           }
-          //TODO: also insert/append default field filters
           delete newJson['url__']
           delete newJson['default_filter__']
           var newJsonStr = JSON.stringify(newJson, null, 3)
@@ -257,15 +256,25 @@ var AggregationForm = (function(){
       $(`#form_${elementIdSuffix}`).insertAfter(next)
     })
     $(`#delete_${elementIdSuffix}`).click(function(){
-      //TODO: update all my dependents
       Util.launchYesNoPrompt(
         "Delete metric", "Are you sure you want to delete this metric?",
         function() {
           Util.updateRawJsonNow(globalEditor, function(currJson) {
-            var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
-            deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
+            // Do we have any dependents? Fail out if so:
+            var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            var dependentMap = getAggFormNameParents_(currJson)
+            var dependents = dependentMap[currJsonForm.name] || []
+            if (dependents.length > 0) {
+              Util.showStatus(
+                "Cannot delete because of the following dependents (change their location/delete them first): " + dependents,
+                "Client error"
+              )
+            } else {
+              var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+              deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
+              $(`#form_${elementIdSuffix}`).remove()
+            }
           })
-          $(`#form_${elementIdSuffix}`).remove()
         }
       )
     })
@@ -390,6 +399,24 @@ function getCurrAggFormJsonIndex_(formDiv, parentContainerId) {
   var index = $(`#${parentContainerId} .aggregation_form_element`).index(formDiv)
   return index
 }
+/** Get a list of all the parents and their children */
+function getAggFormNameParents_(parentJson) {
+  var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
+  var retVal = {}
+  fieldList.forEach(function(aggType) {
+    var path = [ "aggregation_table", aggType ]
+    var pathStr = path.toString()
+    var jsonArray = Util.getJson(parentJson, path) || []
+    jsonArray.forEach(function(json) {
+      var location = json.location || "automatic"
+      var currArray = retVal[location] || []
+      retVal[location] = currArray
+      currArray.push(json.name)
+    })
+  })
+  return retVal
+}
+
 /** Get all the metric/bucket fieldnames */
 function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
   var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
@@ -405,6 +432,9 @@ function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
       }
     })
   })
+  // don't allow autoamtic/diabled/__root__ to avoid complexity
+  retVal["automatic"] = true
+  retVal["disabled"] = true
   retVal["__root__"] = true
   return retVal
 }
