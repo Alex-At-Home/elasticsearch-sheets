@@ -45,7 +45,7 @@ var TestSidebarAppFieldsEditor = (function(){
         var expected =
           expectedFilters.map(function(filterEl) {
             return {
-              "name": "registerFilterList", "id": "field_filter_0", filters: filterEl
+              "name": "registerFilterList", "id": "editor_0", filters: filterEl
             }
           })
         assert.deepEqual(mockServiceEventBus, expected, `[${tableType}] Registered field list with autocompletion`)

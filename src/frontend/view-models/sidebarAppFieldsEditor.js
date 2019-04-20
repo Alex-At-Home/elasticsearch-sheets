@@ -82,11 +82,11 @@ var FieldsEditor = (function() {
       currAutoFilterEditor.session.setValue(autoFieldFilters.join("\n"))
 
       if (isEnabled) {
-        AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+        AutocompletionManager.registerFilterList(TableManager.getTableId(index), autoFieldFilters)
       }
     } else if (supportsAutocomplete_(tableType)) {
       if (isEnabled) {
-        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+        AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
       }
     }
 
@@ -191,7 +191,7 @@ var FieldsEditor = (function() {
         headers.field_filters = fieldFilters
         if (autocompleteAndFilterMerged_(tableType)) {
           if (isEnabled_(currJson, tableType)) {
-            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+            AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
           }
         }
       })
@@ -212,7 +212,7 @@ var FieldsEditor = (function() {
           var autoFieldFilters = currAutoText.split("\n")
           headers.autocomplete_filters = autoFieldFilters
           if (isEnabled_(currJson, tableType)) {
-           AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+           AutocompletionManager.registerFilterList(TableManager.getTableId(index), autoFieldFilters)
          }
         })
       })
@@ -228,25 +228,18 @@ var FieldsEditor = (function() {
             (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
             []
           if (isEnabled_(currJson, tableType)) {
-            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+            AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
           }
         })
       })
     }
   }
 
-  /** Used to share a table-uuid with other components */
-  function getFilterId(index) {
-    return "field_filter_" + index
-  }
-
   return {
     buildHtmlStr: buildHtmlStr,
     populate: populate,
     onSelect: onSelect,
-    register: register,
-
-    getFilterId: getFilterId
+    register: register
   }
 
 }())

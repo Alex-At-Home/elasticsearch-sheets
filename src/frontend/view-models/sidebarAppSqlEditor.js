@@ -117,7 +117,7 @@ var SqlEditor = (function(){
 
     $(`#index_sql_${index}`)
       .on("focusout", function(e) {
-        AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
+        AutocompletionManager.registerIndexPattern(`index_sql_${index}`, TableManager.getTableId(index))
       })
       .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
       .focus(function () {
@@ -127,7 +127,7 @@ var SqlEditor = (function(){
       })
 
     //(also initialize this on build)
-    AutocompletionManager.registerIndexPattern(`index_sql_${index}`, FieldsEditor.getFilterId(index))
+    AutocompletionManager.registerIndexPattern(`index_sql_${index}`, TableManager.getTableId(index))
 
     //(ensures all the elements are redrawn as we change the display settings)
     $(`#accordion_edit_sql_${index}`).on('shown.bs.collapse', function () {

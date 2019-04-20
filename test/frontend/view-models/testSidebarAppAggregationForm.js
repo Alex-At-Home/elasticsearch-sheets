@@ -19,12 +19,12 @@ var TestSidebarAppAggregationForm = (function(){
 
       var formElements = $(`#${testRoot} .aggregation_form_element`)
       assert.equal(formElements.length, 4, "Added aggregation forms")
-      var expectedMr = { agg_type: "__map_reduce__" }
+      var expectedMr = { name: "FIELD3", agg_type: "__map_reduce__" }
       var expectedJsonStr = JSON.stringify({
         aggregation_table: {
-          buckets: [ {} ],
-          metrics: [ {}, expectedMr ],
-          pipelines: [ {} ]
+          buckets: [ { name: "FIELD1" } ],
+          metrics: [ { name: "FIELD2" }, expectedMr ],
+          pipelines: [ { name: "FIELD4" } ]
         }
       }, null, 3)
       //(because no JSON => is new element so gets added to array)
