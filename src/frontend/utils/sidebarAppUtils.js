@@ -114,6 +114,8 @@ var Util = (function(){
             if (!updateDisplay) tempDisableJsonChange_ = true  //(avoids eg SQL -> raw JSON -> SQL circle)
             try {
               editor.session.setValue(newJsonStr)
+              //(updates change for auto-complete purposes)
+              AutocompletionManager.registerTableConfig(editorId, jsonBody)
               var saveTimer = saveTimers_[editorId]
               if (saveTimer) {
                 clearTimeout(saveTimer)

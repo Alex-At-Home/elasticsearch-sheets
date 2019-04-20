@@ -190,8 +190,99 @@ var TestAutocompletionManager = (function() {
         done()
       })
     })
+  })
 
-    //
+  /** Add new aggregation forms to an empty list */
+  QUnit.test(`[${testSuiteRoot}] test UDF param auto-complete`, function(assert) {
+    var didGetCalled = 0
+    AutocompletionManager.userDefinedMapReduceParamsCompleter("empty")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        assert.deepEqual(wordList, [], "Param list starts empty")
+      })
+
+    var testConfig = {
+      aggregation_table: {
+        map_reduce: {
+          params: { test_param: true }
+        }
+      }
+    }
+    AutocompletionManager.registerTableConfig("test_param_lookup", testConfig)
+    AutocompletionManager.userDefinedMapReduceParamsCompleter("test_param_lookup")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        var expectedParamList = [
+          { caption: "params.test_param", value: "params.test_param", meta: "user-defined parameter" }
+        ]
+        assert.deepEqual(wordList, expectedParamList, "Param list can be filled")
+      })
+    AutocompletionManager.clearTableConfigs()
+    AutocompletionManager.registerTableConfig("other_lookup", testConfig)
+    AutocompletionManager.userDefinedMapReduceParamsCompleter("test_param_lookup")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        assert.deepEqual(wordList, [], "Param list can be cleared")
+      })
+    testConfig.aggregation_table.enabled = false
+    AutocompletionManager.registerTableConfig("test_param_lookup", testConfig)
+    AutocompletionManager.userDefinedMapReduceParamsCompleter("test_param_lookup")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        assert.deepEqual(wordList, [], "Param list ignores disabled")
+      })
+    assert.equal(didGetCalled, 4, "completion callback was called")
+  })
+
+  /** Add new aggregation forms to an empty list */
+  QUnit.test(`[${testSuiteRoot}] test bucket output auto-complete`, function(assert) {
+    var didGetCalled = 0
+
+    AutocompletionManager.aggregationOutputCompleter("empty")
+      .getCompletions(null, null, null, null, function(unused, wordList) {
+        didGetCalled++
+        assert.deepEqual(wordList, [], "Agg output list starts empty")
+      })
+
+      var testConfig = {
+        aggregation_table: {
+          enabled: true,
+          buckets: [ { name: "bucket" } ],
+          metrics: [ { name: "metric" } ],
+          pipelines: [ { name: "pipeline" } ]
+        }
+      }
+      AutocompletionManager.registerTableConfig("test_agg_lookup", testConfig)
+      var list = [
+        null,
+        [ "buckets" ],
+        [ "metrics" ],
+        [ "pipelines" ]
+      ]
+      list.forEach(function(filter) {
+        var expected = [
+          { caption: "bucket", value: "bucket", meta: `aggregation output (buckets)` },
+          { caption: "metric", value: "metric", meta: `aggregation output (metrics)` },
+          { caption: "pipeline", value: "pipeline", meta: `aggregation output (pipelines)` },
+        ]
+        expected = expected.filter(function(retVal) {
+          return !filter || (retVal.meta.indexOf(filter[0]) >= 0)
+        })
+        AutocompletionManager.aggregationOutputCompleter("test_agg_lookup", filter)
+        .getCompletions(null, null, null, null, function(unused, wordList) {
+          didGetCalled++
+          assert.deepEqual(wordList, expected, `Agg output + filter matches (${filter})`)
+        })
+      })
+      //TODO
+      AutocompletionManager.clearTableConfigs()
+      AutocompletionManager.aggregationOutputCompleter("test_agg_lookup")
+        .getCompletions(null, null, null, null, function(unused, wordList) {
+          didGetCalled++
+          assert.deepEqual(wordList, [], "Agg output list can be cleared")
+        })
+
+    assert.equal(didGetCalled, 6, "completion callback was called")
   })
 
 }())

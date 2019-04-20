@@ -150,7 +150,7 @@ var TableForm = (function() {
       }).join("\n")
     }
     <div class="tab-pane form-group" id="tabs_json_${index}">
-    <div id="editor_${index}"></div>
+    <div id="${TableManager.getTableId(index)}"></div>
     </div>
     </div>
     </div>
@@ -161,17 +161,20 @@ var TableForm = (function() {
 
       // Build raw JSON editor
 
-      var globalEditor = ace.edit(`editor_${index}`)
+      var globalEditor = ace.edit(TableManager.getTableId(index))
       globalEditor.session.setMode("ace/mode/json")
       globalEditor.session.setTabSize(3)
       globalEditor.session.setUseWrapMode(true)
       globalEditor.session.setValue(JSON.stringify(json, null, 3))
 
+      // Registers the current config for auto-complete purposes
+      AutocompletionManager.registerTableConfig(TableManager.getTableId(index), json)
+
       // Store the current and original name as part of the element metadata
       var originalName = isFirstElement ? defaultKey : name
-      $(`#editor_${index}`).data("original_es_table_name", originalName)
+      $(`#${TableManager.getTableId(index)}`).data("original_es_table_name", originalName)
       var currentName = tableName
-      $(`#editor_${index}`).data("current_es_table_name", currentName)
+      $(`#${TableManager.getTableId(index)}`).data("current_es_table_name", currentName)
       //(retrived from handler by eg $(this).data("original_es_table_name"), current_es_table_name
 
       // Add table selection handler
@@ -181,7 +184,7 @@ var TableForm = (function() {
         $(`#${tab}`).addClass('active')
 
         if (tab == `tabs_json_${index}`) {
-          ace.edit(`editor_${index}`).resize()
+          ace.edit(`${TableManager.getTableId(index)}`).resize()
         } else { //(group all the "non raw" editors together)
 
           // (If first element, enable the extra options)
@@ -289,7 +292,7 @@ var TableForm = (function() {
         // Ensure the current name is attached to the editor metadata
         // hence is incorporated into stash
         $(`#name_${index}`).on('focusout', function(){
-          var editorDiv = $(`#editor_${index}`)
+          var editorDiv = $(`#${TableManager.getTableId(index)}`)
           var oldName = editorDiv.data("current_es_table_name")
           var newName = $(`#name_${index}`).val()
           if (oldName != newName) {
@@ -321,7 +324,7 @@ var TableForm = (function() {
           $(`#cancel_${index}`).click(function(){
             $(`#name_${index}`).val("")
             $(`#type_${index}`).val(`tabs_unknown_${index}`).change()
-            $(`#editor_${index}`).data("current_es_table_name", "")
+            $(`#${TableManager.getTableId(index)}`).data("current_es_table_name", "")
             $(`#dropdown_${index}`).attr('disabled', true)
             Util.updateRawJsonNow(globalEditor, function(currJson) {
               return savedJson

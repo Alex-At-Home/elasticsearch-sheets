@@ -270,6 +270,7 @@ var TableListManager = (function() {
     // Rebuild state
     var obj = {}
     State_.copyThenReset(obj)
+    AutocompletionManager.clearTableConfigs()
     // Rebuild table
     $("#accordion").empty()
     selectedTable = tableToReselect || ""

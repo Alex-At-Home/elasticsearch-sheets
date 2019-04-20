@@ -124,7 +124,7 @@ var DataEditor = (function(){
 
     $(`#index_data_${index}`)
       .on("focusout", function(e) {
-        AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
+        AutocompletionManager.registerIndexPattern(`index_data_${index}`, TableManager.getTableId(index))
       })
       .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
       .focus(function () {
@@ -133,7 +133,7 @@ var DataEditor = (function(){
         }
       })
     //(also initialize this on build)
-    AutocompletionManager.registerIndexPattern(`index_data_${index}`, FieldsEditor.getFilterId(index))
+    AutocompletionManager.registerIndexPattern(`index_data_${index}`, TableManager.getTableId(index))
 
     //(ensures all the elements are redrawn as we change the display settings)
     $(`#accordion_query_data_${index}`).on('shown.bs.collapse', function () {

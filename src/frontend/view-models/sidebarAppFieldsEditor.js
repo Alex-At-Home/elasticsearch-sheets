@@ -82,11 +82,11 @@ var FieldsEditor = (function() {
       currAutoFilterEditor.session.setValue(autoFieldFilters.join("\n"))
 
       if (isEnabled) {
-        AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+        AutocompletionManager.registerFilterList(TableManager.getTableId(index), autoFieldFilters)
       }
     } else if (supportsAutocomplete_(tableType)) {
       if (isEnabled) {
-        AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+        AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
       }
     }
 
@@ -128,17 +128,23 @@ var FieldsEditor = (function() {
     currFilterEditor.session.setTabSize(3)
     currFilterEditor.session.setUseWrapMode(true)
     currFilterEditor.session.setMode("ace/mode/ini")
-    if (autocompleteAndFilterMerged_(tableType)) {
+    if (supportsAutocomplete_(tableType)) {
       currFilterEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
           enableLiveAutocompletion: true
       })
-      currFilterEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
-      ]
-      if ('data' == tableType) {
-        currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+      if (autocompleteAndFilterMerged_(tableType)) {
+        currFilterEditor.completers = [
+          AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "all_raw"),
+        ]
+        if ('data' == tableType) {
+          currFilterEditor.completers.push(AutocompletionManager.filterFieldGroupCompleter)
+        }
+      } else if ('agg' == tableType) {
+        currFilterEditor.completers = [
+          AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index))
+        ]
       }
     }
 
@@ -147,15 +153,21 @@ var FieldsEditor = (function() {
     currAliasEditor.session.setTabSize(3)
     currAliasEditor.session.setUseWrapMode(true)
     currAliasEditor.session.setMode("ace/mode/ini")
-    if (autocompleteAndFilterMerged_(tableType)) {
+    if (supportsAutocomplete_(tableType)) {
       currAliasEditor.setOptions({
           enableBasicAutocompletion: true,
           enableSnippets: true,
           enableLiveAutocompletion: true
       })
-      currAliasEditor.completers = [
-        AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
-      ]
+      if (autocompleteAndFilterMerged_(tableType)) {
+        currAliasEditor.completers = [
+          AutocompletionManager.dataFieldCompleter(`index_${tableType}_${index}`, "raw"),
+        ]
+      } else if ('agg' == tableType) {
+        currAliasEditor.completers = [
+          AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index))
+        ]
+      }
     }
 
     var separateAutocompleteForm =
@@ -191,7 +203,7 @@ var FieldsEditor = (function() {
         headers.field_filters = fieldFilters
         if (autocompleteAndFilterMerged_(tableType)) {
           if (isEnabled_(currJson, tableType)) {
-            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+            AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
           }
         }
       })
@@ -212,7 +224,7 @@ var FieldsEditor = (function() {
           var autoFieldFilters = currAutoText.split("\n")
           headers.autocomplete_filters = autoFieldFilters
           if (isEnabled_(currJson, tableType)) {
-           AutocompletionManager.registerFilterList(getFilterId(index), autoFieldFilters)
+           AutocompletionManager.registerFilterList(TableManager.getTableId(index), autoFieldFilters)
          }
         })
       })
@@ -228,25 +240,18 @@ var FieldsEditor = (function() {
             (Util.getJson(currJson, [ "common", "headers", "field_filters" ]) || []) :
             []
           if (isEnabled_(currJson, tableType)) {
-            AutocompletionManager.registerFilterList(getFilterId(index), fieldFilters)
+            AutocompletionManager.registerFilterList(TableManager.getTableId(index), fieldFilters)
           }
         })
       })
     }
   }
 
-  /** Used to share a table-uuid with other components */
-  function getFilterId(index) {
-    return "field_filter_" + index
-  }
-
   return {
     buildHtmlStr: buildHtmlStr,
     populate: populate,
     onSelect: onSelect,
-    register: register,
-
-    getFilterId: getFilterId
+    register: register
   }
 
 }())

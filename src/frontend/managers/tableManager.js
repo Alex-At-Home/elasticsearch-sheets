@@ -84,6 +84,11 @@ var TableManager = (function() {
      return (null != name) && ("" != name) && (null == name.match(/["'&<>]/))
   }
 
+  /** Used to share a table-uuid with other components */
+  function getTableId(index) {
+    return "editor_" + index
+  }
+
 
   ////////////////////////////////////////////////////////
 
@@ -97,6 +102,7 @@ var TableManager = (function() {
     onUpdateTable: onUpdateTable,
     onUpdateTempName: onUpdateTempName,
 
-    validateName: validateName
+    validateName: validateName,
+    getTableId: getTableId
   }
 }())

@@ -304,7 +304,8 @@ var AggregationEditor = (function(){
           })
           currMrEditor.completers = [
             AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "painless"),
-            AutocompletionManager.painlessCompleter(FieldsEditor.getFilterId())
+            AutocompletionManager.painlessCompleter(TableManager.getTableId(index)),
+            AutocompletionManager.userDefinedMapReduceParamsCompleter(TableManager.getTableId(index))
           ]
           break
       }
@@ -324,7 +325,7 @@ var AggregationEditor = (function(){
 
     $(`#index_agg_${index}`)
       .on("focusout", function(e) {
-        AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
+        AutocompletionManager.registerIndexPattern(`index_agg_${index}`, TableManager.getTableId(index))
       })
       .autocomplete(AutocompletionManager.getIndexCompleter(onIndexChange))
       .focus(function () {
@@ -334,7 +335,7 @@ var AggregationEditor = (function(){
       })
 
     //(also initialize this on build)
-    AutocompletionManager.registerIndexPattern(`index_agg_${index}`, FieldsEditor.getFilterId(index))
+    AutocompletionManager.registerIndexPattern(`index_agg_${index}`, TableManager.getTableId(index))
 
     $(`#add_bucket_agg_${index}`).click(function(){
       AggregationForm.build(index, 'bucket', globalEditor, `buckets_agg_${index}`)

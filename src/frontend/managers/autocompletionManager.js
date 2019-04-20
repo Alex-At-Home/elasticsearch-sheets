@@ -195,7 +195,7 @@ var AutocompletionManager = (function() {
   var allPainless_ = painlessApi_.concat(painlessContext_).concat(painlessKeywords_)
 
   /** Language completer for painless */
-  var painlessCompleter = function(editorId) { return {
+  var painlessCompleter = function(tableId) { return {
     getCompletions: function(editor, session, pos, prefix, callback) {
       callback(null, allPainless_)
     }
@@ -211,16 +211,16 @@ var AutocompletionManager = (function() {
   var indexPatternToFields_ = {}
   var indexIdToFields_ = {}
   var fieldFilters_ = {}
-  var editorIdToIndexId_ = {}
+  var tableIdToIndexId_ = {}
 
   //TODO: tidy up resources when possible
 
   /** Internal util to apply the filter to the set of fields */
-  function setFilteredFields_(indexPatternId, unfilteredFields, editorId) {
+  function setFilteredFields_(indexPatternId, unfilteredFields, tableId) {
     var filteredRetVal = {}
     Object.keys(unfilteredFields).forEach(function(key) {
       filteredRetVal[key] = unfilteredFields[key].filter(function(el) {
-        return isFieldWanted_(el.filter_info, fieldFilters_[editorId] || [])
+        return isFieldWanted_(el.filter_info, fieldFilters_[tableId] || [])
       })
       filteredRetVal["all_" + key] = [].concat(unfilteredFields[key])
     })
@@ -228,9 +228,9 @@ var AutocompletionManager = (function() {
   }
 
   /** Register a list of filters against the auto-completers */
-  function registerFilterList(editorId, fieldFilters) {
-    fieldFilters_[editorId] = buildFilterFieldRegex_(fieldFilters)
-    var indexIdSet = editorIdToIndexId_[editorId] || {}
+  function registerFilterList(tableId, fieldFilters) {
+    fieldFilters_[tableId] = buildFilterFieldRegex_(fieldFilters)
+    var indexIdSet = tableIdToIndexId_[tableId] || {}
     // Re-apply filters
 
     var indexPatternsDoneSet = { "": true }
@@ -239,17 +239,17 @@ var AutocompletionManager = (function() {
       if (!indexPatternsDoneSet.hasOwnProperty(indexPattern)) {
         indexPatternsDoneSet[indexPattern] = true
         var unfilteredFields = indexPatternToFields_[indexPattern] || {}
-        setFilteredFields_(indexPatternId, unfilteredFields, editorId)
+        setFilteredFields_(indexPatternId, unfilteredFields, tableId)
       }
     })
   }
 
   /** Any time the index pattern might have changed, refill it with data */
-  function registerIndexPattern(indexPatternId, editorId) {
+  function registerIndexPattern(indexPatternId, tableId) {
     //(link the index pattern id and the editor id)
-    var indexIdSet = editorIdToIndexId_[editorId] || {}
+    var indexIdSet = tableIdToIndexId_[tableId] || {}
     indexIdSet[indexPatternId] = true
-    editorIdToIndexId_[editorId] = indexIdSet
+    tableIdToIndexId_[tableId] = indexIdSet
 
     var prevIndexPatternVal =
       idToIndexPatternLookup_.hasOwnProperty(indexPatternId) ?
@@ -281,7 +281,7 @@ var AutocompletionManager = (function() {
             }
           }))
           indexPatternToFields_[currIndexPatternVal] = retVal
-          setFilteredFields_(indexPatternId, retVal, editorId)
+          setFilteredFields_(indexPatternId, retVal, tableId)
         }
       )
     }
@@ -295,8 +295,6 @@ var AutocompletionManager = (function() {
       callback(null,  wordList)
     }
   }}
-
-  //TODO index pattern completer?
 
   var commonDocFieldFilters_ = [
     "$$beats_fields",
@@ -358,6 +356,76 @@ var AutocompletionManager = (function() {
       }
     }
   }
+
+  // 6] Table config params
+
+  /** List of aggregations (bucket/metric) vs table index */
+  var aggregationsMap_ = {}
+
+  /** List of map/reduce parameters vs table index */
+  var mapReduceParamMap_ = {}
+
+  /** Handles table config changing */
+  function registerTableConfig(editorId, tableConfigJson) {
+    var activePath = [ "aggregation_table", "data_table" ].filter(function(path) {
+      var config = tableConfigJson[path] || { enabled: false }
+      return config.hasOwnProperty("enabled") ? config.enabled : true
+    })
+    if (activePath.length > 0) {
+      var activePath = activePath[0] //(don't need to support cases where >1 is enabled)
+      if ("aggregation_table" == activePath) {
+        // MR params
+        var aggConfig = tableConfigJson[activePath] //(exists by construction)
+        var params = Util.getJson(aggConfig, [ "map_reduce", "params"]) || {}
+        mapReduceParamMap_[editorId] = Object.keys(params).map(function(param) {
+          var fullParam = "params." + param
+          return { caption: fullParam, value: fullParam, meta: "user-defined parameter" }
+        })
+
+        // Buckets/Metrics
+        aggregationsMap_[editorId] = {}
+        var aggTypes = [ "buckets", "metrics", "pipelines" ]
+        aggTypes.forEach(function(aggType) {
+          var aggs = aggConfig[aggType] || []
+          aggregationsMap_[editorId][aggType] = aggs.map(function(agg) {
+            return { caption: agg.name, value: agg.name, meta: `aggregation output (${aggType})` }
+          })
+        })
+      }
+    } else {
+      aggregationsMap_[editorId] = {}
+      mapReduceParamMap_[editorId] = []
+    }
+  }
+
+  /** Handles the table being rebuilt (which changes all the indices) */
+  function clearTableConfigs() {
+    aggregationsMap_ = {}
+    mapReduceParamMap_ = {}
+  }
+
+  /** ACE code editor completion handler for MR parameters */
+  function userDefinedMapReduceParamsCompleter(editorId) { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      callback(null,  mapReduceParamMap_[editorId] || [])
+    }
+  }}
+
+  /** ACE code editor completion handler for aggregation outputs
+   * aggTypeFilter should be a sub-array of [ "buckets", "metrics", "pipelines" ]
+   * (or null to return all 3)
+  */
+  function aggregationOutputCompleter(editorId, aggTypeFilter)  { return {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+      var retArray = []
+      var aggregations = aggregationsMap_[editorId] || {}
+      if (!aggTypeFilter) aggTypeFilter = Object.keys(aggregations)
+      aggTypeFilter.forEach(function(aggType) {
+        retArray = retArray.concat(aggregations[aggType] || [])
+      })
+      callback(null,  retArray)
+    }
+  }}
 
   ////////////////////////////////////////////////////
 
@@ -442,6 +510,11 @@ var AutocompletionManager = (function() {
     filterFieldGroupCompleter: filterFieldGroupCompleter,
 
     getIndexCompleter: getIndexCompleter,
+
+    registerTableConfig: registerTableConfig,
+    clearTableConfigs: clearTableConfigs,
+    userDefinedMapReduceParamsCompleter: userDefinedMapReduceParamsCompleter,
+    aggregationOutputCompleter: aggregationOutputCompleter,
 
     TESTONLY: {
       isFieldWanted_: isFieldWanted_,
