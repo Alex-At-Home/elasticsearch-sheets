@@ -315,9 +315,9 @@ var AggregationForm = (function(){
                 break
               }
             }
-            //TODO: update all my dependents
-
             var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            // Update dependent names:
+            getAggFormNameParents_(currJson, currJsonForm.name, thisValue)
             currJsonForm.name = thisValue
           })
         }
@@ -344,6 +344,10 @@ var AggregationForm = (function(){
       var currLocationVal = $(`#location_${elementIdSuffix}`).val()
       AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index), [ "buckets" ])
         .getCompletions(null, null, null, null, function(unused, bucketList) {
+          var nameMap = { "automatic": true, "disabled": true, "__root__": true }
+          bucketList.forEach(function(bucketMeta) {
+            nameMap[bucketMeta.value] = true
+          })
           $(`#location_${elementIdSuffix}`).empty()
           var defaultElements = [
             `<option value="automatic">Automatic</option>`,
@@ -356,7 +360,15 @@ var AggregationForm = (function(){
               return `<option value="${name}">Bucket: ${name}</option>`
             }))
           )
-          $(`#location_${elementIdSuffix}`).val(currLocationVal).change()
+          if (!nameMap.hasOwnProperty(currLocationVal)) {
+            // my name must have been changed, figure out what it now is:
+            var jsonStr = globalEditor.session.getValue()
+            var currJson = JSON.parse(jsonStr)
+            var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            $(`#location_${elementIdSuffix}`).val(currJsonForm.location || "automatic").change()
+          } else {
+            $(`#location_${elementIdSuffix}`).val(currLocationVal).change()
+          }
         })
     })
   })
@@ -399,15 +411,20 @@ function getCurrAggFormJsonIndex_(formDiv, parentContainerId) {
   var index = $(`#${parentContainerId} .aggregation_form_element`).index(formDiv)
   return index
 }
-/** Get a list of all the parents and their children */
-function getAggFormNameParents_(parentJson) {
+/** Get a list of all the parents and their children
+* + mutate names if oldName/newName specified
+*/
+function getAggFormNameParents_(parentJson, oldName, newName) {
   var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
   var retVal = {}
   fieldList.forEach(function(aggType) {
     var path = [ "aggregation_table", aggType ]
-    var pathStr = path.toString()
     var jsonArray = Util.getJson(parentJson, path) || []
     jsonArray.forEach(function(json) {
+      // If old and new names specified, then mutate names
+      if (oldName && (oldName == json.location)) {
+        json.location = newName
+      }
       var location = json.location || "automatic"
       var currArray = retVal[location] || []
       retVal[location] = currArray
