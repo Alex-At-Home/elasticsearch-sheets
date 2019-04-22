@@ -2,6 +2,10 @@
  * Code.gs - The interface between the Server App and the Spreadsheet UI
  */
 
+/**
+ * @OnlyCurrentDoc
+ */
+
 // 1] Interface with main UI
 
 /** Allows the UI to launch a full-screen-aligned YES/NO prompt, returns true iff YES */
