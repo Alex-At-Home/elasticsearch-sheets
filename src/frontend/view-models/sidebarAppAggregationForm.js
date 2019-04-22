@@ -122,7 +122,7 @@ var AggregationForm = (function(){
     <div class="input-group-addon for-shorter-text">
     <span class="input-group-text">Fields</span>
     </div>
-    <input type="text" class="form-control" placeholder="[+-]glob (** crosses .s) or /regex/" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
+    <input type="text" class="form-control" placeholder="[+-]glob or /regex/" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
     </div>
 
     <div class="input-group">
