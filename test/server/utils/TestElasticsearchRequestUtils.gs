@@ -30,10 +30,13 @@ var TestElasticsearchRequestUtils_ = (function() {
 
            { "name": "n1", "agg_type": "t1", "config": { "ck1": "cv1" }, "location": "automatic" },
            { "name": "n2", "agg_type": "t2", "location": "n3" },
-           { "name": "n3", "agg_type": "t3", "config": { "ck3": "cv3" } }
+           { "name": "n3", "agg_type": "t3", "config": { "ck3": "cv3" } },
+           { "name": "in1", "agg_type": "it1", "config": { "ik1": "iv1" }, "field_filter": "-" }, //(won't be used in automatic location)
          ],
          "metrics": [
-           { "name": "n4", "agg_type": "t4", "config": { "ck4": "cv4" } },
+           { "name": "in2", "agg_type": "it2", "config": { "ik2": "iv2" }, "location": "in1" },
+
+           { "name": "n4", "agg_type": "t4", "config": { "ck4": "cv4" }, "location": "automatic" },
            { "name": "n5", "agg_type": "__map_reduce__", "config": { "ck5": "cv5" }, "location": "n2" },
 
            { "name": "testname", "agg_type": "testtype", "location": "disabled" } //(skip, disabled)
@@ -91,6 +94,18 @@ var TestElasticsearchRequestUtils_ = (function() {
                "aggregations": {
                   "n3": {
                      "aggregations": {
+                       "in1": {
+                         "aggregations": {
+                           "in2": {
+                              "it2": {
+                                 "ik2": "iv2"
+                              }
+                           },
+                         },
+                         "it1": {
+                           "ik1": "iv1"
+                         }
+                       },
                         "n2": {
                            "aggregations": {
                               "n5": {

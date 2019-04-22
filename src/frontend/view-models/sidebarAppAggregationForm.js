@@ -22,6 +22,15 @@ var AggregationForm = (function(){
     var helpHref = helpUrl ? `href='${helpUrl.url__}'` : ""
     var helpHidden = helpUrl ? "" : "hidden"
 
+    var maybeCurrentLocation = ""
+    if (json.location &&
+      ("automatic" != json.location) && ("disabled" != json.location) && ("__root__" != json.location)
+    )
+      {
+      maybeCurrentLocation =
+        `<option value="${json.location}" selected>Bucket: ${json.location}</option>`
+    }
+
     var aggregationTypeTemplate = isMapReduce ?
     `
     <div class="input-group">
@@ -113,17 +122,18 @@ var AggregationForm = (function(){
     <div class="input-group-addon for-shorter-text">
     <span class="input-group-text">Fields</span>
     </div>
-    <input type="text" class="form-control" placeholder="[+-]glob (** crosses .s) or /regex/" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
+    <input type="text" class="form-control" placeholder="[+-]glob or /regex/" value="${json.field_filter || ''}" id="field_filter_${elementIdSuffix}">
     </div>
 
     <div class="input-group">
     <div class="input-group-addon for-shorter-text">
     <span class="input-group-text">Location</span>
     </div>
-    <select class="form-control for-shorter-text" value="${json.location || 'automatic'}" id="location_${elementIdSuffix}">
+    <select class="form-control for-shorter-text" id="location_${elementIdSuffix}">
     <option value="automatic">Automatic</option>
-    <option value="disabled">Disabled</option>
-    <!-- TODO fill with other names -->
+    <option value="__root__" ${("__root__" == json.location) ? "selected" : ""}>Root</option>
+    <option value="disabled" ${("disabled" == json.location) ? "selected" : ""}>Disabled</option>
+    ${maybeCurrentLocation}
     </select>
     </div>
     </div>
@@ -170,7 +180,7 @@ var AggregationForm = (function(){
 
             var selected = newValue
             var newJson = Util.shallowCopy(AggregationInfo[aggregationType][selected])
-            var url = newJson['url__'] //TODO: URL isn't working properly
+            var url = newJson['url__']
             var defaultFieldFilter = newJson['default_filter__']
             if (url) { // set href for "? and show
             $(`#help_agg_type_${elementIdSuffix} a`).attr("href", url)
@@ -179,7 +189,6 @@ var AggregationForm = (function(){
             $(`#help_agg_type_${elementIdSuffix} a`).removeAttr("href")
             $(`#help_agg_type_${elementIdSuffix}`).addClass('hidden')
           }
-          //TODO: also insert/append default field filters
           delete newJson['url__']
           delete newJson['default_filter__']
           var newJsonStr = JSON.stringify(newJson, null, 3)
@@ -247,15 +256,25 @@ var AggregationForm = (function(){
       $(`#form_${elementIdSuffix}`).insertAfter(next)
     })
     $(`#delete_${elementIdSuffix}`).click(function(){
-      //TODO: update all my dependents
       Util.launchYesNoPrompt(
         "Delete metric", "Are you sure you want to delete this metric?",
         function() {
           Util.updateRawJsonNow(globalEditor, function(currJson) {
-            var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
-            deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
+            // Do we have any dependents? Fail out if so:
+            var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            var dependentMap = getAggFormNameParents_(currJson)
+            var dependents = dependentMap[currJsonForm.name] || []
+            if (dependents.length > 0) {
+              Util.showStatus(
+                "Cannot delete because of the following dependents (change their location/delete them first): " + dependents,
+                "Client error"
+              )
+            } else {
+              var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+              deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
+              $(`#form_${elementIdSuffix}`).remove()
+            }
           })
-          $(`#form_${elementIdSuffix}`).remove()
         }
       )
     })
@@ -296,9 +315,9 @@ var AggregationForm = (function(){
                 break
               }
             }
-            //TODO: update all my dependents
-
             var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            // Update dependent names:
+            getAggFormNameParents_(currJson, currJsonForm.name, thisValue)
             currJsonForm.name = thisValue
           })
         }
@@ -318,6 +337,39 @@ var AggregationForm = (function(){
         var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
         currJsonForm.location = thisValue
       })
+    })
+
+    // Whenever we change the state of the advanced, reload the
+    $(`#collapse1_${elementIdSuffix}`).on('shown.bs.collapse', function () {
+      var currLocationVal = $(`#location_${elementIdSuffix}`).val()
+      AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index), [ "buckets" ])
+        .getCompletions(null, null, null, null, function(unused, bucketList) {
+          var nameMap = { "automatic": true, "disabled": true, "__root__": true }
+          bucketList.forEach(function(bucketMeta) {
+            nameMap[bucketMeta.value] = true
+          })
+          $(`#location_${elementIdSuffix}`).empty()
+          var defaultElements = [
+            `<option value="automatic">Automatic</option>`,
+            `<option value="disabled">Disabled</option>`,
+            `<option value="__root__">Root</option>`
+          ]
+          $(`#location_${elementIdSuffix}`).append(
+            defaultElements.concat(bucketList.map(function(bucketMeta) {
+              var name = bucketMeta.value
+              return `<option value="${name}">Bucket: ${name}</option>`
+            }))
+          )
+          if (!nameMap.hasOwnProperty(currLocationVal)) {
+            // my name must have been changed, figure out what it now is:
+            var jsonStr = globalEditor.session.getValue()
+            var currJson = JSON.parse(jsonStr)
+            var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+            $(`#location_${elementIdSuffix}`).val(currJsonForm.location || "automatic").change()
+          } else {
+            $(`#location_${elementIdSuffix}`).val(currLocationVal).change()
+          }
+        })
     })
   })
 }
@@ -359,6 +411,29 @@ function getCurrAggFormJsonIndex_(formDiv, parentContainerId) {
   var index = $(`#${parentContainerId} .aggregation_form_element`).index(formDiv)
   return index
 }
+/** Get a list of all the parents and their children
+* + mutate names if oldName/newName specified
+*/
+function getAggFormNameParents_(parentJson, oldName, newName) {
+  var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
+  var retVal = {}
+  fieldList.forEach(function(aggType) {
+    var path = [ "aggregation_table", aggType ]
+    var jsonArray = Util.getJson(parentJson, path) || []
+    jsonArray.forEach(function(json) {
+      // If old and new names specified, then mutate names
+      if (oldName && (oldName == json.location)) {
+        json.location = newName
+      }
+      var location = json.location || "automatic"
+      var currArray = retVal[location] || []
+      retVal[location] = currArray
+      currArray.push(json.name)
+    })
+  })
+  return retVal
+}
+
 /** Get all the metric/bucket fieldnames */
 function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
   var fieldList = [ 'buckets', 'metrics', 'pipelines' ]
@@ -374,6 +449,10 @@ function getAggFormNameMap_(parentJson, indexExclude, typeExclude) {
       }
     })
   })
+  // don't allow autoamtic/diabled/__root__ to avoid complexity
+  retVal["automatic"] = true
+  retVal["disabled"] = true
+  retVal["__root__"] = true
   return retVal
 }
 
