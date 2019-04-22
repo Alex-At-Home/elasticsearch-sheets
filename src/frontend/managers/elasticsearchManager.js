@@ -66,7 +66,7 @@ var ElasticsearchManager = (function(){
         var esClient = ClientState_.getOrBuildClient(esMeta)
 
         //TODO write a non-SQL version
-        var endpoint = `_cat/indices?format=json`
+        var endpoint = `_cat/indices?format=json&s=index`
         esClient.transport.request({
            method: "GET",
            path: endpoint,
