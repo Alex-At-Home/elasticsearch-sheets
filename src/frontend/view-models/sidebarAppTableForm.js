@@ -68,7 +68,9 @@ var TableForm = (function() {
         tableToolsFullOptions =
         `
         <li><a class="dropdown-item" id="move_${index}">Show/Move/Resize Range</a></li>
+        <li role="separator" class="divider"></li>
         <li><a class="dropdown-item" id="query_${index}">Refresh Table</a></li>
+        <li role="separator" class="divider"></li>
         `
         disabledNameEditor = "readonly"
       }//(endif isFirstElement)
