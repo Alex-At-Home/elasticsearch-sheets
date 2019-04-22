@@ -63,7 +63,7 @@ var ElasticsearchResponseUtils_ = (function() {
         tableEls.filter(function(el) { return el.name }).forEach(function(tableEl) {
           var filterFieldsStr = (tableEl.field_filter || "").trim()
           tableColsMap[tableEl.name] = buildFilterFieldRegex_(filterFieldsStr.split(","))
-          if (('-' == filterFieldsStr) || ('-**' == filterFieldsStr)) {
+          if (('-' == filterFieldsStr) || ('-*' == filterFieldsStr)) {
             colsToIgnoreMap[tableEl.name] = true
           }
           if ('buckets' == tableType) {

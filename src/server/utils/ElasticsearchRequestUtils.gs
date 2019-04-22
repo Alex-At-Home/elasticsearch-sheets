@@ -361,8 +361,14 @@ var ElasticsearchRequestUtils_ = (function() {
               elementsByName[el.name] = configEl
               if (!el.location || ("automatic" == el.location)) {
                  aggregationsLocation[el.name] = configEl
+                 var filterFieldsStr = (el.field_filter || "").trim()
+                 var colIgnored = (('-' == filterFieldsStr) || ('-*' == filterFieldsStr))
                  if (nestEveryTime) {
-                    aggregationsLocation = getOrPutJsonField(configEl, 'aggregations')
+                    var newAggregationInsertPoint = getOrPutJsonField(configEl, 'aggregations')
+                      //(^just make sure it's present in case we explicitly specify a sub-agg)
+                    if (!colIgnored) {
+                      aggregationsLocation =newAggregationInsertPoint
+                    }
                  }
               } else { // (we'll stash it and sort it out later)
                  var storedEl = {}
