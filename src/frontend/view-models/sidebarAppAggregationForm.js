@@ -168,7 +168,8 @@ var AggregationForm = (function(){
       })
       formEditor.completers = [
         AutocompletionManager.dataFieldCompleter(`index_agg_${index}`, "raw"),
-        AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index))
+        AutocompletionManager.aggregationOutputCompleter(TableManager.getTableId(index)),
+        AutocompletionManager.scriptFieldsCompleter(TableManager.getTableId(index), "labels")
       ]
 
       // Set-up autocomplete on type:

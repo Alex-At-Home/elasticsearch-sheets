@@ -14,7 +14,8 @@ var PainlessInfo = {
   scriptFieldContext: [
     "params",
     "params._source",
-    "doc"
+    "doc",
+    "_value"
   ],
   keywords: [
     "if", "else", "while", "do", "for",
