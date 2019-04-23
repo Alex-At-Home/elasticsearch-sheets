@@ -8,7 +8,7 @@ var ManagementEditor = (function(){
     <div class="panel panel-default">
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_general_mgmt_${index}">General</a>
+    <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_general_mgmt_${index}">General layout</a>
     </h4>
     </div>
     <div id="accordion_general_mgmt_${index}" class="panel-collapse collapse out">
@@ -18,7 +18,7 @@ var ManagementEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_fields_mgmt_${index}">Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_mgmt_${index}" href="#accordion_fields_mgmt_${index}">Field formatting</a>
     </h4>
     </div>
     <div id="accordion_fields_mgmt_${index}" class="panel-collapse collapse out">

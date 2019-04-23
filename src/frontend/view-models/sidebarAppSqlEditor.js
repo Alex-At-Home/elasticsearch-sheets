@@ -8,7 +8,7 @@ var SqlEditor = (function(){
     <div class="panel panel-default">
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_general_sql_${index}">General</a>
+    <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_general_sql_${index}">General layout</a>
     </h4>
     </div>
 
@@ -19,7 +19,7 @@ var SqlEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_fields_sql_${index}">Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_sql_${index}" href="#accordion_fields_sql_${index}">Field formatting</a>
     </h4>
     </div>
     <div id="accordion_fields_sql_${index}" class="panel-collapse collapse out">

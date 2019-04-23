@@ -27,7 +27,7 @@ var AggregationEditor = (function(){
     <div class="panel panel-default">
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" ${groupCollapse} href="#accordion_general_agg_${index}">General</a>
+    <a data-toggle="collapse" ${groupCollapse} href="#accordion_general_agg_${index}">General layout</a>
     </h4>
     </div>
     <div id="accordion_general_agg_${index}" class="panel-collapse collapse out">
@@ -37,7 +37,7 @@ var AggregationEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_fields_agg_${index}">Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_agg_${index}" href="#accordion_fields_agg_${index}">Field formatting</a>
     </h4>
     </div>
     <div id="accordion_fields_agg_${index}" class="panel-collapse collapse out">
@@ -51,7 +51,7 @@ var AggregationEditor = (function(){
     <a data-toggle="collapse" ${groupCollapse} href="#accordion_query_agg_${index}">Query</a>
     </h4>
     </div>
-    <div id="accordion_query_agg_${index}" class="panel-collapse collapse out">
+    <div id="accordion_query_agg_${index}" class="panel-collapse collapse in">
     <div class="panel-body">
     <div class="input-group">
     <div class="input-group-addon for-shorter-text">
@@ -412,6 +412,7 @@ var AggregationEditor = (function(){
     // Build from template:
     if (0 == index) {
       $(`#dataexplorer_template_${index}`).click(function(){
+        Util.showStatus("Populated table config from [DataExplorerTemplate]", "Success!")
         Util.updateRawJsonNow(globalEditor, function(currJson) {
           return DataExplorerTemplate
         }, /*updateDisplay*/ true)

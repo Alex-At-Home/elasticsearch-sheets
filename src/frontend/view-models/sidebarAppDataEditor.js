@@ -11,7 +11,7 @@ var DataEditor = (function(){
 
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_general_data_${index}">General</a>
+    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_general_data_${index}">General layout</a>
     </h4>
     </div>
 
@@ -22,7 +22,7 @@ var DataEditor = (function(){
     </div>
     <div class="panel-heading">
     <h4 class="panel-title">
-    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_fields_data_${index}">Fields</a>
+    <a data-toggle="collapse" data-parent="#accordion_data_${index}" href="#accordion_fields_data_${index}">Field formatting</a>
     </h4>
     </div>
     <div id="accordion_fields_data_${index}" class="panel-collapse collapse out">
