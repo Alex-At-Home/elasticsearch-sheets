@@ -376,6 +376,7 @@ var TableForm = (function() {
             var jsonStr = globalEditor.session.getValue()
 
             var jsonBody = JSON.parse(jsonStr) //(throws if not valid JSON)
+            savedJson = jsonBody //(clear any saved copy)
             ElasticsearchManager.populateTable(name, jsonBody, "config_change", /*testMode*/false)
 
             TableManager.onUpdateTable(newName, name, jsonStr, index)
