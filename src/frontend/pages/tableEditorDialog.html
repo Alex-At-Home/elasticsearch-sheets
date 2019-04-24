@@ -143,6 +143,7 @@
 
       var configJson = JSON.parse(configJsonStr)
 
+      TableManager.setIsStandalone(true)
       TableForm.buildAccordionElement(0, tableName, configJson, /*isFirstElement=*/false, /*standaloneEdit=*/true)
 
       $("#stash_close").click(function(){

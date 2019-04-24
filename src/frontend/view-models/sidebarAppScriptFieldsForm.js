@@ -133,16 +133,23 @@ var ScriptFieldsForm = (function(){
         $(`#form_${elementIdSuffix}`).insertAfter(next)
       })
       $(`#delete_${elementIdSuffix}`).click(function(){
-        Util.launchYesNoPrompt(
-          "Delete script field", "Are you sure you want to delete this script field?",
-          function() {
-            Util.updateRawJsonNow(globalEditor, function(currJson) {
-              var subIndex = getCurrScriptFieldFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
-              deleteCurrScriptFieldFormJson_(subIndex, tableType, currJson)
-            })
-            $(`#form_${elementIdSuffix}`).remove()
+        var deleteScript = function() {
+          Util.updateRawJsonNow(globalEditor, function(currJson) {
+            var subIndex = getCurrScriptFieldFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+            deleteCurrScriptFieldFormJson_(subIndex, tableType, currJson)
+          })
+          $(`#form_${elementIdSuffix}`).remove()
+        }
+        if (TableManager.isStandalone()) {
+          if (confirm("Are you sure you want to delete this script field? Click OK to proceed")) {
+            deleteScript()
           }
-        )
+        } else {
+          Util.launchYesNoPrompt(
+            "Delete script field", "Are you sure you want to delete this script field?",
+            deleteScript
+          )
+        }
       })
 
       // Other change handlers:

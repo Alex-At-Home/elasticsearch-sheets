@@ -89,6 +89,17 @@ var TableManager = (function() {
     return "editor_" + index
   }
 
+  var isStandalone_ = false
+
+  /** Set from parent dialog to configure if this dialog is expanded standalone edtior or not */
+  function setIsStandalone(isStandalone) {
+    isStandalone_ = isStandalone
+  }
+
+  /** Clients can call this to determine if they are standalone */
+  function isStandalone() {
+    return isStandalone_
+  }
 
   ////////////////////////////////////////////////////////
 
@@ -103,6 +114,8 @@ var TableManager = (function() {
     onUpdateTempName: onUpdateTempName,
 
     validateName: validateName,
-    getTableId: getTableId
+    getTableId: getTableId,
+    setIsStandalone: setIsStandalone,
+    isStandalone: isStandalone
   }
 }())

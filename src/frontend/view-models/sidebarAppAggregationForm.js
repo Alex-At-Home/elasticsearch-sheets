@@ -257,27 +257,34 @@ var AggregationForm = (function(){
       $(`#form_${elementIdSuffix}`).insertAfter(next)
     })
     $(`#delete_${elementIdSuffix}`).click(function(){
-      Util.launchYesNoPrompt(
-        "Delete metric", "Are you sure you want to delete this metric?",
-        function() {
-          Util.updateRawJsonNow(globalEditor, function(currJson) {
-            // Do we have any dependents? Fail out if so:
-            var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
-            var dependentMap = getAggFormNameParents_(currJson)
-            var dependents = dependentMap[currJsonForm.name] || []
-            if (dependents.length > 0) {
-              Util.showStatus(
-                "Cannot delete because of the following dependents (change their location/delete them first): " + dependents,
-                "Client error"
-              )
-            } else {
-              var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
-              deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
-              $(`#form_${elementIdSuffix}`).remove()
-            }
-          })
+      var deleteMetric = function() {
+        Util.updateRawJsonNow(globalEditor, function(currJson) {
+          // Do we have any dependents? Fail out if so:
+          var currJsonForm = getCurrAggFormJson_($(`#form_${elementIdSuffix}`), parentContainerId, aggregationType, currJson)
+          var dependentMap = getAggFormNameParents_(currJson)
+          var dependents = dependentMap[currJsonForm.name] || []
+          if (dependents.length > 0) {
+            Util.showStatus(
+              "Cannot delete because of the following dependents (change their location/delete them first): " + dependents,
+              "Client error"
+            )
+          } else {
+            var subIndex = getCurrAggFormJsonIndex_($(`#form_${elementIdSuffix}`), parentContainerId)
+            deleteCurrAggFormJson_(subIndex, aggregationType, currJson)
+            $(`#form_${elementIdSuffix}`).remove()
+          }
+        })
+      }
+      if (TableManager.isStandalone()) {
+        if (confirm("Are you sure you want to delete this metric? Click OK to proceed")) {
+          deleteMetric()
         }
-      )
+      } else {
+        Util.launchYesNoPrompt(
+          "Delete metric", "Are you sure you want to delete this metric?",
+          deleteMetric
+        )
+      }
     })
 
     // Other change handlers:
