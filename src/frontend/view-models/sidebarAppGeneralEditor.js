@@ -132,7 +132,8 @@ var GeneralEditor = (function(){
     // Status
     var statusPos = Util.getJson(json, ["common", "status", "position"]) || "none"
     $(`#status_${tableType}_${index}`).val(statusPos)
-    var statusMerge = Util.getJson(json, ["common", "status", "merge"]) || true
+    var statusObj = Util.getJson(json, ["common", "status"]) || {}
+    var statusMerge = statusObj.hasOwnProperty("merge") ? statusObj.merge : false
     $(`#status_merge_${tableType}_${index}`).prop('checked', statusMerge)
 
     // Formatting
