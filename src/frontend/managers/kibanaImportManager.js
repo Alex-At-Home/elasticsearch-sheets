@@ -4,11 +4,11 @@
 
 var KibanaImportManager = (function() {
 
-  /** So can put logging back in again */
-  var debugMode_ = true
-
   /** Converts the Kibana specific URL JSON encoding into JSON */
   function urlObjToJson_(urlObjStr, state) {
+    /** So can put logging back in again */
+    var debugMode_ = false
+
     var newState = function() { return {
       currObj: null,
       currArray: null,
