@@ -4,6 +4,9 @@
 
 var KibanaImportManager = (function() {
 
+  /** So can put logging back in again */
+  var debugMode_ = true
+
   /** Converts the Kibana specific URL JSON encoding into JSON */
   function urlObjToJson_(urlObjStr, state) {
     var newState = function() { return {
@@ -13,41 +16,61 @@ var KibanaImportManager = (function() {
       recursionOver: false,
       maxIndex: 0
     }}
+    // Handles using ! as an escape and then URL decode
+    var decodeStr = function(str) {
+      return decodeURIComponent(
+        str.replace(/[!][!]/g, "%21").replace(/[!][']/g, "'")
+      )
+    }
+
     var setTokenValue = function(extractedVal, offset) {
       if (state.currObj && state.currField) {
-        state.currObj[currField] = extractedVal
+        state.currObj[state.currField] = extractedVal
         state.currField = null
-      } else if (currArray) {
+      } else if (state.currArray) {
         state.currArray.push(extractedVal)
       } else {
-        throw new "Unexpected value token at offset [" + offset + "] in [" + urlObjStr + "]"
+        var stateStr = JSON.stringify(state)
+        throw "Unexpected value token [" + extractedVal + "] at offset [" + offset +
+                "], state [" + stateStr + "] in [" + urlObjStr + "]"
       }
     }
     var eatNextToken = function(offset) {
       var str = urlObjStr
       var j = offset
+
+if (debugMode_) console.log(`state=${JSON.stringify(state)} index=${j}, token=${str[j]}`)
+
       if (',' == str[j]) {
         j++
       } else if (':' == str[j]) {
         j++
       } else if ('(' == str[j]) {
+if (debugMode_) console.log("into object")
+
         j++
         var subState = newState()
         subState.currObj = {}
         var subStr = urlObjStr.substring(j)
-        setTokenValue(urlObjToJson(subStr, subState), offset)
+        setTokenValue(urlObjToJson_(subStr, subState), offset)
+        j += subState.maxIndex
 
       } else if (')' == str[j]) {
+if (debugMode_) console.log("exit object/array")
+
         j++
         state.recursionOver = true
         state.maxIndex = j
 
       } else if (('!' == str[j]) && ('(' == str[j + 1])) {
+if (debugMode_) console.log("into array")
+
         j += 2
         var subState = newState()
         subState.currArray = []
         var subStr = urlObjStr.substring(j)
-        setTokenValue(urlObjToJson(subStr, subState), offset)
+        setTokenValue(urlObjToJson_(subStr, subState), offset)
+        j += subState.maxIndex
 
       } else if (('!' == str[j]) && ('n' == str[j + 1])) {
         j += 2
@@ -64,25 +87,43 @@ var KibanaImportManager = (function() {
       } else if (' ' == str[j]) { //space
         j++
       } else if ("'" == str[j]) { //field or value, definitely a string
-          j++
-          var subStr = urlObjStr.substring(j)
-          var closingIndex = subString.indexOf("'")
-          j += closingIndex
-          var theString = subStr.substring(0, closingIndex)
-          if (state.currField || state.currArray) {
-            setTokenValue(theString, offset)
+          var escapeMode = false
+          for (var jj = j + 1; jj < str.length; ++jj) { // Handle !! escaping
+            var snack = str[jj]
+            if ('!' == snack) {
+              escapeMode = !escapeMode
+            } else if ("'" == snack) {
+              if (!escapeMode) break
+            } else {
+              escapeMode = false
+            }
+          }
+          var theString = str.substring(j + 1, jj)
+          j = jj + 1
+          if (state.currField || state.currArray || false) {
+            setTokenValue(decodeStr(theString), offset)
           } else {
-            currField = theString
+            state.currField = decodeStr(theString)
           }
 
       } else { // field or value, might not be a string (if it's a field)
         var subStr = urlObjStr.substring(j)
-        //TODO pull out extractedValAsStr ... keep reading [a-zA-Z0-9_%]
+        var myRe = new RegExp("[^ !:,()']+")
+        var reArray = myRe.exec(subStr)
+        j += reArray.index + reArray[0].length
+        var extractedValAsStr = reArray[0].trim()
+
+if (debugMode_) console.log(`extracted [${extractedValAsStr}]: [${state.currField || state.currArray}] ... eaten [${reArray.index}] + [${extractedValAsStr.length}]`)
+
         if (state.currField || state.currArray) {
-          var extractedVal = extractedValAsStr // TODO might a number
-          setTokenValue(extractedVal, offset)
+          extractedValAsNum = Number.parseFloat(extractedValAsStr)
+          if (Number.isNaN(extractedValAsNum)) {
+            setTokenValue(decodeStr(extractedValAsStr), offset)
+          } else {
+            setTokenValue(extractedValAsNum, offset)
+          }
         } else {
-          currField = extractedValAsStr
+          state.currField = decodeStr(extractedValAsStr)
         }
       }
       return j
@@ -91,12 +132,22 @@ var KibanaImportManager = (function() {
     if (!state) {
       state = newState()
       state.currObj = {}
+      state.currField = "json"
     }
     var len = urlObjStr.length
     for (var i = 0; i < len; ) {
+      var old_i = i
       i = eatNextToken(i)
+
+if (debugMode_) console.log(`Eaten to [${i}] from [${old_i}] vs [${len}]: exit? [${state.recursionOver}]`)
+
+      if (i == old_i) {
+        var stateStr = JSON.stringify(state)
+        throw "Stuck in recursion at [" + i + "] in [" + urlObjStr + "], state=[" + stateStr + "]"
+      }
       if (state.recursionOver) {
-        return state.currObj || state.currArray
+if (debugMode_) console.log(`Completed obj/array: ${JSON.stringify(state.currObj || state.currArray)}`)
+          return state.currObj || state.currArray
       }
     }
     return state.currObj || state.currArray
