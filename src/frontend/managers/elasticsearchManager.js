@@ -284,8 +284,11 @@ var ElasticsearchManager = (function(){
         //(grab +1 so we know if there are more pages)
         pagination = "LIMIT " + rowsToPull
      }
+     var queryReplacer = function() {
+       return userQuery
+     }
      var fullSqlQuery = tableConfig.sql_table.query
-        .replace(/[$][$]query/g, userQuery)
+        .replace(/[$][$]query/g, queryReplacer)
         .replace("$$pagination", pagination)
         .replace(/[$][$]index/g, indices)
 
@@ -374,12 +377,7 @@ var ElasticsearchManager = (function(){
   /** Find/replace lookups */
   function incorporateLookupsAndScriptFields_(path, tableConfig, lookups, otherReplacements) {
     var tableConfigStr = JSON.stringify(tableConfig)
-    Object.entries(lookups).forEach(function(kv) {
-      var lookupStr = kv[0]
-      var lookupRegex = new RegExp(escapeRegExp_(lookupStr), "g")
-      var lookupJsonStr = JSON.stringify(kv[1])
-      tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
-    })
+    // Script fields first, since they may contain lookups:
     var scriptFields = Util.getJson(tableConfig, [ path, "script_fields" ]) || []
     scriptFields.forEach(function(scriptField) {
       var lookupStr = `"$$script_field(${scriptField.name})"`
@@ -389,11 +387,28 @@ var ElasticsearchManager = (function(){
         source: scriptField.script || "",
         params: scriptField.params || {}
       })
-      tableConfigStr = tableConfigStr.replace(lookupRegex, lookupJsonStr)
+      var replacer = function() {
+        return lookupJsonStr //(so don't need to worry about special chars in the replacement)
+      }
+      tableConfigStr = tableConfigStr.replace(lookupRegex, replacer)
     })
+    // Lookups:
+    Object.entries(lookups).forEach(function(kv) {
+      var lookupStr = kv[0]
+      var lookupRegex = new RegExp(escapeRegExp_(lookupStr), "g")
+      var lookupJsonStr = JSON.stringify(kv[1])
+      var replacer = function() {
+        return lookupJsonStr //(so don't need to worry about special chars in the replacement)
+      }
+      tableConfigStr = tableConfigStr.replace(lookupRegex, replacer)
+    })
+    // Other:
     if (otherReplacements) {
       Object.entries(otherReplacements).forEach(function(kv) {
-        tableConfigStr = tableConfigStr.replace(new RegExp(kv[0], "g"), kv[1])
+        var replacer = function() {
+          return kv[1] //(so don't need to worry about special chars in the replacement)
+        }
+        tableConfigStr = tableConfigStr.replace(new RegExp(kv[0], "g"), replacer)
       })
     }
     return JSON.parse(tableConfigStr)
