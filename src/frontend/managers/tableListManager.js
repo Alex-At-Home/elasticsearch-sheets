@@ -214,6 +214,7 @@ var TableListManager = (function() {
     var accordianNames = {}
     var accordianBodies = {}
     var accordianBodiesByName = {}
+    var accordianIndicesByName = {}
 
     // Methods:
     return {
@@ -227,9 +228,11 @@ var TableListManager = (function() {
 
       /** Updates an existing entry */
       updateEntryByName: function(name, newJson) {
-        var curr = accordianBodiesByName[name] || {}
-        if (curr.hasOwnProperty(name)) {
+        var index = accordianIndicesByName.hasOwnProperty(name) ?
+          accordianIndicesByName[name] : -1
+        if (index >= 0) {
           accordianBodiesByName[name] = newJson
+          accordianBodies[index] = newJson
         }
       },
 
@@ -240,6 +243,7 @@ var TableListManager = (function() {
         accordianNames[index] = name
         accordianBodies[index] = json
         accordianBodiesByName[name] = json
+        accordianIndicesByName[name] = index
       },
       /** Update state when an entry is deleted */
       removeEntry: function(index) {
@@ -247,6 +251,7 @@ var TableListManager = (function() {
         delete accordianNames[index]
         delete accordianBodies[index]
         delete accordianBodiesByName[name]
+        delete accordianIndicesByName[name]
       },
       /** Copies current state into an object and then resets the state */
       copyThenReset: function(mutableObj) {
@@ -260,6 +265,7 @@ var TableListManager = (function() {
         accordianNames = {}
         accordianBodies = {}
         accordianBodiesByName = {}
+        accordianIndicesByName = {}
       }
     }
   }())
