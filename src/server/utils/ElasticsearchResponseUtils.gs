@@ -319,7 +319,12 @@ var ElasticsearchResponseUtils_ = (function() {
   // 2] General response logic
 
   /** Generic row/col handler for ES responses - rows can be either [ { }. ... ] or [ []. ...], cols: [ { name: }, ... ] */
-  function handleRowColResponse(tableName, tableConfig, context, json, rows, fullCols, supportsSize, numHits) {
+  function handleRowColResponse(
+    tableName, tableConfig,
+    context,
+    json, rows, fullCols,
+    supportsSize, numHits, numHitsOperator
+  ) {
     var ss = SpreadsheetApp.getActive()
     var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
     var range = null
@@ -427,18 +432,24 @@ var ElasticsearchResponseUtils_ = (function() {
         }
 
         // Handle - more/less data than we can write?
+        var in7xHitsLimited = ("gte" == numHitsOperator)
         if (dataRowOffset < numDataRows) { // still have data left to write
-          var numDataRowsOrTotalHits = (null != numHits) ? numHits : numDataRows
+           var numDataRowsOrTotalHits = (null != numHits) ? numHits : numDataRows
            if (paginationSetup) { // fake pagination but we can use this to tell users if there is more data or not
               var pageInfoCell = range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
               if (supportsSize) {
                 var actualPages = Math.ceil(numDataRowsOrTotalHits/context.table_meta.data_size)
-                 pageInfoCell.setValue("Page (of " + actualPages + "):")
+                 if (in7xHitsLimited) {
+                   pageInfoCell.setValue("Page (of >= " + actualPages + "):")
+                 } else {
+                   pageInfoCell.setValue("Page (of " + actualPages + "):")
+                 }
               } else {
                  pageInfoCell.setValue("Page (of > " + context.table_meta.page + "):")
               }
            } else {
-              warnings.push("Table not deep enough for all rows, needs to be [" + numDataRowsOrTotalHits + "], is only [" + dataRowOffset + "]")
+              var numDataRowsOrTotalHitsStr = (in7xHitsLimited ? ">=" : "") + numDataRowsOrTotalHits
+              warnings.push("Table not deep enough for all rows, needs to be [" + numDataRowsOrTotalHitsStr + "], is only [" + dataRowOffset + "]")
            }
         } else {
           //(quick check that we didn't land on a special row>)
@@ -466,12 +477,15 @@ var ElasticsearchResponseUtils_ = (function() {
               Math.ceil(numHits/context.table_meta.data_size)
             if ((null == numHits) && (startRow < 0)) { //special case, no data at all
               page = "< " + page
+            } else if (in7xHitsLimited) {
+              page = ">= " + page
             }
             range.getCell(context.table_meta.page_info_offset.row, context.table_meta.page_info_offset.col - 1)
                 .setValue("Page (of " + page + "):")
           } else if ((null != numHits) && (dataRowOffset < numHits)) {
             // We have the exact hits so can tell
-            warnings.push("Table not deep enough for all rows, needs to be [" + numHits + "], is only [" + dataRowOffset + "]")
+            var numHitsStr = (in7xHitsLimited ? ">=" : "") + numHits
+            warnings.push("Table not deep enough for all rows, needs to be [" + numHitsStr + "], is only [" + dataRowOffset + "]")
           }
         }
 

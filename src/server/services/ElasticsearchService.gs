@@ -169,9 +169,19 @@ var ElasticsearchService_ = (function() {
   function handleDataResponse(tableName, tableConfig, context, json, queryJson) {
     var rowsCols = { rows: [], cols: [] }
     var numHits = 0
+    var numHitsOperator = "eq"
     try {
        if (null != json.response) {
           numHits =  TableRangeUtils_.getJson(json.response || {}, [ "hits", "total" ]) || 0
+
+          var isObject = function(possibleObj) {
+            return (possibleObj === Object(possibleObj)) && !Array.isArray(possibleObj)
+          }
+          if (isObject(numHits)) { // 7.x format { relation: "eq"/"gte", value: oldNumHits }
+            numHitsOperator = numHits.relation || "eq"
+            numHits = numHits.value || 0
+          }
+
           rowsCols = ElasticsearchResponseUtils_.buildRowColsFromDataResponse(
             tableName, tableConfig, context, json, queryJson
           )
@@ -183,7 +193,7 @@ var ElasticsearchService_ = (function() {
     }
     ElasticsearchResponseUtils_.handleRowColResponse(
       tableName, tableConfig, context, json, rowsCols.rows, rowsCols.cols, /*supportsSize*/true,
-      numHits
+      numHits, numHitsOperator
     )
   }
 
