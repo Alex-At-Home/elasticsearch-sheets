@@ -146,7 +146,7 @@ var ElasticsearchRequestUtils_ = (function() {
         // Status info
         var statusCells = activeRange.offset(statusRow - 1, statusStart, 1, statusEnd - statusStart)
         if (null != statusInfo) {
-            if (!testMode) statusCells.setValue(statusInfo)
+            if (!testMode) statusCells.getCell(1, 1).setValue(statusInfo)
         }
         retVal.status_offset = { row: statusRow, col: 2 }
 
