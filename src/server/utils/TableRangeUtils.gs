@@ -354,6 +354,40 @@
       return retVal
    }
 
+   /** For a given table, returns a list of ranges that the table monitors
+    *  and treats like control changes
+    */
+   function getExternalTableRanges(ss, tableConfig) {
+     var globalTriggers = TableRangeUtils_.getJson(tableConfig, [ "common", "global_triggers" ]) || []
+     var isGlobalQuery = "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "query", "source" ])
+     var globalQuery = TableRangeUtils_.getJson(tableConfig, [ "common", "query", "global", "range_name" ])
+     if (isGlobalQuery) {
+       globalTriggers = globalTriggers.concat([ globalQuery ])
+     }
+     return globalTriggers.map(function(rangeOrNotation) {
+       return getRangeFromName(ss, rangeOrNotation)
+     }).filter(function(range) {
+       return range != null
+     })
+   }
+
+   /** Returns the range from a range notation
+    * TODO: needs to be able to handle named ranges (see getJsonLookup)
+   */
+   function getRangeFromName(ss, rangeOrNotation) {
+     var isNotation =
+      rangeOrNotation.indexOf(":") >= 0 || /^[A-Z]+[0-9]+$/.exec(rangeOrNotation)
+     var isFullNotation = rangeOrNotation.indexOf("!") >= 0
+
+     return isNotation ?
+       (isFullNotation ?
+         ss.getRange(rangeOrNotation)
+         :
+         ss.getActiveSheet().getRange(rangeOrNotation)
+       )
+       : null //(see above: also support named ranges, cf getJsonLookup)
+   }
+
    ////////////////////////////////////////////////////////
 
    // 3] Internal utils
@@ -402,6 +436,8 @@
      formatDate: formatDate,
      fixSelectAllRanges: fixSelectAllRanges,
      doRangesIntersect: doRangesIntersect,
+     getExternalTableRanges: getExternalTableRanges,
+     getRangeFromName: getRangeFromName,
 
      TESTONLY: {
 

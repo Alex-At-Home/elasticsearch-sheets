@@ -105,6 +105,9 @@
             "local": {
                "position": "none"
             },
+            "global": {
+              "range_name": "TBD"
+            },
             "source": "local"
          },
          "pagination": {
@@ -126,6 +129,7 @@
       }}
 
       var defaultA1Notation = "A1:E10"
+      var externalQueryNotation = "H20:H20"
 
       TestService_.Utils.performTest(testResults, "no_special_rows_plus_check_es_meta", function() {
          var tableConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
@@ -212,7 +216,8 @@
         "query_status_pagination": { status: "top", merge: true, noteMode: 2 },
         "pagination_status": { status: "bottom", merge: true, noteMode: 3 },
         "pagination_status_test": { status: "bottom", merge: true, testMode: true, noteMode: 3 },
-        "query_status_pagination_nomerge": { status: "bottom", merge: false, noteMode: 4 }
+        "query_status_pagination_nomerge": { status: "bottom", merge: false, noteMode: 4 },
+        "global_query": { noteMode: 4 }
       }
 
       var testRunner = function(testName, testConfig) { TestService_.Utils.performTest(testResults, testName, function() {
@@ -223,7 +228,8 @@
 
          var testMode = testConfig.testMode
 
-         var includeQueryBar = testName.indexOf("query") >= 0
+         var globalQuery = testName.indexOf("global_query") >= 0
+         var includeQueryBar = !globalQuery && testName.indexOf("query") >= 0
          var includePagination = testName.indexOf("pagination") >= 0
          var includeStatus = testName.indexOf("status") >= 0
 
@@ -241,7 +247,10 @@
            default: return null
          }}())
          var expectedNote = (function() { switch(testConfig.noteMode) {
-           case 1: return testMode ? "" : "ES Table: use_named_range\n"
+//TODO: notes not supported by this test currently, they are explicitly disabled for unsaved tables
+//           case 1: return testMode ? "" : "ES Table: use_named_range\n"
+// (for the other cases we were just checking that it didn't overwrite them anyway, so can leave)
+           case 1: return ""
            case 2: return "ES Table: use_named_range\nPlus user notes"
            case 3: return testMode ? "ES Table: use_named_range\n" : ""
            case 4: return "User added note"
@@ -253,6 +262,12 @@
          var testCaseInfoArray = []
          var queryPosition = { col: 2 , row: 1 }
          tableConfig.common.formatting.include_note = includeNote
+         if (globalQuery) {
+           numTestCases *= Object.keys(queryTestCases).length
+           testCaseInfoArray.push(queryTestCases)
+           tableConfig.common.query.global.range_name = externalQueryNotation
+           tableConfig.common.query.source = "global"
+         }
          if (includeQueryBar) {
             expectedDataSize--
             numTestCases *= Object.keys(queryTestCases).length
@@ -295,6 +310,9 @@
          for (var testCaseKey in testCases) {
            var testCaseConfig = testCases[testCaseKey]
            range.clear()
+           if (globalQuery) {
+             testSheet.getRange(externalQueryNotation).setValue(testCaseConfig.query)
+           }
            if (includeQueryBar) {
               // query always set - default means "", so write to the right spot
               range.getCell(1, 1).setValue("Query:")
@@ -497,11 +515,11 @@
      var resetTables = function() {
        testSheet.getRange("B2").setValue("test status")
        testSheet.getRange("B5").setValue(2)
-       ManagementService_.updateTempSavedObject("testa", "testa", null)
+       ManagementService_.updateSavedObject("testa", TableRangeUtils_.shallowCopy(baseTableConfig))
        ManagementService_.setSavedObjectTrigger("testa", "")
        testSheet.getRange("G2").setValue("test status")
        testSheet.getRange("G5").setValue(2)
-       ManagementService_.updateTempSavedObject("testb", "testb", null)
+       ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(baseTableConfig))
        ManagementService_.setSavedObjectTrigger("testb", "")
      }
 
@@ -524,6 +542,12 @@
      var contentConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
      contentConfig.trigger = "content_change"
 
+     var triggerConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
+     triggerConfig.common.global_triggers = [ "B25:C25" ]
+     triggerConfig.common.query.source = "global"
+     triggerConfig.common.query.global.range_name = "A25"
+     triggerConfig.trigger = "control_change"
+
      // Now check triggers:
 
     // page of table 1
@@ -540,7 +564,7 @@
 
        //(Add a temp object with pagination turned off)
        resetTables()
-       ManagementService_.updateTempSavedObject("testa", "testa", noPagination)
+       ManagementService_.updateSavedObject("testa", TableRangeUtils_.shallowCopy(noPagination))
 
        var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
        TestService_.Utils.assertEquals(0, retVal, "retval (nopage)")
@@ -551,7 +575,7 @@
 
        // Nothing should happen if it's disabled
        resetTables()
-       ManagementService_.updateTempSavedObject("testa", "testa", disabledConfig)
+       ManagementService_.updateSavedObject("testa", TableRangeUtils_.shallowCopy(disabledConfig))
 
        var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
        TestService_.Utils.assertEquals(0, retVal, "retval (nopage)")
@@ -571,7 +595,7 @@
        tests.forEach(function(testConfig) {
          resetTables()
          if (testConfig.temp) {
-           ManagementService_.updateTempSavedObject("testb", "testb", noPagination)
+           ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(noPagination))
          }
          if (testConfig.formula) {
            testSheet.getRange("G5").setFormula("=A10")
@@ -595,7 +619,7 @@
        TestService_.Utils.performTest(testResults, "Content intersection vs [" + contentEnabled + "]", function() {
          resetTables()
          if (contentEnabled) {
-           ManagementService_.updateTempSavedObject("testb", "testb", contentConfig)
+           ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(contentConfig))
          }
          var changeEvent = { range: testSheet.getRange("A3:Z3") }
          var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
@@ -618,6 +642,36 @@
            )
          }
        })
+     })
+
+     TestService_.Utils.performTest(testResults, "Global trigger", function() {
+       // Global query trigger
+       resetTables()
+       ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(triggerConfig))
+       testSheet.getRange("G1").setValue("test status") //(no query bar)
+       var changeEvent = { range: testSheet.getRange("A22:A26") }
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(
+         1, retVal, "check handleContentUpdates return value (triggerConfig, test 1)"
+       )
+       var resultsB = getResults("testb", "F1:J5", "G1", "G5")
+       TestService_.Utils.assertEquals(
+         { p: 1, s: "AWAITING REFRESH", t: "control_change"}, resultsB[0], "tableB1=[" + resultsB[1] + "]"
+       )
+
+       // Other global triggers
+       resetTables()
+       ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(triggerConfig))
+       testSheet.getRange("G1").setValue("test status") //(no query bar)
+       var changeEvent = { range: testSheet.getRange("B22:B26") }
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(
+         1, retVal, "check handleContentUpdates return value (triggerConfig, test 2)"
+       )
+       var resultsB = getResults("testb", "F1:J5", "G1", "G5")
+       TestService_.Utils.assertEquals(
+         { p: 1, s: "AWAITING REFRESH", t: "control_change"}, resultsB[0], "tableB2=[" + resultsB[1] + "]"
+       )
      })
    }
 

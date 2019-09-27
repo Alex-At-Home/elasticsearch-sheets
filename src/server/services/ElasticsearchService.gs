@@ -287,6 +287,7 @@ var ElasticsearchService_ = (function() {
 
   /** Trigger for edit */
   function handleContentUpdates(event, triggerOverride) {
+    var ss = SpreadsheetApp.getActive()
     //(copy paste from ElasticsearchManager.isTriggerEnabled_)
     var isTriggerEnabled = function(tableConfig, trigger) {
       var tableTrigger = tableConfig.trigger || "control_change"
@@ -316,6 +317,8 @@ var ElasticsearchService_ = (function() {
       var tableConfig = matchingTables[matchingTableName]
       var activeRange = tableConfig.activeRange
       delete tableConfig.activeRange //(remove extra non-standard field)
+      delete tableConfig.temp //(this is a copy of the meta so doesn't do anything)
+        //TODO: ^ really we should use the last table config that was _tested_?
       tableConfig = tableConfig.temp ? tableConfig.temp : tableConfig //(use current version, not saved)
 
       // Logic to determine if a table edit hits the control cells (query/page)
@@ -335,6 +338,16 @@ var ElasticsearchService_ = (function() {
             )
             return TableRangeUtils_.doRangesIntersect(event.range, newRange)
           })
+
+        // Also handle any global triggers (including queries):
+        var globalTriggerRanges = TableRangeUtils_.getExternalTableRanges(ss, tableConfig)
+        modifiedOffsets = modifiedOffsets.concat(
+          globalTriggerRanges.filter(function(triggerRange) {
+            return TableRangeUtils_.doRangesIntersect(event.range, triggerRange)
+          }).map(function(rangeNotation) {
+            return "query_offset" //(so that will be treated like a control change)
+          })
+        )
 
         if (modifiedOffsets.length > 0) {
           if (modifiedOffsets.indexOf("query_offset") >= 0) { //query has changed...

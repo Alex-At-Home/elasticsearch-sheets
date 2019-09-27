@@ -195,7 +195,7 @@ var ElasticsearchResponseUtils_ = (function() {
   if (debugMode && debugModeSwallowException) debug.push("ERROR: [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], "); else
               throw new Error(
                     "By policy, only allowed a single chain of nested aggregations - [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], " +
-                    "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-**'"
+                    "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-*'"
               )
            } else if (!mutableState.bottom_path) {
               mutableState.bottom_path = arrayFieldChain

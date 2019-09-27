@@ -173,11 +173,18 @@ var TableService_ = (function(){
     var namedRangeMap = TableRangeUtils_.listTableRanges(ss, Object.keys(tableMap))
     var retVal = {}
     Object.keys(namedRangeMap).forEach(function(tableName) {
+      var tableConfig = tableMap[tableName]
+      var globalTriggerRanges = TableRangeUtils_.getExternalTableRanges(ss, tableConfig)
       var namedRange = namedRangeMap[tableName]
-      if (TableRangeUtils_.doRangesIntersect(range, namedRange.getRange())) {
-        retVal[tableName] = TableRangeUtils_.shallowCopy(tableMap[tableName])
-        if (addRange) {
-          retVal[tableName].activeRange = namedRange.getRange()
+      var allRangesToTest = globalTriggerRanges.concat([ namedRange.getRange() ])
+      for (rangeToTestIndex in allRangesToTest) {
+        var rangeToTest = allRangesToTest[rangeToTestIndex]
+        if (TableRangeUtils_.doRangesIntersect(range, rangeToTest)) {
+          retVal[tableName] = TableRangeUtils_.shallowCopy(tableConfig)
+          if (addRange) {
+            retVal[tableName].activeRange = namedRange.getRange()
+          }
+          break //(no more checks needed, match gets qualified in calling method)
         }
       }
     })
