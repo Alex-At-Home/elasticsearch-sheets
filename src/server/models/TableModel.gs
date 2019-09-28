@@ -7,13 +7,14 @@ var defaultTableConfig_ = {
 //        "timed": false,
 //        "refresh_s": 60
 //     },
+//TODO: have content_global_triggers AND control_global_triggers
      "global_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to refresh the table
      "query": {
 //       "index_pattern": "tbd",
        "source": "none",
 //,       //^points to field to use ("global", "local")
        "global": {
-          "range_name": "sheet!range"
+          "range_name": "[sheet!]range"
        },
         "local": {
            "position": "top" //(or "bottom")
@@ -31,8 +32,11 @@ var defaultTableConfig_ = {
        }
      },
      "status": {
-        "position": "top", //(or "bottom", "none")
-        "merge": false //(if false will be its own separate line, else will merge with query/pagination if they exist)
+        "position": "top", //(or "bottom", "none", "global")
+        "merge": false, //(if false will be its own separate line, else will merge with query/pagination if they exist)
+        "global": {
+           "range_name": "[sheet!]range"
+        }
      },
      "headers": {
         "position": "top", //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"

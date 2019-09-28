@@ -169,7 +169,10 @@ var ElasticsearchRequestUtils_ = (function() {
               statusCells.merge()
               break
         }
-     }
+      } else if (!testMode) { // Check for global status
+        var ss = SpreadsheetApp.getActive()
+        TableRangeUtils_.handleGlobalStatusInfo(ss, statusInfo, tableConfig)
+      }
 
      // Headers
 

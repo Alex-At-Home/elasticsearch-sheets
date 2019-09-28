@@ -388,6 +388,24 @@
        : null //(see above: also support named ranges, cf getJsonLookup)
    }
 
+   /** Utility function to write global status info out - returns true iff status _is_ global */
+   function handleGlobalStatusInfo(ss, statusInfo, tableConfig) {
+     if ( //Global query, get from its external location:
+       "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "status", "position" ])
+     ) {
+       var globalSourceRef = TableRangeUtils_.getJson(
+         tableConfig, [ "common", "status", "global", "range_name" ]
+       )
+       var globalSourceRange = globalSourceRef ?
+         TableRangeUtils_.getRangeFromName(ss, globalSourceRef) : null
+       if (globalSourceRange) {
+         globalSourceRange.getCell(1, 1).setValue(statusInfo)
+         return true
+       }
+     }
+     return false
+   }
+
    ////////////////////////////////////////////////////////
 
    // 3] Internal utils
@@ -438,6 +456,7 @@
      doRangesIntersect: doRangesIntersect,
      getExternalTableRanges: getExternalTableRanges,
      getRangeFromName: getRangeFromName,
+     handleGlobalStatusInfo: handleGlobalStatusInfo,
 
      TESTONLY: {
 

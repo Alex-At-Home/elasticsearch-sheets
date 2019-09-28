@@ -121,7 +121,10 @@
          },
          "status": {
                "position": "none",
-               "merge": false
+               "merge": false,
+               "global": {
+                 "range_name": "TBD"
+               }
          },
          "formatting": {
             "theme": "minimal"
@@ -130,6 +133,7 @@
 
       var defaultA1Notation = "A1:E10"
       var externalQueryNotation = "H20:H20"
+      var externalStatusNotation = "J22"
 
       TestService_.Utils.performTest(testResults, "no_special_rows_plus_check_es_meta", function() {
          var tableConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
@@ -217,7 +221,7 @@
         "pagination_status": { status: "bottom", merge: true, noteMode: 3 },
         "pagination_status_test": { status: "bottom", merge: true, testMode: true, noteMode: 3 },
         "query_status_pagination_nomerge": { status: "bottom", merge: false, noteMode: 4 },
-        "global_query": { noteMode: 4 }
+        "global_query_global_status": { noteMode: 4 }
       }
 
       var testRunner = function(testName, testConfig) { TestService_.Utils.performTest(testResults, testName, function() {
@@ -229,9 +233,10 @@
          var testMode = testConfig.testMode
 
          var globalQuery = testName.indexOf("global_query") >= 0
+         var globalStatus = testName.indexOf("global_status") >= 0
          var includeQueryBar = !globalQuery && testName.indexOf("query") >= 0
          var includePagination = testName.indexOf("pagination") >= 0
-         var includeStatus = testName.indexOf("status") >= 0
+         var includeStatus = !globalStatus && testName.indexOf("status") >= 0
 
          // Note tests:
          // 1: add note, replaces no note
@@ -284,6 +289,10 @@
             tableConfig.common.pagination.source = "local"
          }
          var statusPosition = { }
+         if (globalStatus) {
+           tableConfig.common.status.position = "global"
+           tableConfig.common.status.global.range_name = externalStatusNotation
+         }
          if (includeStatus) {
             if (!testConfig.merge) {
                expectedDataSize--
@@ -386,6 +395,14 @@
                 TestService_.Utils.assertEquals(cellFontWeight, range.getCell(pagePosition.row, pagePosition.col - 1).getFontWeight(), "page text format" + extraTestCaseConfig)
                 TestService_.Utils.assertEquals(expectedPage, range.getCell(pagePosition.row, pagePosition.col).getValue(), "page value" + extraTestCaseConfig)
               }
+           }
+           if (globalStatus) {
+             var statusShouldBePending = testSheet.getRange(externalStatusNotation).getValue()
+             if (testMode) {
+               TestService_.Utils.assertEquals("", statusShouldBePending, "status value: " + statusShouldBePending + extraTestCaseConfig)
+             } else {
+               TestService_.Utils.assertEquals(true, 0 == statusShouldBePending.indexOf("PENDING"), "status value: " + statusShouldBePending + extraTestCaseConfig)
+             }
            }
            if (includeStatus) {
              var statusShouldBePending = range.getCell(statusPosition.row, statusPosition.col).getValue()
