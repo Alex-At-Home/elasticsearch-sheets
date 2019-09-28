@@ -42,7 +42,7 @@ var defaultTableConfig_ = {
         "position": "top", //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
         "field_filters": [
           "# eg -x.*.y / +x.y (start with -s where possible)",
-          "# pre-built groups: $$<name>",
+          "# pre-built groups: $$<name> ($$skipN for blank cols)",
           "#(note fields are laid out in match order)"
         ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else * for full wildcard)
         "exclude_filtered_fields_from_autocomplete": true,
