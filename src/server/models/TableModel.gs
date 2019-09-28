@@ -7,8 +7,8 @@ var defaultTableConfig_ = {
 //        "timed": false,
 //        "refresh_s": 60
 //     },
-//TODO: have content_global_triggers AND control_global_triggers
-     "global_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to refresh the table
+     "global_content_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to mark the table as edited
+     "global_control_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to refresh the table
      "query": {
 //       "index_pattern": "tbd",
        "source": "none",

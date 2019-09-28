@@ -174,7 +174,8 @@ var TableService_ = (function(){
     var retVal = {}
     Object.keys(namedRangeMap).forEach(function(tableName) {
       var tableConfig = tableMap[tableName]
-      var globalTriggerRanges = TableRangeUtils_.getExternalTableRanges(ss, tableConfig)
+      var globalTriggerRanges =
+        TableRangeUtils_.getExternalTableRanges(ss, tableConfig, /*controlOnly*/false)
       var namedRange = namedRangeMap[tableName]
       var allRangesToTest = globalTriggerRanges.concat([ namedRange.getRange() ])
       for (rangeToTestIndex in allRangesToTest) {

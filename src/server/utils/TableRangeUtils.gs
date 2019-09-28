@@ -357,8 +357,12 @@
    /** For a given table, returns a list of ranges that the table monitors
     *  and treats like control changes
     */
-   function getExternalTableRanges(ss, tableConfig) {
-     var globalTriggers = TableRangeUtils_.getJson(tableConfig, [ "common", "global_triggers" ]) || []
+   function getExternalTableRanges(ss, tableConfig, controlOnly) {
+     var globalControlTriggers =
+      (TableRangeUtils_.getJson(tableConfig, [ "common", "global_control_triggers" ]) || [])
+     var globalContentTriggers = !controlOnly ?
+      (TableRangeUtils_.getJson(tableConfig, [ "common", "global_content_triggers" ]) || []) : []
+     var globalTriggers = globalControlTriggers.concat(globalContentTriggers)
      var isGlobalQuery = "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "query", "source" ])
      var globalQuery = TableRangeUtils_.getJson(tableConfig, [ "common", "query", "global", "range_name" ])
      if (isGlobalQuery) {

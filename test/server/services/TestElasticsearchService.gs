@@ -560,7 +560,8 @@
      contentConfig.trigger = "content_change"
 
      var triggerConfig = TestService_.Utils.deepCopyJson(baseTableConfig)
-     triggerConfig.common.global_triggers = [ "B25:C25" ]
+     triggerConfig.common.global_control_triggers = [ "B25:C25" ]
+     triggerConfig.common.global_content_triggers = [ testSheet.getName() + "!H25:H26" ]
      triggerConfig.common.query.source = "global"
      triggerConfig.common.query.global.range_name = "A25"
      triggerConfig.trigger = "control_change"
@@ -676,7 +677,9 @@
          { p: 1, s: "AWAITING REFRESH", t: "control_change"}, resultsB[0], "tableB1=[" + resultsB[1] + "]"
        )
 
-       // Other global triggers
+       // Other global triggers:
+
+       // Control:
        resetTables()
        ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(triggerConfig))
        testSheet.getRange("G1").setValue("test status") //(no query bar)
@@ -688,6 +691,20 @@
        var resultsB = getResults("testb", "F1:J5", "G1", "G5")
        TestService_.Utils.assertEquals(
          { p: 1, s: "AWAITING REFRESH", t: "control_change"}, resultsB[0], "tableB2=[" + resultsB[1] + "]"
+       )
+
+       // Content:
+       resetTables()
+       ManagementService_.updateSavedObject("testb", TableRangeUtils_.shallowCopy(triggerConfig))
+       testSheet.getRange("G1").setValue("test status") //(no query bar)
+       var changeEvent = { range: testSheet.getRange("H25:H26") }
+       var retVal = ElasticsearchService_.handleContentUpdates(changeEvent, /*triggerOverride*/null)
+       TestService_.Utils.assertEquals(
+         0, retVal, "check handleContentUpdates return value (triggerConfig, test 3)"
+       )
+       var resultsB = getResults("testb", "F1:J5", "G1", "G5")
+       TestService_.Utils.assertEquals(
+         { p: 2, s: "HAND EDITED", t: ""}, resultsB[0], "tableB3=[" + resultsB[1] + "]"
        )
      })
    }

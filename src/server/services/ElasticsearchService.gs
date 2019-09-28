@@ -340,7 +340,8 @@ var ElasticsearchService_ = (function() {
           })
 
         // Also handle any global triggers (including queries):
-        var globalTriggerRanges = TableRangeUtils_.getExternalTableRanges(ss, tableConfig)
+        var globalTriggerRanges =
+          TableRangeUtils_.getExternalTableRanges(ss, tableConfig, /*controlOnly*/true)
         modifiedOffsets = modifiedOffsets.concat(
           globalTriggerRanges.filter(function(triggerRange) {
             return TableRangeUtils_.doRangesIntersect(event.range, triggerRange)
