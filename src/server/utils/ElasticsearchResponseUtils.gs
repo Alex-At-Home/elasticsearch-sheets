@@ -366,7 +366,8 @@ var ElasticsearchResponseUtils_ = (function() {
               var cell = range.getCell(specialRows.headers, i + 1)
               if (i < numDataCols) {
                  var nameOrAliasObj = fullCols[filteredCols[i]]
-                 var nameOrAlias = nameOrAliasObj.alias || nameOrAliasObj.name
+                 var nameOrAlias =
+                  (null != nameOrAliasObj.alias) ? nameOrAliasObj.alias : nameOrAliasObj.name
                  cell.setValue(nameOrAlias)
               } else {
                  cell.clearContent()
@@ -402,13 +403,17 @@ var ElasticsearchResponseUtils_ = (function() {
               if (i < numDataCols) {
                  if (rowIsArray) {
                    var index = fullCols[filteredCols[i]].index
-                   colArray.push(row[index])
+                   if (index < row.size) {
+                     colArray.push(row[index])
+                   } else {
+                     colArray.push("") //(probably a skip col)
+                   }
                  } else {
                    var colName = fullCols[filteredCols[i]].name
                    if (row.hasOwnProperty(colName)) {
                      colArray.push(row[colName])
                    } else {
-                      colArray.push("")
+                      colArray.push("") //(probably a skip col)
                    }
                  }
               } else {
@@ -553,12 +558,21 @@ var ElasticsearchResponseUtils_ = (function() {
       isFieldWanted_(mutableCol.name, fieldFilters, onMatch)
     })
 
+    //Add any $$skipN from the field filters to the mutableCols
+    fieldFilters.filter(function(fieldFilter) {
+      return fieldFilter.indexOf("$$skip") == 0
+    }).forEach(function(fieldFilter) {
+      var index = mutableCols.length
+      var col = { alias: "", name: fieldFilter, index: index }
+      matchState[fieldFilter] = [ col ]
+      mutableCols.push(col)
+    })
+
     // Order within each group and apply aliases at the same time
     var globalList = []
     fieldFilters.concat([ defaultMatchField ]).forEach(function(fieldFilter) {
       var fields = matchState[fieldFilter] || []
       var startOfList = []
-      var endOfList = []
       fieldAliases.forEach(function(alias) {
         fields.forEach(function(mutableCol) {
           if (mutableCol.name == alias.from) {
@@ -598,8 +612,7 @@ var ElasticsearchResponseUtils_ = (function() {
           ).replace(
             "$$docmeta_fields", "/^(_id|_index|_score|_type)$/"
           )
-      })
-      .forEach(function(elArrayStr) {
+      }).forEach(function(elArrayStr) {
         ((elArrayStr.indexOf("/") >= 0)
           ? [ elArrayStr ] //(1 regex per line)
           : elArrayStr.split(","))
@@ -607,16 +620,20 @@ var ElasticsearchResponseUtils_ = (function() {
             .filter(function(el) { return el && ('+' != el) && ('-' != el) })
             .filter(function(el) { return el })
             .forEach(function(el) {
-              var firstEl = ('-' == el[0]) ? '-' : '+'
-              if (('+' == el[0]) || ('-' == el[0])) {
-                el = el.substring(1)
-              }
-              if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
-                el = el.substring(1, el.length - 1)
+              if (0 == el.indexOf("$$skip")) {
+                filterFields.push(el)
               } else {
-                el = "^" + escapeRegExpNotStar(el).replace(/[*]/g, ".*") + "($|[.].*)"
+                var firstEl = ('-' == el[0]) ? '-' : '+'
+                if (('+' == el[0]) || ('-' == el[0])) {
+                  el = el.substring(1)
+                }
+                if (('/' == el[0]) && ('/' == el[el.length - 1])) { //already a regex
+                  el = el.substring(1, el.length - 1)
+                } else {
+                  el = "^" + escapeRegExpNotStar(el).replace(/[*]/g, ".*") + "($|[.].*)"
+                }
+                filterFields.push(firstEl + el)
               }
-              filterFields.push(firstEl + el)
             })
       })
     return filterFields

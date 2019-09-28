@@ -88,8 +88,10 @@ var TestElasticsearchResponseUtils_ = (function() {
     TestService_.Utils.performTest(testResults, "various_usages", function() {
       var filters1 = [
         "/col[34]/",
+        "$$skip1",
         "+/col[12][ab]?/",
-        "-filter_out"
+        "-filter_out",
+        "$$skip2"
       ]
       var testCols = [
         { name: "col1" }, //there will match on group2
@@ -100,6 +102,7 @@ var TestElasticsearchResponseUtils_ = (function() {
         { name: "col4" }
       ]
       var aliases = [
+        "$$skip2=Blank",
         "col4=Column4",
         "col2b=Column2b",
         "col2a=Column2a",
@@ -112,15 +115,15 @@ var TestElasticsearchResponseUtils_ = (function() {
         "col1", "Column2a", "Column2b", "col3", "filter_out", "Column4"
       ]
       var testCols1 = TestService_.Utils.deepCopyJson(testCols)
-      var reorderedList = [ 5, 3, 2, 1, 0 ]
+      var reorderedList = [ 5, 3, 6, 2, 1, 0, 7 ] //(6 and 7 are the two skip fields)
       var result = ElasticsearchResponseUtils_.calculateFilteredCols(testCols1, headerMeta)
-      var renamed = testCols1.map(function(el) { return el.alias || el.name })
+      var renamed = testCols1.map(function(el) { return (null != el.alias) ? el.alias : el.name })
 
       TestService_.Utils.assertEquals(
         reorderedList, result, "column order (+ve and -ve)"
       )
       TestService_.Utils.assertEquals(
-        renamedTestCols, renamed, "column names (+ve and -ve)"
+        renamedTestCols.concat("", "Blank"), renamed, "column names (+ve and -ve)"
       )
 
       // Check no field filters
@@ -137,8 +140,8 @@ var TestElasticsearchResponseUtils_ = (function() {
         renamedTestCols, renamed, "column names (no field filters)"
       )
 
-      // Check no field aliases
-      headerMeta.field_filters = filters1
+      // Check no field aliases (+remove skip indices)
+      headerMeta.field_filters = filters1.filter(function(x) { return x.indexOf("$$skip") != 0 })
       headerMeta.field_aliases = []
 
       var testCols3 = TestService_.Utils.deepCopyJson(testCols)
