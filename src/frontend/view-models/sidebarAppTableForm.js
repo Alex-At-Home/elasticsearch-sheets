@@ -104,7 +104,6 @@ var TableForm = (function() {
     }//(endif standaloneEdit)
 
     var panelHeader = ''
-    var panelHeader = ''
     var panelInOrOut = standaloneEdit ? 'in' : 'out'
     if (!standaloneEdit) {
       panelHeader = `
