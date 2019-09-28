@@ -166,7 +166,7 @@ var TestElasticsearchResponseUtils_ = (function() {
       }
       var mr1 = { "name": "mr1" }
       if (!config.mr_enabled) {
-        mr1.field_filter = "-**"
+        mr1.field_filter = "-*"
       }
       var m2 = { "name": "m2", "field_filter": "-stat2.filter_out" }
       if (config.alt_filter) {

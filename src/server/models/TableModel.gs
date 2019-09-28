@@ -7,35 +7,36 @@ var defaultTableConfig_ = {
 //        "timed": false,
 //        "refresh_s": 60
 //     },
+     "global_content_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to mark the table as edited
+     "global_control_triggers": [], //array of ranges ("sheet!range") to include when deciding whether to refresh the table
      "query": {
 //       "index_pattern": "tbd",
        "source": "none",
-        //, //points to field to use ("global", "local", "fixed") .. NOT_SUPPORTED: "global", "fixed"
-//        "global": {
-//           "range_name": "tbd"
-//        },
+//,       //^points to field to use ("global", "local")
+       "global": {
+          "range_name": "[sheet!]range"
+       },
         "local": {
-           "position": "top" //(or "bottom" ... NOT_SUPPORTED: "bottom")
+           "position": "top" //(or "bottom")
         }
-        //,
-//        "fixed": {
-//           "string": "{} or SQL or lucene"
-//        }
      },
      "pagination": {
         "source": "none",
-        //, //points to field to use ("global", "local", "fixed") .. NOT_SUPPORTED: "global", "fixed"
+        //, //points to field to use ("global", "local") .. NOT_SUPPORTED: "global"
 //       "global": {
 //          "enabled": false,
 //          "range_name": "tbd"
 //       },
        "local": {
-          "position": "bottom" //(or "top") .. NOT_SUPPORTED: "top"
+          "position": "bottom" //(or "top")
        }
      },
      "status": {
-        "position": "top", //(or "bottom", "none")
-        "merge": false //(if false will be its own separate line, else will merge with query/pagination if they exist)
+        "position": "top", //(or "bottom", "none", "global")
+        "merge": false, //(if false will be its own separate line, else will merge with query/pagination if they exist)
+        "global": {
+           "range_name": "[sheet!]range"
+        }
      },
      "headers": {
         "position": "top", //(or "bottom", "top_bottom", "none") .. NOT_SUPPORTED: "bottom", "top_bottom"
@@ -43,12 +44,12 @@ var defaultTableConfig_ = {
           "# eg -x.*.y / +x.y (start with -s where possible)",
           "# pre-built groups: $$<name>",
           "#(note fields are laid out in match order)"
-        ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
+        ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else * for full wildcard)
         "exclude_filtered_fields_from_autocomplete": true,
         "autocomplete_filters": [ //(only affects autocomplete - eg for aggregations)
           "# eg x, -x.*.y, +x.y (start with -s if possible)",
           "# pre-built groups: $$<name>"
-        ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else */** for single/multi path wildcard)
+        ], //(# to ignore an entry, [+-] to be +ve/-ve selection, // for regex else * for full wildcard)
         "field_aliases": [
           "#field.path=Alias To Use",
           "#(note fields are laid out in order within filter matches)"
@@ -58,9 +59,9 @@ var defaultTableConfig_ = {
         "include_note": true, //(adds a note to the top left of each table with the name)
         "theme": "minimal" //(or "none", in the future: "default", etc)
      },
-     "skip": {
-        "rows": "", //comma-separated list of offsets
-        "cols": "", //comma-separated list of offsets
+     "skip": { //NOT_SUPPORTED
+//        "rows": "", //comma-separated list of offsets
+//        "cols": "", //comma-separated list of offsets
      }
      //,
 //     "rotated": false, //(left-to-right instead of top-to-bottom)
@@ -86,7 +87,7 @@ var defaultTableConfig_ = {
       "size": "$$pagination_size",
       "_source": "$$field_filters"
     },
-    "script_fields": [] 
+    "script_fields": []
     // format is {
     //  name: "string", // the name used in the output column
     //  source: "string", // the script itself

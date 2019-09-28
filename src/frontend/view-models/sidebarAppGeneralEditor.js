@@ -19,6 +19,7 @@ var GeneralEditor = (function(){
     <option value='none'>Disabled</option>
     <option value='top'>Top</option>
     <option value='bottom'>Bottom</option>
+    <option value='global'>Cell Reference (use Advanced)</option>
     </select>
     </div>
     `
@@ -61,6 +62,7 @@ var GeneralEditor = (function(){
     <option value='top'>Top</option>
     <option value='bottom'>Bottom</option>
     <option value='none'>Disabled</option>
+    <option value='global'>Cell Reference (use Advanced)</option>
     </select>
     <div class="checkbox">
     <label><input type="checkbox" id="status_merge_${tableType}_${index}">Merge with query/pagination rows</label>
@@ -110,6 +112,8 @@ var GeneralEditor = (function(){
       var querySource = Util.getJson(json, ["common", "query", "source"]) || "none"
       if (querySource == "none") {
         $(`#querybar_${tableType}_${index}`).val("none")
+      } else if (querySource == "global") {
+        $(`#querybar_${tableType}_${index}`).val("global")
       } else {
         var localQueryPos = Util.getJson(json, ["common", "query", "local", "position"]) || "none"
         $(`#querybar_${tableType}_${index}`).val(localQueryPos)
@@ -162,9 +166,13 @@ var GeneralEditor = (function(){
         var thisValue = this.value
         Util.updateRawJsonNow(globalEditor, function(currJson) {
           var query = Util.getOrPutJsonObj(currJson, [ "common", "query" ])
-          query.source = (thisValue == "none") ? "none" : "local" // (only supported option currently)
-          var localQuery = Util.getOrPutJsonObj(currJson, [ "common", "query", "local" ])
-          localQuery.position = thisValue
+          if (("none" == thisValue) || ("global" == thisValue)) {
+            query.source = thisValue
+          } else {
+            query.source = "local"
+            var localQuery = Util.getOrPutJsonObj(currJson, [ "common", "query", "local" ])
+            localQuery.position = thisValue
+          }
         })
       })
     }

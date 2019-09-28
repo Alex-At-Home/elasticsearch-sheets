@@ -195,7 +195,7 @@ var ElasticsearchResponseUtils_ = (function() {
   if (debugMode && debugModeSwallowException) debug.push("ERROR: [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], "); else
               throw new Error(
                     "By policy, only allowed a single chain of nested aggregations - [" + arrayFieldChain + "] vs [" + mutableState.bottom_path + "], " +
-                    "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-**'"
+                    "if you need intermediate buckets you can filter them out by setting 'filter_field' to '-' or '-*'"
               )
            } else if (!mutableState.bottom_path) {
               mutableState.bottom_path = arrayFieldChain
@@ -325,14 +325,16 @@ var ElasticsearchResponseUtils_ = (function() {
     json, rows, fullCols,
     supportsSize, numHits, numHitsOperator
   ) {
-    var ss = SpreadsheetApp.getActive()
-    var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
-    var range = null
-    if (null == tableRange) { //(use current selection, test mode
+     var ss = SpreadsheetApp.getActive()
+     var tableRange = TableRangeUtils_.findTableRange(ss, tableName)
+     var range = null
+     if (null == tableRange) { //(use current selection, test mode
        range = ss.getActiveRange()
-    } else {
-       range = tableRange.getRange()
-    }
+     } else {
+        range = tableRange.getRange()
+     }
+     var globalStatus =
+       "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "status", "position" ])
 
      if (null != json.response) {
         /** Apply the global filters to the cols and re-order as desired */
@@ -490,13 +492,13 @@ var ElasticsearchResponseUtils_ = (function() {
         }
 
         // Write warnings to status (never to toaster)
-        if (context.table_meta.status_offset) {
+        if (context.table_meta.status_offset || globalStatus) {
            var warningText = ""
            if (warnings.length > 0) {
               warningText = ": (WARNINGS = " + warnings.map(function(x) { return "[" + x + "]" }).join(", ") + ")"
            }
            setQueryResponseInStatus_(range, context.table_meta.status_offset,
-             "SUCCESS [" + TableRangeUtils_.formatDate() + "]" + warningText)
+             "SUCCESS [" + TableRangeUtils_.formatDate() + "]" + warningText, tableConfig)
         }
      } else if (null != json.error_message) {
         // Write errors to status or toaster
@@ -505,8 +507,8 @@ var ElasticsearchResponseUtils_ = (function() {
           :
           "ERROR [" + TableRangeUtils_.formatDate() + "]" + ": status = [" + json.status + "], msg = [" + json.error_message + "], query = [" + json.query_string + "]"
 
-        if (context.table_meta.status_offset) {
-           setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError)
+        if (context.table_meta.status_offset || globalStatus) {
+           setQueryResponseInStatus_(range, context.table_meta.status_offset, requestError, tableConfig)
         } else { // pop up toaster
            showStatus("[" + tableName + "]: " + requestError, "Query Error")
         }
@@ -685,8 +687,11 @@ var ElasticsearchResponseUtils_ = (function() {
   }
 
   /** Adds the error info the status, if necessary */
-  function setQueryResponseInStatus_(range, statusLocation, errorString) {
-     range.getCell(statusLocation.row, statusLocation.col).setValue(errorString)
+  function setQueryResponseInStatus_(range, statusLocation, errorString, tableConfig) {
+    var ss = SpreadsheetApp.getActive()
+     if (!TableRangeUtils_.handleGlobalStatusInfo(ss, errorString, tableConfig)) {
+       range.getCell(statusLocation.row, statusLocation.col).setValue(errorString)
+     }
   }
 
   ////////////////////////////////////////////////////////

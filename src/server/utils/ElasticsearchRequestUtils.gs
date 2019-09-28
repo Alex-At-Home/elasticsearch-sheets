@@ -122,6 +122,18 @@ var ElasticsearchRequestUtils_ = (function() {
               break
         }
         retVal.query_offset = { row: queryRow, col: 2 }
+     } else if ( //Global query, get from its external location:
+       "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "query", "source" ])
+     ) {
+       var ss = SpreadsheetApp.getActive()
+       var globalQueryRef = TableRangeUtils_.getJson(
+         tableConfig, [ "common", "query", "global", "range_name" ]
+       )
+       var globalQueryRange = globalQueryRef ?
+         TableRangeUtils_.getRangeFromName(ss, globalQueryRef) : null
+       if (globalQueryRange) {
+         retVal.query = globalQueryRange.getCell(1, 1).getValue()
+       }
      }
 
      // Status (if not merged)
@@ -157,7 +169,10 @@ var ElasticsearchRequestUtils_ = (function() {
               statusCells.merge()
               break
         }
-     }
+      } else if (!testMode) { // Check for global status
+        var ss = SpreadsheetApp.getActive()
+        TableRangeUtils_.handleGlobalStatusInfo(ss, statusInfo, tableConfig)
+      }
 
      // Headers
 
