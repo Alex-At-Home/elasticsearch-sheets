@@ -403,7 +403,7 @@ var ElasticsearchResponseUtils_ = (function() {
               if (i < numDataCols) {
                  if (rowIsArray) {
                    var index = fullCols[filteredCols[i]].index
-                   if (index < row.size) {
+                   if (index < row.length) {
                      colArray.push(row[index])
                    } else {
                      colArray.push("") //(probably a skip col)
