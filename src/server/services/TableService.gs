@@ -64,7 +64,7 @@ var TableService_ = (function(){
     var tableConfigs = ManagementService_.listSavedObjects(/*discardRange=*/true)
     if (!tableConfigs.hasOwnProperty(ManagementService_.getDefaultKeyName())) {
       ManagementService_.addSavedObject(ManagementService_.getDefaultKeyName(), {})
-      return ManagementService_.listSavedObjects(/*discardRange=*/true)
+      return listTableConfigs()
     } else {
       Object.keys(tableConfigs).forEach(function(key) {
         delete tableConfigs[key].temp_trigger //(don't expose these)

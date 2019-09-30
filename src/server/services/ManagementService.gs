@@ -138,6 +138,11 @@ var ManagementService_ = (function(){
         //(col 'c' stores temp objects)
         //(col 'd' reveals a tables update status)
         //(col 'e' is the time it was last updated)
+
+    //(ensure we never accidentally write temp_trigger into a saved object, because
+    // all hell will break lose if we do)
+    delete configJson.temp_trigger
+        
     var tableChangeUnlessDefaultObj =
       (defaultTableConfigKey_ == name) ? "" : "config_change" //(this is the default object being created)
     range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", tableChangeUnlessDefaultObj, TableRangeUtils_.formatDate() ] ])
@@ -200,6 +205,10 @@ var ManagementService_ = (function(){
         delete configJson.temp
         delete configJson.name
 
+        //(ensure we never accidentally write temp_trigger into a saved object, because
+        // all hell will break lose if we do)
+        delete configJson.temp_trigger
+
         range.setValues([ [ name, jsonOrEncoded_(name, configJson), "", "", "" ] ])
        return true
     } else {
@@ -223,6 +232,10 @@ var ManagementService_ = (function(){
            if (tempName && (defaultTableConfigKey_ != tempName)) {
               configJson.name = tempName //(insert name in case it's different)
            }
+           //(ensure we never accidentally write temp_trigger into a saved object, because
+           // all hell will break lose if we do)
+           delete configJson.temp_trigger
+
            range.setValue(jsonOrEncoded_(name, configJson))
         } else {
            range.setValue("")
