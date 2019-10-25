@@ -168,15 +168,15 @@ var TableService_ = (function(){
   */
   function findTablesIntersectingRange(range, addRange) {
     var ss = SpreadsheetApp.getActive()
-    var currRange = ss.getActiveRange()
     var tableMap = ManagementService_.listSavedObjects()
     var namedRangeMap = TableRangeUtils_.listTableRanges(ss, Object.keys(tableMap))
     var retVal = {}
     Object.keys(namedRangeMap).forEach(function(tableName) {
       var tableConfig = tableMap[tableName]
-      var globalTriggerRanges =
-        TableRangeUtils_.getExternalTableRanges(ss, tableConfig, /*controlOnly*/false)
       var namedRange = namedRangeMap[tableName]
+      var globalTriggerRanges = TableRangeUtils_.getExternalTableRanges(
+        namedRange.getRange().getSheet(), tableConfig, /*controlOnly*/false
+      )
       var allRangesToTest = globalTriggerRanges.concat([ namedRange.getRange() ])
       for (rangeToTestIndex in allRangesToTest) {
         var rangeToTest = allRangesToTest[rangeToTestIndex]

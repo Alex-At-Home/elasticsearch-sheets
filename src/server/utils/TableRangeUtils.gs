@@ -357,7 +357,7 @@
    /** For a given table, returns a list of ranges that the table monitors
     *  and treats like control changes
     */
-   function getExternalTableRanges(ss, tableConfig, controlOnly) {
+   function getExternalTableRanges(sheet, tableConfig, controlOnly) {
      var globalControlTriggers =
       (TableRangeUtils_.getJson(tableConfig, [ "common", "global_control_triggers" ]) || [])
      var globalContentTriggers = !controlOnly ?
@@ -369,7 +369,7 @@
        globalTriggers = globalTriggers.concat([ globalQuery ])
      }
      return globalTriggers.map(function(rangeOrNotation) {
-       return getRangeFromName(ss, rangeOrNotation)
+       return getRangeFromName(sheet, rangeOrNotation)
      }).filter(function(range) {
        return range != null
      })
@@ -378,22 +378,22 @@
    /** Returns the range from a range notation
     * TODO: needs to be able to handle named ranges (see getJsonLookup)
    */
-   function getRangeFromName(ss, rangeOrNotation) {
-     var isNotation =
-      rangeOrNotation.indexOf(":") >= 0 || /^[A-Z]+[0-9]+$/.exec(rangeOrNotation)
+   function getRangeFromName(sheet, rangeOrNotation) {
      var isFullNotation = rangeOrNotation.indexOf("!") >= 0
+     var isNotation = isFullNotation ||
+      (rangeOrNotation.indexOf(":") >= 0 || /^[A-Z]+[0-9]+$/.exec(rangeOrNotation))
 
      return isNotation ?
        (isFullNotation ?
-         ss.getRange(rangeOrNotation)
+         sheet.getParent().getRange(rangeOrNotation)
          :
-         ss.getActiveSheet().getRange(rangeOrNotation)
+         sheet.getRange(rangeOrNotation)
        )
        : null //(see above: also support named ranges, cf getJsonLookup)
    }
 
    /** Utility function to write global status info out - returns true iff status _is_ global */
-   function handleGlobalStatusInfo(ss, statusInfo, tableConfig) {
+   function handleGlobalStatusInfo(sheet, statusInfo, tableConfig) {
      if ( //Global query, get from its external location:
        "global" == TableRangeUtils_.getJson(tableConfig, [ "common", "status", "position" ])
      ) {
@@ -401,7 +401,7 @@
          tableConfig, [ "common", "status", "global", "range_name" ]
        )
        var globalSourceRange = globalSourceRef ?
-         TableRangeUtils_.getRangeFromName(ss, globalSourceRef) : null
+         TableRangeUtils_.getRangeFromName(sheet, globalSourceRef) : null
        if (globalSourceRange) {
          globalSourceRange.getCell(1, 1).setValue(statusInfo)
          return true

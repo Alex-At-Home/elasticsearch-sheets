@@ -705,8 +705,7 @@ var ElasticsearchResponseUtils_ = (function() {
 
   /** Adds the error info the status, if necessary */
   function setQueryResponseInStatus_(range, statusLocation, errorString, tableConfig) {
-    var ss = SpreadsheetApp.getActive()
-     if (!TableRangeUtils_.handleGlobalStatusInfo(ss, errorString, tableConfig)) {
+     if (!TableRangeUtils_.handleGlobalStatusInfo(range.getSheet(), errorString, tableConfig)) {
        range.getCell(statusLocation.row, statusLocation.col).setValue(errorString)
      }
   }
