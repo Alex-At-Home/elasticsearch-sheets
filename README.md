@@ -52,6 +52,10 @@ Alternatively, the following steps allow it to be built and used from source:
 * Click on the `Open Container` project to open a spreadsheet with the script attached (requires clicking through a bunch of permissions/disclaimers first time)
 * _To create multiple spreadsheets, rename the `elastic-sheets-project` multiple times, delete the `.clasp.json` inside the dir, and repeat the `clasp create <projectname>` and `sh build-elastic-sheets-project.sh` steps. Or just create copies of an existing spreadsheet._
 
+### Privacy Policy
+
+If you are using the Google Sheets add-on version of this in the marketplace (or in fact any of the ways of deploying this), please note I do not nor will I ever store or export any user data from your account. This section is added for compliance with the [Google API terms of service](https://developers.google.com/terms/api-services-user-data-policy).
+
 ## Testing
 
 To run the unit/integration tests:
